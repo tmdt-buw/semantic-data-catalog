@@ -7,6 +7,7 @@ import {
   getSolidDataset,
   getSolidDatasetWithAcl,
   getContainedResourceUrlAll,
+  getFileWithAcl,
   getStringNoLocale,
   getStringWithLocaleAll,
   getThing,
@@ -392,8 +393,20 @@ const ensureContainer = async (containerUrl, fetch) => {
   }
 };
 
+const getResourceWithAcl = async (url, fetch) => {
+  try {
+    return await getSolidDatasetWithAcl(url, { fetch });
+  } catch (datasetErr) {
+    try {
+      return await getFileWithAcl(url, { fetch });
+    } catch (fileErr) {
+      throw isNotFound(datasetErr) ? datasetErr : fileErr;
+    }
+  }
+};
+
 const getResourceAndAcl = async (url, fetch) => {
-  const resource = await getSolidDatasetWithAcl(url, { fetch });
+  const resource = await getResourceWithAcl(url, fetch);
   let resourceAcl;
   if (!hasResourceAcl(resource)) {
     if (!hasAccessibleAcl(resource)) {
@@ -406,16 +419,20 @@ const getResourceAndAcl = async (url, fetch) => {
   return { resource, resourceAcl };
 };
 
+const setPublicReadAccess = async (url, fetch, read) => {
+  const { resource, resourceAcl } = await getResourceAndAcl(url, fetch);
+  const updatedAcl = setPublicResourceAccess(resourceAcl, {
+    read,
+    append: false,
+    write: false,
+    control: false,
+  });
+  await saveAclFor(resource, updatedAcl, { fetch });
+};
+
 const makePublicReadable = async (url, fetch) => {
   try {
-    const { resource, resourceAcl } = await getResourceAndAcl(url, fetch);
-    const updatedAcl = setPublicResourceAccess(resourceAcl, {
-      read: true,
-      append: false,
-      write: false,
-      control: false,
-    });
-    await saveAclFor(resource, updatedAcl, { fetch });
+    await setPublicReadAccess(url, fetch, true);
   } catch (err) {
     console.warn("Failed to set public read ACL for", url, err);
   }
@@ -1260,6 +1277,30 @@ const addLdpTypeIfLocal = (solidDataset, webId, targetUrl) => {
   return setThing(solidDataset, resourceThing);
 };
 
+const isLocalPodResource = (webId, targetUrl) => {
+  if (!webId || !targetUrl) return false;
+  try {
+    return targetUrl.startsWith(getPodRoot(webId));
+  } catch {
+    return false;
+  }
+};
+
+const syncLinkedResourceAccess = async (session, input) => {
+  const urls = [input.access_url_dataset, input.access_url_semantic_model].filter(Boolean);
+  for (const url of urls) {
+    if (!isLocalPodResource(session?.info?.webId, url)) continue;
+    try {
+      await setPublicReadAccess(url, session.fetch, Boolean(input.is_public));
+    } catch (err) {
+      console.warn("Failed to sync linked resource ACL for", url, err);
+      if (input.is_public) {
+        throw new Error(`Failed to make linked resource public: ${url}`);
+      }
+    }
+  }
+};
+
 const writeDatasetDocument = async (session, datasetDocUrl, input) => {
   let solidDataset;
   try {
@@ -1312,6 +1353,7 @@ const writeDatasetDocument = async (session, datasetDocUrl, input) => {
     throw new Error(`Dataset write failed (${head.status})`);
   }
   await makePublicReadable(datasetDocUrl, session.fetch);
+  await syncLinkedResourceAccess(session, input);
 };
 
 const writeSeriesDocument = async (session, seriesDocUrl, input) => {

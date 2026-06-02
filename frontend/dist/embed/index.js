@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Box } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import { Session } from '@inrupt/solid-client-authn-browser';
-import { getSolidDataset, getThing, getUrl, getStringNoLocale, getUrlAll, getThingAll, createThing, removeAll, setStringNoLocale, addUrl, setUrl, setThing, saveSolidDatasetAt, createSolidDataset, setDatetime, deleteFile, getContainedResourceUrlAll, getStringWithLocaleAll, createContainerAt, setPublicResourceAccess, saveAclFor, getDatetime, getSolidDatasetWithAcl, hasResourceAcl, hasAccessibleAcl, createAclFromFallbackAcl, getResourceAcl, getFileWithAcl, getAgentAccess, overwriteFile } from '@inrupt/solid-client';
+import { getSolidDataset, getThing, getUrl, getStringNoLocale, getUrlAll, getThingAll, createThing, removeAll, setStringNoLocale, addUrl, setUrl, setThing, saveSolidDatasetAt, createSolidDataset, setDatetime, deleteFile, getContainedResourceUrlAll, getStringWithLocaleAll, createContainerAt, getDatetime, setPublicResourceAccess, saveAclFor, hasResourceAcl, hasAccessibleAcl, createAclFromFallbackAcl, getResourceAcl, getSolidDatasetWithAcl, getFileWithAcl, getAgentAccess, overwriteFile } from '@inrupt/solid-client';
 import { DCAT, RDF, DCTERMS, FOAF, VCARD, LDP } from '@inrupt/vocab-common-rdf';
 import require$$0 from 'buffer';
 import { Parser as Parser$1 } from 'n3';
@@ -3282,11 +3282,29 @@ var ensureContainer = /*#__PURE__*/function () {
     return _ref4.apply(this, arguments);
   };
 }();
-var getResourceAndAcl = /*#__PURE__*/function () {
+var getResourceWithAcl = /*#__PURE__*/function () {
   var _ref5 = _asyncToGenerator(function* (url, fetch) {
-    var resource = yield getSolidDatasetWithAcl(url, {
-      fetch
-    });
+    try {
+      return yield getSolidDatasetWithAcl(url, {
+        fetch
+      });
+    } catch (datasetErr) {
+      try {
+        return yield getFileWithAcl(url, {
+          fetch
+        });
+      } catch (fileErr) {
+        throw isNotFound(datasetErr) ? datasetErr : fileErr;
+      }
+    }
+  });
+  return function getResourceWithAcl(_x7, _x8) {
+    return _ref5.apply(this, arguments);
+  };
+}();
+var getResourceAndAcl = /*#__PURE__*/function () {
+  var _ref6 = _asyncToGenerator(function* (url, fetch) {
+    var resource = yield getResourceWithAcl(url, fetch);
     var resourceAcl;
     if (!hasResourceAcl(resource)) {
       if (!hasAccessibleAcl(resource)) {
@@ -3301,36 +3319,44 @@ var getResourceAndAcl = /*#__PURE__*/function () {
       resourceAcl
     };
   });
-  return function getResourceAndAcl(_x7, _x8) {
-    return _ref5.apply(this, arguments);
+  return function getResourceAndAcl(_x9, _x10) {
+    return _ref6.apply(this, arguments);
+  };
+}();
+var setPublicReadAccess = /*#__PURE__*/function () {
+  var _ref7 = _asyncToGenerator(function* (url, fetch, read) {
+    var {
+      resource,
+      resourceAcl
+    } = yield getResourceAndAcl(url, fetch);
+    var updatedAcl = setPublicResourceAccess(resourceAcl, {
+      read,
+      append: false,
+      write: false,
+      control: false
+    });
+    yield saveAclFor(resource, updatedAcl, {
+      fetch
+    });
+  });
+  return function setPublicReadAccess(_x11, _x12, _x13) {
+    return _ref7.apply(this, arguments);
   };
 }();
 var makePublicReadable = /*#__PURE__*/function () {
-  var _ref6 = _asyncToGenerator(function* (url, fetch) {
+  var _ref8 = _asyncToGenerator(function* (url, fetch) {
     try {
-      var {
-        resource,
-        resourceAcl
-      } = yield getResourceAndAcl(url, fetch);
-      var updatedAcl = setPublicResourceAccess(resourceAcl, {
-        read: true,
-        append: false,
-        write: false,
-        control: false
-      });
-      yield saveAclFor(resource, updatedAcl, {
-        fetch
-      });
+      yield setPublicReadAccess(url, fetch, true);
     } catch (err) {
       console.warn("Failed to set public read ACL for", url, err);
     }
   });
-  return function makePublicReadable(_x9, _x10) {
-    return _ref6.apply(this, arguments);
+  return function makePublicReadable(_x14, _x15) {
+    return _ref8.apply(this, arguments);
   };
 }();
 var setCatalogLinkInProfile = /*#__PURE__*/function () {
-  var _ref7 = _asyncToGenerator(function* (webId, catalogUrl, fetch) {
+  var _ref9 = _asyncToGenerator(function* (webId, catalogUrl, fetch) {
     if (!webId || !catalogUrl) return;
     var profileDocUrl = webId.split("#")[0];
     var profileDataset = yield getSolidDataset(profileDocUrl, {
@@ -3350,12 +3376,12 @@ var setCatalogLinkInProfile = /*#__PURE__*/function () {
       fetch
     });
   });
-  return function setCatalogLinkInProfile(_x11, _x12, _x13) {
-    return _ref7.apply(this, arguments);
+  return function setCatalogLinkInProfile(_x16, _x17, _x18) {
+    return _ref9.apply(this, arguments);
   };
 }();
 var loadRegistryConfig = /*#__PURE__*/function () {
-  var _ref8 = _asyncToGenerator(function* (webId, fetch) {
+  var _ref10 = _asyncToGenerator(function* (webId, fetch) {
     if (!webId || !fetch) {
       return {
         mode: "research",
@@ -3386,12 +3412,12 @@ var loadRegistryConfig = /*#__PURE__*/function () {
       };
     }
   });
-  return function loadRegistryConfig(_x14, _x15) {
-    return _ref8.apply(this, arguments);
+  return function loadRegistryConfig(_x19, _x20) {
+    return _ref10.apply(this, arguments);
   };
 }();
 var saveRegistryConfig = /*#__PURE__*/function () {
-  var _ref9 = _asyncToGenerator(function* (webId, fetch, config) {
+  var _ref11 = _asyncToGenerator(function* (webId, fetch, config) {
     if (!webId || !fetch) return;
     var profileDocUrl = webId.split("#")[0];
     var profileDataset = yield getSolidDataset(profileDocUrl, {
@@ -3421,33 +3447,33 @@ var saveRegistryConfig = /*#__PURE__*/function () {
       fetch
     });
   });
-  return function saveRegistryConfig(_x16, _x17, _x18) {
-    return _ref9.apply(this, arguments);
+  return function saveRegistryConfig(_x21, _x22, _x23) {
+    return _ref11.apply(this, arguments);
   };
 }();
 var ensureRegistryContainer = /*#__PURE__*/function () {
-  var _ref10 = _asyncToGenerator(function* (containerUrl, fetch) {
+  var _ref12 = _asyncToGenerator(function* (containerUrl, fetch) {
     yield ensureContainer(containerUrl, fetch);
     yield makePublicReadable(containerUrl, fetch);
   });
-  return function ensureRegistryContainer(_x19, _x20) {
-    return _ref10.apply(this, arguments);
+  return function ensureRegistryContainer(_x24, _x25) {
+    return _ref12.apply(this, arguments);
   };
 }();
 var ensurePrivateRegistryContainer = /*#__PURE__*/function () {
-  var _ref11 = _asyncToGenerator(function* (webId, fetch, privateRegistryUrl) {
+  var _ref13 = _asyncToGenerator(function* (webId, fetch, privateRegistryUrl) {
     if (!webId || !fetch) return "";
     var target = normalizeContainerUrl(privateRegistryUrl || buildDefaultPrivateRegistry(webId));
     if (!target) return "";
     yield ensureRegistryContainer(target, fetch);
     return target;
   });
-  return function ensurePrivateRegistryContainer(_x21, _x22, _x23) {
-    return _ref11.apply(this, arguments);
+  return function ensurePrivateRegistryContainer(_x26, _x27, _x28) {
+    return _ref13.apply(this, arguments);
   };
 }();
 var resolveRegistryConfig = /*#__PURE__*/function () {
-  var _ref12 = _asyncToGenerator(function* (webId, fetch, override) {
+  var _ref14 = _asyncToGenerator(function* (webId, fetch, override) {
     var base = override || (yield loadRegistryConfig(webId, fetch));
     var mode = (base === null || base === void 0 ? void 0 : base.mode) === "private" ? "private" : "research";
     var registries = ((base === null || base === void 0 ? void 0 : base.registries) || []).filter(Boolean);
@@ -3458,12 +3484,12 @@ var resolveRegistryConfig = /*#__PURE__*/function () {
       privateRegistry
     };
   });
-  return function resolveRegistryConfig(_x24, _x25, _x26) {
-    return _ref12.apply(this, arguments);
+  return function resolveRegistryConfig(_x29, _x30, _x31) {
+    return _ref14.apply(this, arguments);
   };
 }();
 var registerWebIdInRegistryContainer = /*#__PURE__*/function () {
-  var _ref13 = _asyncToGenerator(function* (containerUrl, fetch, memberWebId) {
+  var _ref15 = _asyncToGenerator(function* (containerUrl, fetch, memberWebId) {
     var {
       allowCreate
     } = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : {};
@@ -3501,12 +3527,12 @@ var registerWebIdInRegistryContainer = /*#__PURE__*/function () {
       throw new Error("Failed to write registry (".concat(normalizedUrl, "): ").concat(res.status));
     }
   });
-  return function registerWebIdInRegistryContainer(_x27, _x28, _x29) {
-    return _ref13.apply(this, arguments);
+  return function registerWebIdInRegistryContainer(_x32, _x33, _x34) {
+    return _ref15.apply(this, arguments);
   };
 }();
 var registerWebIdInRegistries = /*#__PURE__*/function () {
-  var _ref14 = _asyncToGenerator(function* (webId, fetch, registryConfig) {
+  var _ref16 = _asyncToGenerator(function* (webId, fetch, registryConfig) {
     if (!webId) return;
     var config = yield resolveRegistryConfig(webId, fetch, registryConfig);
     var containers = [];
@@ -3529,12 +3555,12 @@ var registerWebIdInRegistries = /*#__PURE__*/function () {
       }
     }
   });
-  return function registerWebIdInRegistries(_x30, _x31, _x32) {
-    return _ref14.apply(this, arguments);
+  return function registerWebIdInRegistries(_x35, _x36, _x37) {
+    return _ref16.apply(this, arguments);
   };
 }();
 var loadRegistryMembersFromContainer = /*#__PURE__*/function () {
-  var _ref15 = _asyncToGenerator(function* (containerUrl, fetch) {
+  var _ref17 = _asyncToGenerator(function* (containerUrl, fetch) {
     var normalizedUrl = normalizeContainerUrl(containerUrl);
     if (!normalizedUrl || !fetch) return [];
     try {
@@ -3564,12 +3590,12 @@ var loadRegistryMembersFromContainer = /*#__PURE__*/function () {
       return [];
     }
   });
-  return function loadRegistryMembersFromContainer(_x33, _x34) {
-    return _ref15.apply(this, arguments);
+  return function loadRegistryMembersFromContainer(_x38, _x39) {
+    return _ref17.apply(this, arguments);
   };
 }();
 var syncRegistryMembersInContainer = /*#__PURE__*/function () {
-  var _ref16 = _asyncToGenerator(function* (containerUrl, fetch, members) {
+  var _ref18 = _asyncToGenerator(function* (containerUrl, fetch, members) {
     var {
       allowCreate
     } = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : {};
@@ -3614,12 +3640,12 @@ var syncRegistryMembersInContainer = /*#__PURE__*/function () {
       }
     }
   });
-  return function syncRegistryMembersInContainer(_x35, _x36, _x37) {
-    return _ref16.apply(this, arguments);
+  return function syncRegistryMembersInContainer(_x40, _x41, _x42) {
+    return _ref18.apply(this, arguments);
   };
 }();
 var ensureCatalogStructure = /*#__PURE__*/function () {
-  var _ref17 = _asyncToGenerator(function* (session) {
+  var _ref19 = _asyncToGenerator(function* (session) {
     var _session$info2;
     var {
       title,
@@ -3688,12 +3714,12 @@ var ensureCatalogStructure = /*#__PURE__*/function () {
       catalogUrl: catalogResourceUrl
     };
   });
-  return function ensureCatalogStructure(_x38) {
-    return _ref17.apply(this, arguments);
+  return function ensureCatalogStructure(_x43) {
+    return _ref19.apply(this, arguments);
   };
 }();
 var resolveCatalogUrlFromWebId = /*#__PURE__*/function () {
-  var _ref20 = _asyncToGenerator(function* (webId, fetch) {
+  var _ref22 = _asyncToGenerator(function* (webId, fetch) {
     if (!webId || !fetch) return getCatalogResourceUrl(webId);
     try {
       var profileDocUrl = webId.split("#")[0];
@@ -3708,12 +3734,12 @@ var resolveCatalogUrlFromWebId = /*#__PURE__*/function () {
     }
     return getCatalogResourceUrl(webId);
   });
-  return function resolveCatalogUrlFromWebId(_x42, _x43) {
-    return _ref20.apply(this, arguments);
+  return function resolveCatalogUrlFromWebId(_x47, _x48) {
+    return _ref22.apply(this, arguments);
   };
 }();
 var loadRegistryMembers = /*#__PURE__*/function () {
-  var _ref21 = _asyncToGenerator(function* (webId, fetch) {
+  var _ref23 = _asyncToGenerator(function* (webId, fetch) {
     var members = new Set();
     if (webId) members.add(webId);
     var config = yield loadRegistryConfig(webId, fetch);
@@ -3749,8 +3775,8 @@ var loadRegistryMembers = /*#__PURE__*/function () {
     }
     return Array.from(members);
   });
-  return function loadRegistryMembers(_x44, _x45) {
-    return _ref21.apply(this, arguments);
+  return function loadRegistryMembers(_x49, _x50) {
+    return _ref23.apply(this, arguments);
   };
 }();
 var parseDatasetFromDoc = (datasetDoc, datasetUrl) => {
@@ -3845,7 +3871,7 @@ var parseDatasetFromDoc = (datasetDoc, datasetUrl) => {
   };
 };
 var loadCatalogDatasets = /*#__PURE__*/function () {
-  var _ref22 = _asyncToGenerator(function* (catalogUrl, fetch) {
+  var _ref24 = _asyncToGenerator(function* (catalogUrl, fetch) {
     var catalogDocUrl = getDocumentUrl(catalogUrl);
     var catalogDataset = yield getSolidDataset(catalogDocUrl, {
       fetch
@@ -3854,7 +3880,7 @@ var loadCatalogDatasets = /*#__PURE__*/function () {
     var datasetUrls = catalogThing ? safeGetUrlAll(catalogThing, DCAT.dataset) : [];
     var resolvedUrls = Array.from(new Set(datasetUrls)).map(url => resolveUrl(url, catalogDocUrl)).filter(Boolean);
     var datasets = yield Promise.all(resolvedUrls.map(/*#__PURE__*/function () {
-      var _ref23 = _asyncToGenerator(function* (datasetUrl) {
+      var _ref25 = _asyncToGenerator(function* (datasetUrl) {
         try {
           var datasetDoc = yield getSolidDataset(getDocumentUrl(datasetUrl), {
             fetch
@@ -3865,14 +3891,14 @@ var loadCatalogDatasets = /*#__PURE__*/function () {
           return null;
         }
       });
-      return function (_x48) {
-        return _ref23.apply(this, arguments);
+      return function (_x53) {
+        return _ref25.apply(this, arguments);
       };
     }()));
     return datasets.filter(Boolean);
   });
-  return function loadCatalogDatasets(_x46, _x47) {
-    return _ref22.apply(this, arguments);
+  return function loadCatalogDatasets(_x51, _x52) {
+    return _ref24.apply(this, arguments);
   };
 }();
 var mergeDatasets = lists => {
@@ -3894,7 +3920,7 @@ var mergeDatasets = lists => {
   return Array.from(map.values());
 };
 var loadAggregatedDatasets = /*#__PURE__*/function () {
-  var _ref24 = _asyncToGenerator(function* (session, fetchOverride) {
+  var _ref26 = _asyncToGenerator(function* (session, fetchOverride) {
     var _session$info4;
     var webId = (session === null || session === void 0 || (_session$info4 = session.info) === null || _session$info4 === void 0 ? void 0 : _session$info4.webId) || "";
     var fetch = fetchOverride || (session === null || session === void 0 ? void 0 : session.fetch) || (typeof window !== "undefined" ? window.fetch.bind(window) : fetchOverride);
@@ -3913,7 +3939,7 @@ var loadAggregatedDatasets = /*#__PURE__*/function () {
       catalogs: _objectSpread2({}, cache.catalogs)
     });
     var fetchCatalog = /*#__PURE__*/function () {
-      var _ref25 = _asyncToGenerator(function* (catalogUrl) {
+      var _ref27 = _asyncToGenerator(function* (catalogUrl) {
         try {
           var datasets = yield loadCatalogDatasets(catalogUrl, fetch);
           updatedCache.catalogs[catalogUrl] = {
@@ -3942,8 +3968,8 @@ var loadAggregatedDatasets = /*#__PURE__*/function () {
           };
         }
       });
-      return function fetchCatalog(_x51) {
-        return _ref25.apply(this, arguments);
+      return function fetchCatalog(_x56) {
+        return _ref27.apply(this, arguments);
       };
     }();
     for (var catalogUrl of uniqueCatalogUrls) {
@@ -3980,8 +4006,8 @@ var loadAggregatedDatasets = /*#__PURE__*/function () {
       catalogs: uniqueCatalogUrls
     };
   });
-  return function loadAggregatedDatasets(_x49, _x50) {
-    return _ref24.apply(this, arguments);
+  return function loadAggregatedDatasets(_x54, _x55) {
+    return _ref26.apply(this, arguments);
   };
 }();
 var DEFAULT_THEME_NS = "https://w3id.org/solid-dataspace-manager/theme/";
@@ -4144,8 +4170,36 @@ var addLdpTypeIfLocal = (solidDataset, webId, targetUrl) => {
   }
   return setThing(solidDataset, resourceThing);
 };
+var isLocalPodResource = (webId, targetUrl) => {
+  if (!webId || !targetUrl) return false;
+  try {
+    return targetUrl.startsWith(getPodRoot$1(webId));
+  } catch (_unused15) {
+    return false;
+  }
+};
+var syncLinkedResourceAccess = /*#__PURE__*/function () {
+  var _ref28 = _asyncToGenerator(function* (session, input) {
+    var urls = [input.access_url_dataset, input.access_url_semantic_model].filter(Boolean);
+    for (var url of urls) {
+      var _session$info5;
+      if (!isLocalPodResource(session === null || session === void 0 || (_session$info5 = session.info) === null || _session$info5 === void 0 ? void 0 : _session$info5.webId, url)) continue;
+      try {
+        yield setPublicReadAccess(url, session.fetch, Boolean(input.is_public));
+      } catch (err) {
+        console.warn("Failed to sync linked resource ACL for", url, err);
+        if (input.is_public) {
+          throw new Error("Failed to make linked resource public: ".concat(url));
+        }
+      }
+    }
+  });
+  return function syncLinkedResourceAccess(_x57, _x58) {
+    return _ref28.apply(this, arguments);
+  };
+}();
 var writeDatasetDocument = /*#__PURE__*/function () {
-  var _ref26 = _asyncToGenerator(function* (session, datasetDocUrl, input) {
+  var _ref29 = _asyncToGenerator(function* (session, datasetDocUrl, input) {
     var solidDataset;
     try {
       solidDataset = yield getSolidDataset(datasetDocUrl, {
@@ -4166,14 +4220,14 @@ var writeDatasetDocument = /*#__PURE__*/function () {
     }
     var distDataset = buildDistributionThing(datasetDocUrl, "dist", input.access_url_dataset, input.file_format, input.distribution_access_type);
     if (distDataset) {
-      var _session$info5;
+      var _session$info6;
       solidDataset = setThing(solidDataset, distDataset);
       datasetThing = addUrl(datasetThing, DCAT.distribution, distDataset.url);
-      solidDataset = addLdpTypeIfLocal(solidDataset, session === null || session === void 0 || (_session$info5 = session.info) === null || _session$info5 === void 0 ? void 0 : _session$info5.webId, input.access_url_dataset);
+      solidDataset = addLdpTypeIfLocal(solidDataset, session === null || session === void 0 || (_session$info6 = session.info) === null || _session$info6 === void 0 ? void 0 : _session$info6.webId, input.access_url_dataset);
     }
     if (input.access_url_semantic_model) {
-      var _session$info6;
-      solidDataset = addLdpTypeIfLocal(solidDataset, session === null || session === void 0 || (_session$info6 = session.info) === null || _session$info6 === void 0 ? void 0 : _session$info6.webId, input.access_url_semantic_model);
+      var _session$info7;
+      solidDataset = addLdpTypeIfLocal(solidDataset, session === null || session === void 0 || (_session$info7 = session.info) === null || _session$info7 === void 0 ? void 0 : _session$info7.webId, input.access_url_semantic_model);
     }
     solidDataset = setThing(solidDataset, datasetThing);
     yield saveSolidDatasetAt(datasetDocUrl, solidDataset, {
@@ -4186,13 +4240,14 @@ var writeDatasetDocument = /*#__PURE__*/function () {
       throw new Error("Dataset write failed (".concat(head.status, ")"));
     }
     yield makePublicReadable(datasetDocUrl, session.fetch);
+    yield syncLinkedResourceAccess(session, input);
   });
-  return function writeDatasetDocument(_x52, _x53, _x54) {
-    return _ref26.apply(this, arguments);
+  return function writeDatasetDocument(_x59, _x60, _x61) {
+    return _ref29.apply(this, arguments);
   };
 }();
 var writeSeriesDocument = /*#__PURE__*/function () {
-  var _ref27 = _asyncToGenerator(function* (session, seriesDocUrl, input) {
+  var _ref30 = _asyncToGenerator(function* (session, seriesDocUrl, input) {
     var solidDataset;
     try {
       solidDataset = yield getSolidDataset(seriesDocUrl, {
@@ -4221,12 +4276,12 @@ var writeSeriesDocument = /*#__PURE__*/function () {
     }
     // Skip ACL update here to avoid noisy 404s on servers without WAC ACL support.
   });
-  return function writeSeriesDocument(_x55, _x56, _x57) {
-    return _ref27.apply(this, arguments);
+  return function writeSeriesDocument(_x62, _x63, _x64) {
+    return _ref30.apply(this, arguments);
   };
 }();
 var updateCatalogDatasets = /*#__PURE__*/function () {
-  var _ref28 = _asyncToGenerator(function* (session, catalogDocUrl, datasetUrl) {
+  var _ref31 = _asyncToGenerator(function* (session, catalogDocUrl, datasetUrl) {
     var {
       remove
     } = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : {};
@@ -4238,7 +4293,7 @@ var updateCatalogDatasets = /*#__PURE__*/function () {
       var catalogThing = getThing(catalogDataset, "".concat(catalogDocUrl, "#it"));
       var existing = catalogThing ? getUrlAll(catalogThing, DCAT.dataset) : [];
       current = new Set(existing.map(url => toCatalogDatasetRef(catalogDocUrl, url)));
-    } catch (_unused15) {
+    } catch (_unused16) {
       current = new Set();
     }
     var datasetRef = toCatalogDatasetRef(catalogDocUrl, datasetUrl);
@@ -4249,12 +4304,12 @@ var updateCatalogDatasets = /*#__PURE__*/function () {
     }
     yield writeCatalogDoc(session, catalogDocUrl, Array.from(current));
   });
-  return function updateCatalogDatasets(_x58, _x59, _x60) {
-    return _ref28.apply(this, arguments);
+  return function updateCatalogDatasets(_x65, _x66, _x67) {
+    return _ref31.apply(this, arguments);
   };
 }();
 var linkDatasetToSeries = /*#__PURE__*/function () {
-  var _ref29 = _asyncToGenerator(function* (session, datasetUrl, seriesUrl) {
+  var _ref32 = _asyncToGenerator(function* (session, datasetUrl, seriesUrl) {
     if (!datasetUrl || !seriesUrl) return;
     var datasetDocUrl = getDocumentUrl(datasetUrl);
     var solidDataset;
@@ -4280,12 +4335,12 @@ var linkDatasetToSeries = /*#__PURE__*/function () {
     });
     yield makePublicReadable(datasetDocUrl, session.fetch);
   });
-  return function linkDatasetToSeries(_x61, _x62, _x63) {
-    return _ref29.apply(this, arguments);
+  return function linkDatasetToSeries(_x68, _x69, _x70) {
+    return _ref32.apply(this, arguments);
   };
 }();
 var unlinkDatasetFromSeries = /*#__PURE__*/function () {
-  var _ref30 = _asyncToGenerator(function* (session, datasetUrl, seriesUrl) {
+  var _ref33 = _asyncToGenerator(function* (session, datasetUrl, seriesUrl) {
     if (!datasetUrl || !seriesUrl) return;
     var datasetDocUrl = getDocumentUrl(datasetUrl);
     var solidDataset;
@@ -4312,12 +4367,12 @@ var unlinkDatasetFromSeries = /*#__PURE__*/function () {
       fetch: session.fetch
     });
   });
-  return function unlinkDatasetFromSeries(_x64, _x65, _x66) {
-    return _ref30.apply(this, arguments);
+  return function unlinkDatasetFromSeries(_x71, _x72, _x73) {
+    return _ref33.apply(this, arguments);
   };
 }();
 var writeRecordDocument = /*#__PURE__*/function () {
-  var _ref31 = _asyncToGenerator(function* (session, datasetDocUrl, identifier) {
+  var _ref34 = _asyncToGenerator(function* (session, datasetDocUrl, identifier) {
     var recordDocUrl = "".concat(getPodRoot$1(session.info.webId)).concat(RECORDS_CONTAINER).concat(identifier, ".ttl");
     var recordDataset;
     try {
@@ -4372,8 +4427,8 @@ var writeRecordDocument = /*#__PURE__*/function () {
     });
     yield makePublicReadable(recordDocUrl, session.fetch);
   });
-  return function writeRecordDocument(_x67, _x68, _x69) {
-    return _ref31.apply(this, arguments);
+  return function writeRecordDocument(_x74, _x75, _x76) {
+    return _ref34.apply(this, arguments);
   };
 }();
 var generateIdentifier = () => {
@@ -4383,7 +4438,7 @@ var generateIdentifier = () => {
   return "dataset-".concat(Date.now());
 };
 var createDataset = /*#__PURE__*/function () {
-  var _ref32 = _asyncToGenerator(function* (session, input) {
+  var _ref35 = _asyncToGenerator(function* (session, input) {
     yield ensureCatalogStructure(session);
     validateDatasetInput(input);
     var identifier = input.identifier || generateIdentifier();
@@ -4402,14 +4457,14 @@ var createDataset = /*#__PURE__*/function () {
       identifier
     };
   });
-  return function createDataset(_x70, _x71) {
-    return _ref32.apply(this, arguments);
+  return function createDataset(_x77, _x78) {
+    return _ref35.apply(this, arguments);
   };
 }();
 var createDatasetSeries = /*#__PURE__*/function () {
-  var _ref33 = _asyncToGenerator(function* (session, input) {
-    var _session$info7;
-    if (!(session !== null && session !== void 0 && (_session$info7 = session.info) !== null && _session$info7 !== void 0 && _session$info7.webId)) throw new Error("No Solid WebID available.");
+  var _ref36 = _asyncToGenerator(function* (session, input) {
+    var _session$info8;
+    if (!(session !== null && session !== void 0 && (_session$info8 = session.info) !== null && _session$info8 !== void 0 && _session$info8.webId)) throw new Error("No Solid WebID available.");
     yield ensureCatalogStructure(session);
     var identifier = input.identifier || generateIdentifier();
     var seriesDocUrl = getSeriesDocUrl(session.info.webId, identifier);
@@ -4432,12 +4487,12 @@ var createDatasetSeries = /*#__PURE__*/function () {
       identifier
     };
   });
-  return function createDatasetSeries(_x72, _x73) {
-    return _ref33.apply(this, arguments);
+  return function createDatasetSeries(_x79, _x80) {
+    return _ref36.apply(this, arguments);
   };
 }();
 var updateDataset = /*#__PURE__*/function () {
-  var _ref34 = _asyncToGenerator(function* (session, input) {
+  var _ref37 = _asyncToGenerator(function* (session, input) {
     if (!input.datasetUrl) throw new Error("Missing dataset URL.");
     validateDatasetInput(input);
     var datasetDocUrl = getDocumentUrl(input.datasetUrl);
@@ -4450,12 +4505,12 @@ var updateDataset = /*#__PURE__*/function () {
     }
     clearCache();
   });
-  return function updateDataset(_x74, _x75) {
-    return _ref34.apply(this, arguments);
+  return function updateDataset(_x81, _x82) {
+    return _ref37.apply(this, arguments);
   };
 }();
 var updateDatasetSeries = /*#__PURE__*/function () {
-  var _ref35 = _asyncToGenerator(function* (session, input) {
+  var _ref38 = _asyncToGenerator(function* (session, input) {
     var seriesUrl = input.seriesUrl || input.datasetUrl;
     if (!seriesUrl) throw new Error("Missing series URL.");
     var seriesDocUrl = getDocumentUrl(seriesUrl);
@@ -4491,12 +4546,12 @@ var updateDatasetSeries = /*#__PURE__*/function () {
     }
     clearCache();
   });
-  return function updateDatasetSeries(_x76, _x77) {
-    return _ref35.apply(this, arguments);
+  return function updateDatasetSeries(_x83, _x84) {
+    return _ref38.apply(this, arguments);
   };
 }();
 var deleteSeriesEntry = /*#__PURE__*/function () {
-  var _ref36 = _asyncToGenerator(function* (session, seriesUrl, identifier) {
+  var _ref39 = _asyncToGenerator(function* (session, seriesUrl, identifier) {
     if (!seriesUrl) return;
     var seriesDocUrl = getDocumentUrl(seriesUrl);
     var memberUrls = [];
@@ -4526,12 +4581,12 @@ var deleteSeriesEntry = /*#__PURE__*/function () {
     }
     clearCache();
   });
-  return function deleteSeriesEntry(_x78, _x79, _x80) {
-    return _ref36.apply(this, arguments);
+  return function deleteSeriesEntry(_x85, _x86, _x87) {
+    return _ref39.apply(this, arguments);
   };
 }();
 var deleteDatasetEntry = /*#__PURE__*/function () {
-  var _ref37 = _asyncToGenerator(function* (session, datasetUrl, identifier) {
+  var _ref40 = _asyncToGenerator(function* (session, datasetUrl, identifier) {
     if (!datasetUrl) return;
     var datasetDocUrl = getDocumentUrl(datasetUrl);
     yield updateCatalogDatasets(session, getCatalogDocUrl(session.info.webId), datasetUrl, {
@@ -4556,14 +4611,14 @@ var deleteDatasetEntry = /*#__PURE__*/function () {
     }
     clearCache();
   });
-  return function deleteDatasetEntry(_x81, _x82, _x83) {
-    return _ref37.apply(this, arguments);
+  return function deleteDatasetEntry(_x88, _x89, _x90) {
+    return _ref40.apply(this, arguments);
   };
 }();
 var cleanupCatalogSeriesLinks = /*#__PURE__*/function () {
-  var _ref38 = _asyncToGenerator(function* (session) {
-    var _session$info8;
-    if (!(session !== null && session !== void 0 && (_session$info8 = session.info) !== null && _session$info8 !== void 0 && _session$info8.webId)) throw new Error("No Solid WebID available.");
+  var _ref41 = _asyncToGenerator(function* (session) {
+    var _session$info9;
+    if (!(session !== null && session !== void 0 && (_session$info9 = session.info) !== null && _session$info9 !== void 0 && _session$info9.webId)) throw new Error("No Solid WebID available.");
     var catalogDocUrl = getCatalogDocUrl(session.info.webId);
     var catalogUrl = "".concat(catalogDocUrl, "#it");
     var datasetSeriesPredicate = DCAT.datasetSeries || "http://www.w3.org/ns/dcat#datasetSeries";
@@ -4606,12 +4661,12 @@ var cleanupCatalogSeriesLinks = /*#__PURE__*/function () {
     yield writeCatalogDoc(session, catalogDocUrl, Array.from(finalRefs));
     clearCache();
   });
-  return function cleanupCatalogSeriesLinks(_x84) {
-    return _ref38.apply(this, arguments);
+  return function cleanupCatalogSeriesLinks(_x91) {
+    return _ref41.apply(this, arguments);
   };
 }();
 var parseTurtleIntoStore = /*#__PURE__*/function () {
-  var _ref39 = _asyncToGenerator(function* (store, turtle, baseIRI) {
+  var _ref42 = _asyncToGenerator(function* (store, turtle, baseIRI) {
     return new Promise((resolve, reject) => {
       var parser = new Parser({
         baseIRI
@@ -4629,8 +4684,8 @@ var parseTurtleIntoStore = /*#__PURE__*/function () {
       });
     });
   });
-  return function parseTurtleIntoStore(_x85, _x86, _x87) {
-    return _ref39.apply(this, arguments);
+  return function parseTurtleIntoStore(_x92, _x93, _x94) {
+    return _ref42.apply(this, arguments);
   };
 }();
 var createQuadStore = () => {
@@ -4641,7 +4696,7 @@ var createQuadStore = () => {
   };
 };
 var buildMergedCatalogDownload = /*#__PURE__*/function () {
-  var _ref40 = _asyncToGenerator(function* (session) {
+  var _ref43 = _asyncToGenerator(function* (session) {
     var {
       catalogs = [],
       datasets = []
@@ -4687,8 +4742,8 @@ var buildMergedCatalogDownload = /*#__PURE__*/function () {
       });
     });
   });
-  return function buildMergedCatalogDownload(_x88) {
-    return _ref40.apply(this, arguments);
+  return function buildMergedCatalogDownload(_x95) {
+    return _ref43.apply(this, arguments);
   };
 }();
 
@@ -7637,7 +7692,7 @@ var HeaderBar = _ref => {
   }));
 };
 
-var appVersion = "0.8.41";
+var appVersion = "0.8.45";
 
 var FooterBar = () => {
   return /*#__PURE__*/React.createElement("footer", {

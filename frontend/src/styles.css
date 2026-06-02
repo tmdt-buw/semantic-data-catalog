@@ -112,7 +112,7 @@ table tbody tr:hover {
 .modal {
     display: none;
     position: fixed;
-    z-index: 1002;
+    z-index: 2000;
     left: 0;
     top: 0;
     width: 100%;
@@ -127,7 +127,8 @@ table tbody tr:hover {
     border: 1px solid var(--border);
     width: 85%;
     border-radius: var(--radius);
-    z-index: 1001;
+    position: relative;
+    z-index: 2001;
     box-shadow: var(--shadow);
     color: var(--text);
 }
@@ -762,7 +763,7 @@ button {
   width: 100%;
   box-sizing: border-box;
   position: relative;
-  z-index: 1001;
+  z-index: 10;
 }
 .catalog-actions-inner {
   width: 100%;
