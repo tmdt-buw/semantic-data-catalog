@@ -356,6 +356,10 @@ table tbody tr:hover {
     height: 78vh;
 }
 
+.dataset-detail-modal .modal-dialog {
+    margin-top: 8rem;
+}
+
 .semantic-model-modal .rdf-graph-container {
     height: 70vh;
 }
