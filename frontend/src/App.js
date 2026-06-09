@@ -24,7 +24,7 @@ import {
   updateDatasetSeries,
 } from './solidCatalog';
 
-const defaultIssuer = process.env.REACT_APP_OIDC_ISSUER || 'https://tmdt-solid-community-server.de';
+const defaultIssuer = process.env.REACT_APP_OIDC_ISSUER || 'https://solid-community-server.tmdt.info';
 
 const App = ({ embedded = false, webIdOverride = null } = {}) => {
   const [datasets, setDatasets] = useState([]);

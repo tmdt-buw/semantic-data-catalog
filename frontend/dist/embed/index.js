@@ -7483,14 +7483,14 @@ var LoginIssuerModal = _ref => {
     className: "mb-3"
   }, /*#__PURE__*/React.createElement("button", {
     className: "btn provider-btn w-100 d-flex align-items-center mb-2",
-    onClick: () => onLogin('https://tmdt-solid-community-server.de')
+    onClick: () => onLogin('https://solid-community-server.tmdt.info')
   }, /*#__PURE__*/React.createElement("img", {
     src: solidLogo,
     alt: "solid",
     width: "24",
     height: "24",
     className: "mr-2"
-  }), "tmdt-solid-community-server.de"), /*#__PURE__*/React.createElement("button", {
+  }), "solid-community-server.tmdt.info"), /*#__PURE__*/React.createElement("button", {
     className: "btn provider-btn w-100 d-flex align-items-center mb-2",
     onClick: () => onLogin('https://solidcommunity.net')
   }, /*#__PURE__*/React.createElement("img", {
@@ -7714,7 +7714,7 @@ var FooterBar = () => {
 
 var providers = [{
   label: 'TMDT Solid',
-  url: 'https://tmdt-solid-community-server.de',
+  url: 'https://solid-community-server.tmdt.info',
   note: 'Recommended'
 }, {
   label: 'Solid Community',
@@ -7762,10 +7762,10 @@ var LoginScreen = _ref => {
   }, /*#__PURE__*/React.createElement("span", {
     className: "step-num"
   }, "1"), /*#__PURE__*/React.createElement("p", null, "Visit", ' ', /*#__PURE__*/React.createElement("a", {
-    href: "https://tmdt-solid-community-server.de",
+    href: "https://solid-community-server.tmdt.info",
     target: "_blank",
     rel: "noreferrer"
-  }, "tmdt-solid-community-server.de"), ' ', "or any other Solid Pod Provider.")), /*#__PURE__*/React.createElement("div", {
+  }, "solid-community-server.tmdt.info"), ' ', "or any other Solid Pod Provider.")), /*#__PURE__*/React.createElement("div", {
     className: "guide-step"
   }, /*#__PURE__*/React.createElement("span", {
     className: "step-num"
@@ -8626,7 +8626,7 @@ var PrivateRegistryModal = _ref => {
   }, saving ? "Saving..." : "Save")))));
 };
 
-var defaultIssuer = process.env.REACT_APP_OIDC_ISSUER || 'https://tmdt-solid-community-server.de';
+var defaultIssuer = process.env.REACT_APP_OIDC_ISSUER || 'https://solid-community-server.tmdt.info';
 var App = function App() {
   var {
     embedded = false,

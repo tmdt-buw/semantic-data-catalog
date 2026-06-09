@@ -24,10 +24,10 @@ const LoginIssuerModal = ({ onClose, onLogin }) => {
             <div className="mb-3">
               <button
                 className="btn provider-btn w-100 d-flex align-items-center mb-2"
-                onClick={() => onLogin('https://tmdt-solid-community-server.de')}
+                onClick={() => onLogin('https://solid-community-server.tmdt.info')}
               >
                 <img src={solidLogo} alt="solid" width="24" height="24" className="mr-2" />
-                tmdt-solid-community-server.de
+                solid-community-server.tmdt.info
               </button>
 
               <button

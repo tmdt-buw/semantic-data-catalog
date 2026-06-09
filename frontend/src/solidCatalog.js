@@ -54,22 +54,22 @@ export const REGISTRY_PRESETS = [
   {
     id: "stadt-wuppertal",
     label: "Gesundes Tal",
-    url: "https://tmdt-solid-community-server.de/semanticdatacatalog/public/stadt-wuppertal",
+    url: "https://solid-community-server.tmdt.info/semanticdatacatalog/public/stadt-wuppertal",
   },
   {
     id: "dace",
     label: "DACE",
-    url: "https://tmdt-solid-community-server.de/semanticdatacatalog/public/dace",
+    url: "https://solid-community-server.tmdt.info/semanticdatacatalog/public/dace",
   },
   {
     id: "timberconnect",
     label: "TimberConnect",
-    url: "https://tmdt-solid-community-server.de/semanticdatacatalog/public/timberconnect",
+    url: "https://solid-community-server.tmdt.info/semanticdatacatalog/public/timberconnect",
   },
   {
     id: "test",
     label: "Test",
-    url: "https://tmdt-solid-community-server.de/semanticdatacatalog/public/test",
+    url: "https://solid-community-server.tmdt.info/semanticdatacatalog/public/test",
     icon: "flask",
   },
 ];
