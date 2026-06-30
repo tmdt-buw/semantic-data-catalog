@@ -3,7 +3,6 @@ import { session } from "../solidSession";
 import { createDataset, createDatasetSeries, ensureCatalogStructure, loadAggregatedDatasets } from "../solidCatalog";
 import {
   getSolidDataset,
-  getContainedResourceUrlAll,
   getThing,
   getStringNoLocale,
   getUrl,
@@ -11,6 +10,8 @@ import {
   createContainerAt
 } from "@inrupt/solid-client";
 import { FOAF, VCARD } from "@inrupt/vocab-common-rdf";
+import PodContainerPicker from "./PodContainerPicker";
+import PodResourcePicker, { isTtlResource } from "./PodResourcePicker";
 
 const DatasetAddModal = ({ onClose, fetchDatasets }) => {
   const [newDataset, setNewDataset] = useState({
@@ -28,39 +29,51 @@ const DatasetAddModal = ({ onClose, fetchDatasets }) => {
     is_public: true
   });
 
-  const [datasetPodFiles, setDatasetPodFiles] = useState([]);
-  const [modelPodFiles, setModelPodFiles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [datasetSource, setDatasetSource] = useState("upload");
   const [modelSource, setModelSource] = useState("upload");
-  const [datasetUpload, setDatasetUpload] = useState({ file: null, url: "", error: "" });
+  const [datasetUpload, setDatasetUpload] = useState({ files: [], urls: [], error: "" });
   const [modelUpload, setModelUpload] = useState({ file: null, url: "", error: "" });
-  const hasRequiredFields = Boolean(newDataset.access_url_dataset);
+  const [selectedDatasetUrls, setSelectedDatasetUrls] = useState([]);
+  const [externalDatasetLinks, setExternalDatasetLinks] = useState([""]);
   const [showSemanticModel, setShowSemanticModel] = useState(false);
 
   // Use shared Solid session from solidSession.js
   const [solidUserName, setSolidUserName] = useState('');
   const [solidUserPhoto, setSolidUserPhoto] = useState('');
   const [webId, setWebId] = useState('');
-  const [datasetUploadPath, setDatasetUploadPath] = useState("/public/");
-  const [modelUploadPath, setModelUploadPath] = useState("/public/");
-  const [datasetType, setDatasetType] = useState("dataset");
+  const [datasetUploadPath, setDatasetUploadPath] = useState("/");
+  const [modelUploadPath, setModelUploadPath] = useState("/");
   const [existingDatasets, setExistingDatasets] = useState([]);
-  const [seriesMembers, setSeriesMembers] = useState([]);
-  const [seriesData, setSeriesData] = useState({
-    title: "",
-    description: "",
-    theme: "",
-    issued: "",
-    publisher: "",
-    contact_point: "",
-  });
-  const requiresPublicAccess = datasetSource === "external" || modelSource === "external";
+  const datasetUploadFiles = datasetUpload.files || [];
+  const externalDatasetUrls = Array.from(new Set(
+    (externalDatasetLinks || []).map((url) => url.trim()).filter(Boolean)
+  ));
+  const selectedDatasetResourceUrls = datasetSource === "pod"
+    ? selectedDatasetUrls
+    : datasetSource === "upload"
+      ? datasetUploadFiles.map((file, index) => `upload:${index}:${file.name}:${file.size}:${file.lastModified}`)
+      : externalDatasetUrls;
+  const isAutomaticSeries = selectedDatasetResourceUrls.length > 1;
+  const hasRequiredFields = selectedDatasetResourceUrls.length > 0;
+  const requiresPublicAccess = datasetSource === "external" || (!isAutomaticSeries && modelSource === "external");
 
   useEffect(() => {
     if (!requiresPublicAccess || newDataset.is_public) return;
     setNewDataset(prev => ({ ...prev, is_public: true }));
   }, [requiresPublicAccess, newDataset.is_public]);
+
+  useEffect(() => {
+    if (!isAutomaticSeries) return;
+    setShowSemanticModel(false);
+    setModelSource("upload");
+    setModelUpload({ file: null, url: "", error: "" });
+    setNewDataset(prev =>
+      prev.access_url_semantic_model
+        ? { ...prev, access_url_semantic_model: "" }
+        : prev
+    );
+  }, [isAutomaticSeries]);
 
   useEffect(() => {
     const fetchSolidProfile = async () => {
@@ -95,11 +108,6 @@ const DatasetAddModal = ({ onClose, fetchDatasets }) => {
           ...prev,
           webid: session.info.webId
         }));
-        setSeriesData(prev => ({
-          ...prev,
-          publisher: name,
-          contact_point: email
-        }));
 
         const photoRef = getUrl(profile, VCARD.hasPhoto) || getUrl(profile, FOAF.img);
         let photoUrl = "";
@@ -122,49 +130,6 @@ const DatasetAddModal = ({ onClose, fetchDatasets }) => {
       }
     };
 
-    const loadPodFiles = async () => {
-      if (!session.info.webId) return;
-
-      const datasetFiles = [];
-      const modelFiles = [];
-      const isCatalogResource = (url) => url.includes("/catalog/");
-
-      const traverse = async (containerUrl) => {
-        try {
-          if (isCatalogResource(containerUrl)) return;
-          const dataset = await getSolidDataset(containerUrl, { fetch: session.fetch });
-          const resources = getContainedResourceUrlAll(dataset);
-          for (const res of resources) {
-            if (isCatalogResource(res)) {
-              continue;
-            }
-            if (res.endsWith('/')) {
-              await traverse(res);
-            } else if (/\.(csv|json|ttl|jsonld|rdf|xml|pdf|docx|txt)$/i.test(res)) {
-              datasetFiles.push(res);
-              if (res.endsWith('.ttl')) {
-                modelFiles.push(res);
-              }
-            } else if (res.endsWith('.ttl')) {
-              modelFiles.push(res);
-            }
-          }
-        } catch (err) {
-          console.error(`Error loading container ${containerUrl}:`, err);
-        }
-      };
-
-      try {
-        const podRoot = session.info.webId.split("/profile/")[0];
-        const rootContainer = podRoot.endsWith('/') ? podRoot : `${podRoot}/`;
-        await traverse(rootContainer);
-        setDatasetPodFiles(datasetFiles);
-        setModelPodFiles(modelFiles);
-      } catch (err) {
-        console.error("Error loading pod files:", err);
-      }
-    };
-
     const loadExistingDatasets = async () => {
       if (!session.info.isLoggedIn || !session.info.webId) return;
       try {
@@ -182,7 +147,6 @@ const DatasetAddModal = ({ onClose, fetchDatasets }) => {
     };
 
     fetchSolidProfile();
-    loadPodFiles();
     loadExistingDatasets();
   }, [session]);
 
@@ -203,6 +167,22 @@ const DatasetAddModal = ({ onClose, fetchDatasets }) => {
     return "application/octet-stream";
   };
 
+  const uniqueUrls = (urls) => Array.from(new Set((urls || []).filter(Boolean)));
+
+  const getFileNameFromUrl = (url) => {
+    if (!url) return "Dataset";
+    const cleanUrl = url.split(/[?#]/)[0];
+    return decodeURIComponent(cleanUrl.split("/").filter(Boolean).pop() || "Dataset");
+  };
+
+  const getDatasetTitleFromUrl = (url) => {
+    const fileName = getFileNameFromUrl(url);
+    return fileName.replace(/\.[^.]+$/, "") || fileName || "Dataset";
+  };
+
+  const findExistingDatasetForResource = (resourceUrl) =>
+    existingDatasets.find((item) => item.access_url_dataset === resourceUrl);
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     const inferredMediaType =
@@ -219,8 +199,12 @@ const DatasetAddModal = ({ onClose, fetchDatasets }) => {
 
   const handleDatasetSourceChange = (next) => {
     setDatasetSource(next);
+    setSelectedDatasetUrls([]);
     if (next !== "upload") {
-      setDatasetUpload({ file: null, url: "", error: "" });
+      setDatasetUpload({ files: [], urls: [], error: "" });
+    }
+    if (next !== "external") {
+      setExternalDatasetLinks([""]);
     }
     setNewDataset(prev => ({
       ...prev,
@@ -249,7 +233,7 @@ const DatasetAddModal = ({ onClose, fetchDatasets }) => {
     return base.endsWith("/") ? base : `${base}/`;
   };
 
-  const normalizeUploadPath = (value, fallback = "/public/") => {
+  const normalizeUploadPath = (value, fallback = "/") => {
     if (!value) return fallback;
     let path = value.trim();
     if (!path.startsWith("/")) path = `/${path}`;
@@ -284,7 +268,7 @@ const DatasetAddModal = ({ onClose, fetchDatasets }) => {
   const uploadFile = async (file, pathOverride) => {
     if (!file) return "";
     const uploads = await ensureUploadContainer(pathOverride);
-    const safeName = file.name || `upload-${Date.now()}`;
+    const safeName = encodeURIComponent(file.name || `upload-${Date.now()}`);
     const targetUrl = `${uploads}${safeName}`;
     const res = await session.fetch(targetUrl, {
       method: "PUT",
@@ -299,113 +283,162 @@ const DatasetAddModal = ({ onClose, fetchDatasets }) => {
     return targetUrl;
   };
 
-  const handleDatasetFileSelect = async (event) => {
-    const file = event?.target?.files?.[0];
-    setDatasetUpload({ file: file || null, url: "", error: "" });
-    if (!file) return;
-    try {
-      const url = await uploadFile(file, datasetUploadPath);
-      setDatasetUpload({ file, url, error: "" });
-      setNewDataset(prev => ({
-        ...prev,
-        access_url_dataset: url,
-        file_format: inferMediaType(url)
-      }));
-    } catch (err) {
-      setDatasetUpload({ file, url: "", error: "Upload failed. Please try again." });
-    }
+  const handleDatasetFileSelect = (event) => {
+    const files = Array.from(event?.target?.files || []);
+    setDatasetUpload({ files, urls: [], error: "" });
+    setSelectedDatasetUrls([]);
+    setNewDataset(prev => ({
+      ...prev,
+      access_url_dataset: "",
+      file_format: files.length === 1 ? inferMediaType(files[0].name) : "",
+    }));
   };
 
-  const handleModelFileSelect = async (event) => {
+  const handleModelFileSelect = (event) => {
     const file = event?.target?.files?.[0];
     setModelUpload({ file: file || null, url: "", error: "" });
     if (!file) return;
-    try {
-      const url = await uploadFile(file, modelUploadPath);
-      setModelUpload({ file, url, error: "" });
-      setNewDataset(prev => ({
-        ...prev,
-        access_url_semantic_model: url
-      }));
-    } catch (err) {
-      setModelUpload({ file, url: "", error: "Upload failed. Please try again." });
+    if (!isTtlResource(file.name)) {
+      setModelUpload({ file: null, url: "", error: "Only TTL files are allowed." });
+      return;
     }
+    setNewDataset(prev => ({
+      ...prev,
+      access_url_semantic_model: ""
+    }));
   };
 
-  const handleDatasetDrop = async (event) => {
+  const handleDatasetDrop = (event) => {
+    event.preventDefault();
+    const files = Array.from(event.dataTransfer?.files || []);
+    if (files.length === 0) return;
+    handleDatasetFileSelect({ target: { files } });
+  };
+
+  const handleModelDrop = (event) => {
     event.preventDefault();
     const file = event.dataTransfer?.files?.[0];
     if (!file) return;
-    await handleDatasetFileSelect({ target: { files: [file] } });
-  };
-
-  const handleModelDrop = async (event) => {
-    event.preventDefault();
-    const file = event.dataTransfer?.files?.[0];
-    if (!file) return;
-    await handleModelFileSelect({ target: { files: [file] } });
+    if (!isTtlResource(file.name)) {
+      setModelUpload({ file: null, url: "", error: "Only TTL files are allowed." });
+      return;
+    }
+    handleModelFileSelect({ target: { files: [file] } });
   };
 
   const handleSave = async () => {
     try {
       setLoading(true);
-      if (datasetType === "dataset") {
-        if (!hasRequiredFields) {
-          alert("Dataset link is required.");
-          return;
-        }
-        if (datasetSource === "external" && !newDataset.is_public) {
-          alert("Public external links are currently supported only for public datasets.");
-          return;
-        }
-        if (modelSource === "external" && !newDataset.is_public) {
-          alert("External semantic model links are currently supported only for public datasets.");
-          return;
-        }
-        if (datasetSource === "upload" && datasetUpload.file && !newDataset.access_url_dataset) {
-          const url = await uploadFile(datasetUpload.file, datasetUploadPath);
-          setNewDataset(prev => ({
-            ...prev,
-            access_url_dataset: url
-          }));
-        }
-        if (showSemanticModel && modelSource === "upload" && modelUpload.file && !newDataset.access_url_semantic_model) {
-          const url = await uploadFile(modelUpload.file, modelUploadPath);
-          setNewDataset(prev => ({
-            ...prev,
-            access_url_semantic_model: url
-          }));
-        }
-        await ensureCatalogStructure(session, {
-          title: solidUserName ? `${solidUserName}'s Catalog` : undefined,
-        });
-        await createDataset(session, {
-          ...newDataset,
-          webid: webId,
-        });
-        await fetchDatasets();
-        onClose();
+      let pendingDataset = { ...newDataset };
+      const selectedUploadFiles = datasetUpload.files || [];
+      const plannedDatasetResourceUrls = datasetSource === "pod"
+        ? uniqueUrls(selectedDatasetUrls)
+        : datasetSource === "upload"
+          ? selectedUploadFiles.map((file, index) => `upload:${index}:${file.name}:${file.size}:${file.lastModified}`)
+          : externalDatasetUrls;
+      const plannedSaveAsSeries = plannedDatasetResourceUrls.length > 1;
+
+      if (plannedDatasetResourceUrls.length === 0) {
+        alert("Dataset link is required.");
         return;
       }
-
-      if (!seriesData.title.trim()) {
+      if (plannedSaveAsSeries && !pendingDataset.title.trim()) {
         alert("Series title is required.");
         return;
       }
-      if (seriesMembers.length === 0) {
-        alert("Please add at least one series member.");
+      if ((datasetSource === "external" || (!plannedSaveAsSeries && modelSource === "external")) && !pendingDataset.is_public) {
+        pendingDataset = { ...pendingDataset, is_public: true };
+      }
+      if (!plannedSaveAsSeries && showSemanticModel && pendingDataset.access_url_semantic_model && !isTtlResource(pendingDataset.access_url_semantic_model)) {
+        alert("Semantic Models must be TTL files.");
         return;
       }
 
-      const createdMembers = seriesMembers
-        .filter((member) => member.kind === "existing" && member.datasetUrl)
-        .map((member) => member.datasetUrl);
+      let uploadedDatasetUrls = [];
+      if (datasetSource === "upload" && selectedUploadFiles.length > 0) {
+        for (const file of selectedUploadFiles) {
+          uploadedDatasetUrls.push(await uploadFile(file, datasetUploadPath));
+        }
+        setDatasetUpload(prev => ({ ...prev, urls: uploadedDatasetUrls, error: "" }));
+        if (uploadedDatasetUrls.length === 1) {
+          pendingDataset = {
+            ...pendingDataset,
+            access_url_dataset: uploadedDatasetUrls[0],
+            file_format: inferMediaType(uploadedDatasetUrls[0]),
+          };
+          setNewDataset(prev => ({
+            ...prev,
+            access_url_dataset: uploadedDatasetUrls[0],
+            file_format: inferMediaType(uploadedDatasetUrls[0]),
+          }));
+        }
+      }
 
-      await createDatasetSeries(session, {
-        ...seriesData,
-        webid: webId,
-        seriesMembers: Array.from(new Set(createdMembers)),
+      const datasetResourceUrls = datasetSource === "pod"
+        ? uniqueUrls(selectedDatasetUrls)
+        : datasetSource === "upload"
+          ? uploadedDatasetUrls
+          : externalDatasetUrls;
+      const saveAsSeries = datasetResourceUrls.length > 1;
+
+      let semanticModelUrl = saveAsSeries ? "" : pendingDataset.access_url_semantic_model;
+      if (!saveAsSeries && showSemanticModel && modelSource === "upload" && modelUpload.file && !semanticModelUrl) {
+        const url = await uploadFile(modelUpload.file, modelUploadPath);
+        semanticModelUrl = url;
+        setModelUpload(prev => ({ ...prev, url, error: "" }));
+        setNewDataset(prev => ({
+          ...prev,
+          access_url_semantic_model: url
+        }));
+      }
+
+      await ensureCatalogStructure(session, {
+        title: solidUserName ? `${solidUserName}'s Catalog` : undefined,
       });
+
+      if (saveAsSeries) {
+        const memberDatasetUrls = [];
+        for (const resourceUrl of datasetResourceUrls) {
+          const existingDataset = findExistingDatasetForResource(resourceUrl);
+          if (existingDataset?.datasetUrl) {
+            memberDatasetUrls.push(existingDataset.datasetUrl);
+            continue;
+          }
+
+          const created = await createDataset(session, {
+            ...pendingDataset,
+            title: getDatasetTitleFromUrl(resourceUrl),
+            access_url_dataset: resourceUrl,
+            access_url_semantic_model: "",
+            file_format: inferMediaType(resourceUrl),
+            distribution_access_type: datasetSource === "external" ? "access" : "download",
+            is_public: datasetSource === "external" ? true : pendingDataset.is_public,
+            webid: webId,
+          });
+          memberDatasetUrls.push(created.datasetUrl);
+        }
+
+        await createDatasetSeries(session, {
+          title: pendingDataset.title,
+          description: pendingDataset.description,
+          theme: pendingDataset.theme,
+          issued: pendingDataset.issued,
+          publisher: pendingDataset.publisher,
+          contact_point: pendingDataset.contact_point,
+          webid: webId,
+          seriesMembers: uniqueUrls(memberDatasetUrls),
+        });
+      } else {
+        const resourceUrl = datasetResourceUrls[0];
+        await createDataset(session, {
+          ...pendingDataset,
+          access_url_dataset: resourceUrl,
+          access_url_semantic_model: semanticModelUrl,
+          file_format: pendingDataset.file_format || inferMediaType(resourceUrl),
+          webid: webId,
+        });
+      }
+
       await fetchDatasets();
       onClose();
     } catch (err) {
@@ -448,30 +481,6 @@ const DatasetAddModal = ({ onClose, fetchDatasets }) => {
     </div>
   );
 
-  const renderFileCards = (label, selectedValue, files, icon, onSelect) => (
-    <div className="mb-3">
-      <label className="font-weight-bold mb-2">{label}</label>
-      <div className="d-flex flex-wrap file-card-container">
-        {files.map((fileUrl) => {
-          const fileName = fileUrl.split('/').pop();
-          const isSelected = selectedValue === fileUrl;
-  
-          return (
-            <div
-              key={fileUrl}
-              onClick={() => onSelect(fileUrl)}
-              className={`card p-2 shadow-sm file-card ${isSelected ? 'file-card-selected border-primary' : ''}`}>
-              <div className="d-flex align-items-center">
-                <i className={`fa-solid ${icon} fa-lg text-secondary mr-2`}></i>
-                <span className="text-truncate" title={fileName}>{fileName}</span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-
   const renderSourceToggle = (value, onChange) => (
     <div className="source-toggle">
       <button
@@ -498,38 +507,100 @@ const DatasetAddModal = ({ onClose, fetchDatasets }) => {
     </div>
   );
 
-  const renderUploadBox = ({ label, accept, onFileChange, onDrop, state, inputId, hint }) => (
-    <div className="upload-box">
-      <div
-        className="upload-drop"
-        onDragOver={(e) => e.preventDefault()}
-        onDrop={onDrop}
-      >
-        <div className="upload-icon">
-          <i className="fa-solid fa-cloud-arrow-up"></i>
+  const handleRemoveDatasetUploadFile = (indexToRemove) => {
+    const nextFiles = datasetUploadFiles.filter((_, index) => index !== indexToRemove);
+    setDatasetUpload({ files: nextFiles, urls: [], error: "" });
+    setNewDataset(prev => ({
+      ...prev,
+      access_url_dataset: "",
+      file_format: nextFiles.length === 1 ? inferMediaType(nextFiles[0].name) : "",
+    }));
+  };
+
+  const syncExternalDatasetState = (links) => {
+    const urls = Array.from(new Set((links || []).map((url) => url.trim()).filter(Boolean)));
+    setNewDataset(prev => ({
+      ...prev,
+      access_url_dataset: urls[0] || "",
+      file_format: urls.length === 1 ? inferMediaType(urls[0]) : "",
+    }));
+  };
+
+  const handleExternalDatasetLinkChange = (indexToUpdate, value) => {
+    const nextLinks = externalDatasetLinks.map((link, index) =>
+      index === indexToUpdate ? value : link
+    );
+    setExternalDatasetLinks(nextLinks);
+    syncExternalDatasetState(nextLinks);
+  };
+
+  const handleAddExternalDatasetLink = () => {
+    setExternalDatasetLinks(prev => [...prev, ""]);
+  };
+
+  const handleRemoveExternalDatasetLink = (indexToRemove) => {
+    const nextLinks = externalDatasetLinks.filter((_, index) => index !== indexToRemove);
+    const safeLinks = nextLinks.length > 0 ? nextLinks : [""];
+    setExternalDatasetLinks(safeLinks);
+    syncExternalDatasetState(safeLinks);
+  };
+
+  const renderUploadBox = ({ label, accept, onFileChange, onDrop, state, inputId, hint, multiple = false, onRemoveFile }) => {
+    const selectedFiles = state.files || (state.file ? [state.file] : []);
+    const uploadedUrls = state.urls || (state.url ? [state.url] : []);
+
+    return (
+      <div className="upload-box">
+        <div
+          className="upload-drop"
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={onDrop}
+        >
+          <div className="upload-icon">
+            <i className="fa-solid fa-cloud-arrow-up"></i>
+          </div>
+          <div className="upload-text">
+            <strong>Drag & drop</strong> your file{multiple ? "s" : ""} here
+          </div>
+          <div className="upload-subtext">or</div>
+          <label htmlFor={inputId} className="upload-button">
+            Browse files
+          </label>
+          <input
+            id={inputId}
+            type="file"
+            accept={accept}
+            multiple={multiple}
+            onChange={onFileChange}
+            className="upload-input"
+          />
         </div>
-        <div className="upload-text">
-          <strong>Drag & drop</strong> your file here
-        </div>
-        <div className="upload-subtext">or</div>
-        <label htmlFor={inputId} className="upload-button">
-          Browse files
-        </label>
-        <input
-          id={inputId}
-          type="file"
-          accept={accept}
-          onChange={onFileChange}
-          className="upload-input"
-        />
+        {selectedFiles.length > 0 && (
+          <div className="upload-selected-files">
+            <span>{selectedFiles.length} file{selectedFiles.length === 1 ? "" : "s"} selected</span>
+            {selectedFiles.map((file, index) => (
+              <div key={`${file.name}-${file.size}-${file.lastModified}-${index}`} className="upload-selected-file">
+                <div>
+                  <strong>{file.name}</strong>
+                  <small>{Math.ceil((file.size || 0) / 1024)} KB</small>
+                </div>
+                {onRemoveFile && (
+                  <button type="button" onClick={() => onRemoveFile(index)} aria-label={`Remove ${file.name}`} title="Remove">
+                    <i className="fa-solid fa-xmark"></i>
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+        {hint && <div className="upload-hint">{hint}</div>}
+        {uploadedUrls.length > 0 && (
+          <div className="upload-hint success">Uploaded {uploadedUrls.length} file{uploadedUrls.length === 1 ? "" : "s"}.</div>
+        )}
+        {state.error && <div className="upload-hint error">{state.error}</div>}
       </div>
-      {hint && <div className="upload-hint">{hint}</div>}
-      {state.url && (
-        <div className="upload-hint success">Uploaded to {state.url}</div>
-      )}
-      {state.error && <div className="upload-hint error">{state.error}</div>}
-    </div>
-  );
+    );
+  };
 
   const renderExternalUrlInput = ({ label, name, value, placeholder, hint }) => (
     <div className="mb-3">
@@ -546,13 +617,46 @@ const DatasetAddModal = ({ onClose, fetchDatasets }) => {
     </div>
   );
 
+  const renderExternalDatasetLinks = () => (
+    <div className="external-link-list">
+      <div className="external-link-list-header">
+        <label>External Dataset link</label>
+      </div>
+      {externalDatasetLinks.map((link, index) => (
+        <div className="external-link-row" key={`external-link-${index}`}>
+          <input
+            className="form-control"
+            type="url"
+            value={link}
+            onChange={(event) => handleExternalDatasetLinkChange(index, event.target.value)}
+            placeholder="https://..."
+          />
+          <button
+            type="button"
+            className="external-link-remove"
+            onClick={() => handleRemoveExternalDatasetLink(index)}
+            disabled={externalDatasetLinks.length === 1 && !link.trim()}
+            aria-label="Remove external link"
+            title="Remove"
+          >
+            <i className="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      ))}
+      <button type="button" className="external-link-add" onClick={handleAddExternalDatasetLink}>
+        <i className="fa-solid fa-plus"></i>
+        Add External Link
+      </button>
+    </div>
+  );
+
   return (
     <div className="modal show modal-show dataset-add-modal">
       <div className="modal-dialog modal-xl" role="document">
         <div className="modal-content">
           <div className="modal-header">
             <h5 className="modal-title">
-              <i className="fa-solid fa-plus mr-2"></i> Add Dataset (Series)
+              <i className="fa-solid fa-plus mr-2"></i> Add Dataset
             </h5>
             <button type="button" className="close" onClick={onClose}>
               <span>&times;</span>
@@ -581,114 +685,95 @@ const DatasetAddModal = ({ onClose, fetchDatasets }) => {
             </div>
 
             <div className="form-section mb-4">
-              <h6 className="section-title">What do you want to add?</h6>
-              <div className="d-flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  className={`btn ${datasetType === "dataset" ? "btn-primary" : "btn-outline-secondary"}`}
-                  onClick={() => setDatasetType("dataset")}
-                >
-                  <i className="fa-solid fa-database mr-2"></i>Dataset
-                </button>
-                <button
-                  type="button"
-                  className={`btn ${datasetType === "series" ? "btn-primary" : "btn-outline-secondary"}`}
-                  onClick={() => setDatasetType("series")}
-                >
-                  <i className="fa-solid fa-layer-group mr-2"></i>Dataset Series
-                </button>
-              </div>
-            </div>
-
-            {datasetType === "dataset" && (
-              <>
-            <div className="form-section mb-4">
-              <h6 className="section-title">General Information</h6>
-              {renderInputWithIcon("Title", "title", "text", "fa-heading")}
-              {renderInputWithIcon("Description", "description", "textarea", "fa-align-left")}
-              {renderInputWithIcon("Theme", "theme", "text", "fa-tags")}
-              <label className="form-label-compact">Access Rights</label>
-              <div className="form-group position-relative mb-3">
-                <i className="fa-solid fa-lock input-icon input-icon-text"></i>
-                <select
-                  className="form-control"
-                  name="is_public"
-                  value={newDataset.is_public ? 'public' : 'restricted'}
-                  onChange={(e) =>
-                    setNewDataset(prev => ({ ...prev, is_public: e.target.value === 'public' }))
-                  }
-                  disabled={requiresPublicAccess}
-                  style={{ paddingLeft: '30px' }}
-                >
-                  <option value="public">Public</option>
-                  <option value="restricted">Restricted</option>
-                </select>
-              </div>
-              <label htmlFor="issued" className="form-label-compact">Issued Date</label>
-              {renderInputWithIcon("Issued Date", "issued", "date", "fa-calendar-plus")}
+              <h6 className="section-title">{isAutomaticSeries ? "Dataset Series" : "General Information"}</h6>
+              {isAutomaticSeries ? (
+                <>
+                  {renderInputWithIcon("Series Title", "title", "text", "fa-layer-group")}
+                  {renderInputWithIcon("Series Description", "description", "textarea", "fa-align-left")}
+                  {renderInputWithIcon("Series Theme (IRI)", "theme", "text", "fa-tags")}
+                  <label htmlFor="issued" className="form-label-compact">Issued Date</label>
+                  {renderInputWithIcon("Issued Date", "issued", "date", "fa-calendar-plus")}
+                </>
+              ) : (
+                <>
+                  {renderInputWithIcon("Title", "title", "text", "fa-heading")}
+                  {renderInputWithIcon("Description", "description", "textarea", "fa-align-left")}
+                  {renderInputWithIcon("Theme", "theme", "text", "fa-tags")}
+                  {!requiresPublicAccess && (
+                    <>
+                      <label className="form-label-compact">Access Rights</label>
+                      <div className="form-group position-relative mb-3">
+                        <i className="fa-solid fa-lock input-icon input-icon-text"></i>
+                        <select
+                          className="form-control"
+                          name="is_public"
+                          value={newDataset.is_public ? 'public' : 'restricted'}
+                          onChange={(e) =>
+                            setNewDataset(prev => ({ ...prev, is_public: e.target.value === 'public' }))
+                          }
+                          style={{ paddingLeft: '30px' }}
+                        >
+                          <option value="public">Public</option>
+                          <option value="restricted">Restricted</option>
+                        </select>
+                      </div>
+                    </>
+                  )}
+                  <label htmlFor="issued" className="form-label-compact">Issued Date</label>
+                  {renderInputWithIcon("Issued Date", "issued", "date", "fa-calendar-plus")}
+                </>
+              )}
             </div>
 
             <div className="form-section">
               <h6 className="section-title">Dataset Resource</h6>
               {renderSourceToggle(datasetSource, handleDatasetSourceChange)}
               {datasetSource === "upload" && (
-                <div className="upload-path-row">
-                  <label htmlFor="dataset-upload-path">Save files to</label>
-                  <input
-                    id="dataset-upload-path"
-                    type="text"
-                    value={datasetUploadPath}
-                    onChange={(e) => setDatasetUploadPath(e.target.value)}
-                    onBlur={(e) => setDatasetUploadPath(normalizeUploadPath(e.target.value, "/public/"))}
-                    placeholder="/public/"
-                  />
-                </div>
+                <PodContainerPicker
+                  onSelectPath={(path) => setDatasetUploadPath(normalizeUploadPath(path, "/"))}
+                  webId={webId}
+                />
               )}
               {datasetSource === "upload" ? (
                 renderUploadBox({
-                  label: "Upload dataset file",
+                  label: "Upload dataset files",
                   accept: ".csv,.json,.ttl,.jsonld,.rdf,.xml,.pdf,.docx,.txt",
                   onFileChange: handleDatasetFileSelect,
                   onDrop: handleDatasetDrop,
                   state: datasetUpload,
-                  hint: "Allowed: CSV, JSON, TTL, JSON-LD, RDF, XML, PDF, DOCX, TXT",
                   inputId: "dataset-upload-input",
+                  multiple: true,
+                  onRemoveFile: handleRemoveDatasetUploadFile,
                 })
               ) : datasetSource === "pod" ? (
-                renderFileCards(
-                  "Select Dataset File",
-                  newDataset.access_url_dataset,
-                  datasetPodFiles,
-                  "fa-file-csv",
-                  (fileUrl) =>
+                <PodResourcePicker
+                  multiple
+                  resourceType="dataset"
+                  selectedUrls={selectedDatasetUrls}
+                  webId={webId}
+                  onSelect={(fileUrls) => {
+                    const nextUrls = uniqueUrls(fileUrls);
+                    setSelectedDatasetUrls(nextUrls);
                     setNewDataset(prev => ({
                       ...prev,
-                      access_url_dataset: fileUrl,
-                      file_format: inferMediaType(fileUrl),
-                    }))
-                )
+                      access_url_dataset: nextUrls[0] || "",
+                      file_format: nextUrls.length === 1 ? inferMediaType(nextUrls[0]) : "",
+                    }));
+                  }}
+                />
               ) : (
-                renderExternalUrlInput({
-                  label: "External Dataset link",
-                  name: "access_url_dataset",
-                  value: newDataset.access_url_dataset,
-                  placeholder: "https://...",
-                })
-              )}
-              {datasetSource === "external" && (
-                <div className="upload-hint">
-                  External links are currently supported only for public datasets.
-                </div>
+                renderExternalDatasetLinks()
               )}
             </div>
 
+            {!isAutomaticSeries && (
             <div className="form-section">
               <div className="section-header">
                 <div>
                   <h6 className="section-title">Semantic Model File</h6>
                   <div className="text-muted">Optional</div>
                 </div>
-                <div className="d-flex gap-2">
+                <div className="d-flex gap-2 semantic-model-actions">
                   {!showSemanticModel && (
                     <button
                       type="button"
@@ -726,17 +811,10 @@ const DatasetAddModal = ({ onClose, fetchDatasets }) => {
                 <>
                   {renderSourceToggle(modelSource, handleModelSourceChange)}
                   {modelSource === "upload" && (
-                    <div className="upload-path-row">
-                      <label htmlFor="model-upload-path">Save files to</label>
-                      <input
-                        id="model-upload-path"
-                        type="text"
-                        value={modelUploadPath}
-                        onChange={(e) => setModelUploadPath(e.target.value)}
-                        onBlur={(e) => setModelUploadPath(normalizeUploadPath(e.target.value, "/public/"))}
-                        placeholder="/public/"
-                      />
-                    </div>
+                    <PodContainerPicker
+                      onSelectPath={(path) => setModelUploadPath(normalizeUploadPath(path, "/"))}
+                      webId={webId}
+                    />
                   )}
                   {modelSource === "upload" ? (
                     renderUploadBox({
@@ -749,166 +827,29 @@ const DatasetAddModal = ({ onClose, fetchDatasets }) => {
                       inputId: "model-upload-input",
                     })
                   ) : modelSource === "pod" ? (
-                    renderFileCards(
-                      "",
-                      newDataset.access_url_semantic_model,
-                      modelPodFiles,
-                      "fa-project-diagram",
-                      (fileUrl) =>
+                    <PodResourcePicker
+                      label="Select Semantic Model"
+                      resourceType="semanticModel"
+                      selectedUrl={newDataset.access_url_semantic_model}
+                      webId={webId}
+                      onSelect={(fileUrl) =>
                         setNewDataset(prev => ({
                           ...prev,
                           access_url_semantic_model: fileUrl,
                         }))
-                    )
+                      }
+                    />
                   ) : (
                     renderExternalUrlInput({
                       label: "Public external semantic model link",
                       name: "access_url_semantic_model",
                       value: newDataset.access_url_semantic_model,
                       placeholder: "https://example.org/model.ttl",
-                      hint: "The detail view can only render the graph if this URL returns RDF/Turtle directly.",
                     })
                   )}
                 </>
               )}
             </div>
-            </>
-            )}
-
-            {datasetType === "series" && (
-              <div className="form-section mb-4">
-                <div className="section-header">
-                  <h6 className="section-title">Dataset Series</h6>
-                </div>
-
-                <div className="form-group position-relative mb-3">
-                  <i className="fa-solid fa-layer-group input-icon input-icon-text"></i>
-                  <input
-                    className="form-control"
-                    type="text"
-                    placeholder="Series Title"
-                    value={seriesData.title}
-                    onChange={(e) =>
-                      setSeriesData(prev => ({ ...prev, title: e.target.value }))
-                    }
-                    style={{ paddingLeft: '30px' }}
-                  />
-                </div>
-
-                <div className="form-group position-relative mb-3">
-                  <i className="fa-solid fa-align-left input-icon input-icon-textarea"></i>
-                  <textarea
-                    className="form-control"
-                    placeholder="Series Description"
-                    rows={2}
-                    value={seriesData.description}
-                    onChange={(e) =>
-                      setSeriesData(prev => ({ ...prev, description: e.target.value }))
-                    }
-                    style={{ paddingLeft: '30px' }}
-                  />
-                </div>
-
-                <div className="form-group position-relative mb-3">
-                  <i className="fa-solid fa-tags input-icon input-icon-text"></i>
-                  <input
-                    className="form-control"
-                    type="text"
-                    placeholder="Series Theme (IRI)"
-                    value={seriesData.theme}
-                    onChange={(e) =>
-                      setSeriesData(prev => ({ ...prev, theme: e.target.value }))
-                    }
-                    style={{ paddingLeft: '30px' }}
-                  />
-                </div>
-
-                <label htmlFor="series-issued" className="form-label-compact">Issued Date</label>
-                <div className="form-group position-relative mb-3">
-                  <i className="fa-solid fa-calendar-plus input-icon input-icon-date"></i>
-                  <input
-                    id="series-issued"
-                    className="form-control"
-                    type="date"
-                    value={seriesData.issued}
-                    onChange={(e) => setSeriesData(prev => ({ ...prev, issued: e.target.value }))}
-                    style={{ paddingLeft: '30px' }}
-                  />
-                </div>
-
-                <div className="mb-3">
-                  <label className="form-label-compact">Series Members (Existing Datasets)</label>
-                  <div className="d-flex flex-wrap gap-2">
-                    {existingDatasets.map((item) => {
-                      const selected = seriesMembers.some(
-                        (member) => member.kind === "existing" && member.datasetUrl === item.datasetUrl
-                      );
-                      return (
-                        <button
-                          key={item.datasetUrl}
-                          type="button"
-                          className={`btn btn-sm ${selected ? "btn-primary" : "btn-outline-secondary"}`}
-                          onClick={() => {
-                            if (selected) {
-                              setSeriesMembers((prev) =>
-                                prev.filter(
-                                  (member) =>
-                                    !(
-                                      member.kind === "existing" &&
-                                      member.datasetUrl === item.datasetUrl
-                                    )
-                                )
-                              );
-                            } else {
-                              setSeriesMembers((prev) => [
-                                ...prev,
-                                {
-                                  kind: "existing",
-                                  datasetUrl: item.datasetUrl,
-                                  label: item.title || item.identifier || item.datasetUrl,
-                                },
-                              ]);
-                            }
-                          }}
-                        >
-                          <i className="fa-solid fa-database mr-2"></i>
-                          {item.title || item.identifier || "Dataset"}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {seriesMembers.length > 0 && (
-                  <div className="mb-3">
-                    <label className="form-label-compact">Current Members</label>
-                    <div className="d-flex flex-wrap gap-2">
-                      {seriesMembers.map((member, idx) => {
-                        const label =
-                          member.kind === "existing"
-                            ? member.label
-                            : member.input?.title || "New dataset";
-                        return (
-                          <span key={`${member.kind}-${idx}`} className="badge badge-light border">
-                            {label}
-                            <button
-                              type="button"
-                              className="btn btn-link btn-sm ml-2"
-                              onClick={() =>
-                                setSeriesMembers((prev) =>
-                                  prev.filter((_, index) => index !== idx)
-                                )
-                              }
-                            >
-                              x
-                            </button>
-                          </span>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
             )}
           </div>
 
@@ -918,12 +859,14 @@ const DatasetAddModal = ({ onClose, fetchDatasets }) => {
               onClick={handleSave}
               disabled={
                 loading ||
-                (datasetType === "dataset" && !hasRequiredFields) ||
-                (datasetType === "series" && !seriesData.title.trim())
+                !hasRequiredFields ||
+                (isAutomaticSeries && !newDataset.title.trim())
               }
               title={
-                datasetType === "dataset" && !hasRequiredFields
+                !hasRequiredFields
                   ? "Dataset link is required"
+                  : isAutomaticSeries && !newDataset.title.trim()
+                    ? "Series title is required"
                   : ""
               }
             >
@@ -932,7 +875,7 @@ const DatasetAddModal = ({ onClose, fetchDatasets }) => {
               ) : (
                 <i className="fa-solid fa-floppy-disk mr-2"></i>
               )}
-              {loading ? "Saving..." : datasetType === "series" ? "Save Series" : "Save Dataset"}
+              {loading ? "Saving..." : isAutomaticSeries ? "Save Series" : "Save Dataset"}
             </button>
           </div>
         </div>

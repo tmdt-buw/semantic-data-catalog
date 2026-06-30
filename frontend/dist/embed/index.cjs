@@ -35,15 +35,15 @@ function _asyncToGenerator(n) {
     });
   };
 }
-function _defineProperty(e, r, t) {
-  return (r = _toPropertyKey(r)) in e ? Object.defineProperty(e, r, {
+function _defineProperty$2(e, r, t) {
+  return (r = _toPropertyKey$2(r)) in e ? Object.defineProperty(e, r, {
     value: t,
     enumerable: true,
     configurable: true,
     writable: true
   }) : e[r] = t, e;
 }
-function ownKeys(e, r) {
+function ownKeys$2(e, r) {
   var t = Object.keys(e);
   if (Object.getOwnPropertySymbols) {
     var o = Object.getOwnPropertySymbols(e);
@@ -53,18 +53,18 @@ function ownKeys(e, r) {
   }
   return t;
 }
-function _objectSpread2(e) {
+function _objectSpread2$2(e) {
   for (var r = 1; r < arguments.length; r++) {
     var t = null != arguments[r] ? arguments[r] : {};
-    r % 2 ? ownKeys(Object(t), true).forEach(function (r) {
-      _defineProperty(e, r, t[r]);
-    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys(Object(t)).forEach(function (r) {
+    r % 2 ? ownKeys$2(Object(t), true).forEach(function (r) {
+      _defineProperty$2(e, r, t[r]);
+    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys$2(Object(t)).forEach(function (r) {
       Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r));
     });
   }
   return e;
 }
-function _toPrimitive(t, r) {
+function _toPrimitive$2(t, r) {
   if ("object" != typeof t || !t) return t;
   var e = t[Symbol.toPrimitive];
   if (void 0 !== e) {
@@ -74,8 +74,8 @@ function _toPrimitive(t, r) {
   }
   return ("string" === r ? String : Number)(t);
 }
-function _toPropertyKey(t) {
-  var i = _toPrimitive(t, "string");
+function _toPropertyKey$2(t) {
+  var i = _toPrimitive$2(t, "string");
   return "symbol" == typeof i ? i : i + "";
 }
 
@@ -3169,7 +3169,7 @@ var buildDefaultPrivateRegistry = webId => {
   if (!webId) return "";
   return "".concat(getPodRoot$1(webId), "registry/");
 };
-var normalizeContainerUrl = value => {
+var normalizeContainerUrl$2 = value => {
   if (!value) return "";
   try {
     var url = new URL(value);
@@ -3465,7 +3465,7 @@ var ensureRegistryContainer = /*#__PURE__*/function () {
 var ensurePrivateRegistryContainer = /*#__PURE__*/function () {
   var _ref13 = _asyncToGenerator(function* (webId, fetch, privateRegistryUrl) {
     if (!webId || !fetch) return "";
-    var target = normalizeContainerUrl(privateRegistryUrl || buildDefaultPrivateRegistry(webId));
+    var target = normalizeContainerUrl$2(privateRegistryUrl || buildDefaultPrivateRegistry(webId));
     if (!target) return "";
     yield ensureRegistryContainer(target, fetch);
     return target;
@@ -3495,7 +3495,7 @@ var registerWebIdInRegistryContainer = /*#__PURE__*/function () {
     var {
       allowCreate
     } = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : {};
-    var normalizedUrl = normalizeContainerUrl(containerUrl);
+    var normalizedUrl = normalizeContainerUrl$2(containerUrl);
     if (!normalizedUrl || !memberWebId) return;
     if (allowCreate) {
       yield ensureRegistryContainer(normalizedUrl, fetch);
@@ -3545,7 +3545,7 @@ var registerWebIdInRegistries = /*#__PURE__*/function () {
     } else {
       containers = config.registries;
     }
-    var normalized = Array.from(new Set(containers.map(normalizeContainerUrl).filter(Boolean)));
+    var normalized = Array.from(new Set(containers.map(normalizeContainerUrl$2).filter(Boolean)));
     if (!normalized.length) return;
     for (var containerUrl of normalized) {
       try {
@@ -3563,7 +3563,7 @@ var registerWebIdInRegistries = /*#__PURE__*/function () {
 }();
 var loadRegistryMembersFromContainer = /*#__PURE__*/function () {
   var _ref17 = _asyncToGenerator(function* (containerUrl, fetch) {
-    var normalizedUrl = normalizeContainerUrl(containerUrl);
+    var normalizedUrl = normalizeContainerUrl$2(containerUrl);
     if (!normalizedUrl || !fetch) return [];
     try {
       var containerDataset = yield solidClient.getSolidDataset(normalizedUrl, {
@@ -3601,7 +3601,7 @@ var syncRegistryMembersInContainer = /*#__PURE__*/function () {
     var {
       allowCreate
     } = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : {};
-    var normalizedUrl = normalizeContainerUrl(containerUrl);
+    var normalizedUrl = normalizeContainerUrl$2(containerUrl);
     if (!normalizedUrl || !fetch) return;
     var cleanedMembers = Array.from(new Set((members || []).map(m => (m || "").trim()).filter(Boolean)));
     if (allowCreate) {
@@ -3751,7 +3751,7 @@ var loadRegistryMembers = /*#__PURE__*/function () {
     } else {
       containers = config.registries || [];
     }
-    var normalized = Array.from(new Set(containers.map(normalizeContainerUrl).filter(Boolean)));
+    var normalized = Array.from(new Set(containers.map(normalizeContainerUrl$2).filter(Boolean)));
     if (!normalized.length) return Array.from(members);
     for (var containerUrl of normalized) {
       try {
@@ -3937,8 +3937,8 @@ var loadAggregatedDatasets = /*#__PURE__*/function () {
     var now = Date.now();
     var useCacheOnly = now - cache.updatedAt < CACHE_TTL_MS;
     var results = [];
-    var updatedCache = _objectSpread2(_objectSpread2({}, cache), {}, {
-      catalogs: _objectSpread2({}, cache.catalogs)
+    var updatedCache = _objectSpread2$2(_objectSpread2$2({}, cache), {}, {
+      catalogs: _objectSpread2$2({}, cache.catalogs)
     });
     var fetchCatalog = /*#__PURE__*/function () {
       var _ref27 = _asyncToGenerator(function* (catalogUrl) {
@@ -3985,7 +3985,7 @@ var loadAggregatedDatasets = /*#__PURE__*/function () {
         continue;
       }
       var catalogResult = yield fetchCatalog(catalogUrl);
-      results.push(_objectSpread2({
+      results.push(_objectSpread2$2({
         catalogUrl
       }, catalogResult));
     }
@@ -3997,7 +3997,7 @@ var loadAggregatedDatasets = /*#__PURE__*/function () {
         return [];
       }
       var stale = lastSeen && age > STALE_AFTER_MS;
-      return (result.datasets || []).map(dataset => _objectSpread2(_objectSpread2({}, dataset), {}, {
+      return (result.datasets || []).map(dataset => _objectSpread2$2(_objectSpread2$2({}, dataset), {}, {
         catalogUrl: result.catalogUrl,
         lastSeenAt: lastSeen ? new Date(lastSeen).toISOString() : "",
         isStale: Boolean(stale)
@@ -4446,7 +4446,7 @@ var createDataset = /*#__PURE__*/function () {
     var identifier = input.identifier || generateIdentifier();
     var datasetDocUrl = "".concat(getPodRoot$1(session.info.webId)).concat(DATASET_CONTAINER).concat(identifier, ".ttl");
     var datasetUrl = "".concat(datasetDocUrl, "#it");
-    yield writeDatasetDocument(session, datasetDocUrl, _objectSpread2(_objectSpread2({}, input), {}, {
+    yield writeDatasetDocument(session, datasetDocUrl, _objectSpread2$2(_objectSpread2$2({}, input), {}, {
       identifier
     }));
     yield updateCatalogDatasets(session, getCatalogDocUrl(session.info.webId), datasetUrl, {
@@ -4472,7 +4472,7 @@ var createDatasetSeries = /*#__PURE__*/function () {
     var seriesDocUrl = getSeriesDocUrl(session.info.webId, identifier);
     var seriesUrl = getSeriesResourceUrl(seriesDocUrl);
     var seriesMembers = Array.isArray(input.seriesMembers) ? input.seriesMembers.filter(memberUrl => isValidUrl(memberUrl)) : [];
-    yield writeSeriesDocument(session, seriesDocUrl, _objectSpread2(_objectSpread2({}, input), {}, {
+    yield writeSeriesDocument(session, seriesDocUrl, _objectSpread2$2(_objectSpread2$2({}, input), {}, {
       identifier,
       seriesUrl,
       seriesMembers
@@ -4529,7 +4529,7 @@ var updateDatasetSeries = /*#__PURE__*/function () {
     } catch (err) {
       console.warn("Failed to read series for update", seriesDocUrl, err);
     }
-    yield writeSeriesDocument(session, seriesDocUrl, _objectSpread2(_objectSpread2({}, input), {}, {
+    yield writeSeriesDocument(session, seriesDocUrl, _objectSpread2$2(_objectSpread2$2({}, input), {}, {
       seriesUrl,
       seriesMembers: nextMembers
     }));
@@ -4749,6 +4749,560 @@ var buildMergedCatalogDownload = /*#__PURE__*/function () {
   };
 }();
 
+var getPodRootFromWebId$2 = webId => {
+  if (!webId) return "";
+  try {
+    var url = new URL(webId);
+    var segments = url.pathname.split("/").filter(Boolean);
+    var profileIndex = segments.indexOf("profile");
+    var baseSegments = profileIndex > -1 ? segments.slice(0, profileIndex) : segments.slice(0, -1);
+    var basePath = baseSegments.length ? "/".concat(baseSegments.join("/"), "/") : "/";
+    return "".concat(url.origin).concat(basePath);
+  } catch (_unused) {
+    var base = webId.split("/profile/")[0];
+    return base.endsWith("/") ? base : "".concat(base, "/");
+  }
+};
+var normalizeContainerUrl$1 = url => url && url.endsWith("/") ? url : "".concat(url, "/");
+var getContainerName = function getContainerName(url) {
+  var rootUrl = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : "";
+  if (rootUrl && normalizeContainerUrl$1(url) === normalizeContainerUrl$1(rootUrl)) return "Pod root";
+  var name = url.split("/").filter(Boolean).pop() || url;
+  return decodeURIComponent(name);
+};
+var isCatalogContainer = url => url.includes("/catalog/");
+var compareEntries$1 = (a, b) => a.name.localeCompare(b.name, undefined, {
+  sensitivity: "base"
+});
+var getPathFromContainerUrl = (containerUrl, rootUrl) => {
+  if (!containerUrl || !rootUrl) return "/";
+  try {
+    var root = new URL(normalizeContainerUrl$1(rootUrl));
+    var current = new URL(normalizeContainerUrl$1(containerUrl));
+    var rootPath = root.pathname.endsWith("/") ? root.pathname : "".concat(root.pathname, "/");
+    var currentPath = current.pathname.endsWith("/") ? current.pathname : "".concat(current.pathname, "/");
+    var relativePath = currentPath.startsWith(rootPath) ? currentPath.slice(rootPath.length) : "";
+    var cleanPath = relativePath.replace(/^\/+|\/+$/g, "");
+    return cleanPath ? "/".concat(cleanPath, "/") : "/";
+  } catch (_unused2) {
+    return "/";
+  }
+};
+var sanitizeFolderName = value => value.trim().replace(/^\/+|\/+$/g, "");
+function PodContainerPicker(_ref) {
+  var {
+    onSelectPath,
+    webId
+  } = _ref;
+  var effectiveWebId = webId || session.info.webId;
+  var rootUrl = React.useMemo(() => getPodRootFromWebId$2(effectiveWebId), [effectiveWebId]);
+  var cacheRef = React.useRef(new Map());
+  var [currentUrl, setCurrentUrl] = React.useState("");
+  var [entries, setEntries] = React.useState([]);
+  var [loading, setLoading] = React.useState(false);
+  var [creating, setCreating] = React.useState(false);
+  var [error, setError] = React.useState("");
+  var [folderModalOpen, setFolderModalOpen] = React.useState(false);
+  var [folderName, setFolderName] = React.useState("");
+  var [folderModalError, setFolderModalError] = React.useState("");
+  var mapEntries = React.useCallback((containerUrl, urls) => urls.filter(url => url.endsWith("/")).filter(url => !isCatalogContainer(url)).map(url => ({
+    url: normalizeContainerUrl$1(url),
+    name: getContainerName(url, containerUrl)
+  })).sort(compareEntries$1), []);
+  var loadContainer = React.useCallback(/*#__PURE__*/function () {
+    var _ref2 = _asyncToGenerator(function* (containerUrl) {
+      var force = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
+      if (!containerUrl) return;
+      var normalizedUrl = normalizeContainerUrl$1(containerUrl);
+      setCurrentUrl(normalizedUrl);
+      setError("");
+      if (!force && cacheRef.current.has(normalizedUrl)) {
+        setEntries(cacheRef.current.get(normalizedUrl));
+        return;
+      }
+      try {
+        setLoading(true);
+        var dataset = yield solidClient.getSolidDataset(normalizedUrl, {
+          fetch: session.fetch
+        });
+        var containedUrls = solidClient.getContainedResourceUrlAll(dataset);
+        var nextEntries = mapEntries(normalizedUrl, Array.from(new Set(containedUrls)));
+        cacheRef.current.set(normalizedUrl, nextEntries);
+        setEntries(nextEntries);
+      } catch (err) {
+        console.error("Failed to load pod container ".concat(normalizedUrl, ":"), err);
+        setEntries([]);
+        setError("This folder could not be loaded.");
+      } finally {
+        setLoading(false);
+      }
+    });
+    return function (_x) {
+      return _ref2.apply(this, arguments);
+    };
+  }(), [mapEntries]);
+  React.useEffect(() => {
+    cacheRef.current.clear();
+    if (!rootUrl) {
+      setCurrentUrl("");
+      setEntries([]);
+      return;
+    }
+    loadContainer(rootUrl, true);
+  }, [rootUrl, loadContainer]);
+  var crumbs = React.useMemo(() => {
+    if (!rootUrl || !currentUrl) return [];
+    try {
+      var root = new URL(rootUrl);
+      var current = new URL(currentUrl);
+      var rootPath = root.pathname.endsWith("/") ? root.pathname : "".concat(root.pathname, "/");
+      var currentPath = current.pathname.endsWith("/") ? current.pathname : "".concat(current.pathname, "/");
+      var relativePath = currentPath.startsWith(rootPath) ? currentPath.slice(rootPath.length) : "";
+      var parts = relativePath.split("/").filter(Boolean);
+      var nextCrumbs = [{
+        name: "Pod root",
+        url: rootUrl
+      }];
+      parts.forEach((part, index) => {
+        nextCrumbs.push({
+          name: decodeURIComponent(part),
+          url: "".concat(rootUrl).concat(parts.slice(0, index + 1).join("/"), "/")
+        });
+      });
+      return nextCrumbs;
+    } catch (_unused3) {
+      return [{
+        name: "Pod root",
+        url: rootUrl
+      }];
+    }
+  }, [currentUrl, rootUrl]);
+  var openContainer = containerUrl => {
+    if (!containerUrl) return;
+    onSelectPath === null || onSelectPath === void 0 || onSelectPath(getPathFromContainerUrl(containerUrl, rootUrl));
+    loadContainer(containerUrl);
+  };
+  var handleRefresh = () => {
+    if (!currentUrl) return;
+    cacheRef.current.delete(currentUrl);
+    loadContainer(currentUrl, true);
+  };
+  var handleOpenFolderModal = () => {
+    setFolderName("");
+    setFolderModalError("");
+    setFolderModalOpen(true);
+  };
+  var handleCloseFolderModal = () => {
+    if (creating) return;
+    setFolderModalOpen(false);
+    setFolderName("");
+    setFolderModalError("");
+  };
+  var handleCreateFolder = /*#__PURE__*/function () {
+    var _ref3 = _asyncToGenerator(function* (event) {
+      event === null || event === void 0 || event.preventDefault();
+      var nextFolderName = sanitizeFolderName(folderName);
+      if (!nextFolderName) {
+        setFolderModalError("Folder name is required.");
+        return;
+      }
+      if (/[\\/#?]/.test(nextFolderName)) {
+        setFolderModalError("Folder name cannot contain /, \\, #, or ?.");
+        return;
+      }
+      if (!currentUrl) return;
+      var targetUrl = "".concat(normalizeContainerUrl$1(currentUrl)).concat(encodeURIComponent(nextFolderName), "/");
+      try {
+        setCreating(true);
+        setError("");
+        setFolderModalError("");
+        yield solidClient.createContainerAt(targetUrl, {
+          fetch: session.fetch
+        });
+        cacheRef.current.delete(currentUrl);
+        setFolderModalOpen(false);
+        setFolderName("");
+        onSelectPath === null || onSelectPath === void 0 || onSelectPath(getPathFromContainerUrl(targetUrl, rootUrl));
+        yield loadContainer(targetUrl, true);
+      } catch (err) {
+        var _err$response;
+        var status = (err === null || err === void 0 ? void 0 : err.statusCode) || (err === null || err === void 0 || (_err$response = err.response) === null || _err$response === void 0 ? void 0 : _err$response.status);
+        if (status === 409 || status === 412) {
+          setFolderModalOpen(false);
+          setFolderName("");
+          onSelectPath === null || onSelectPath === void 0 || onSelectPath(getPathFromContainerUrl(targetUrl, rootUrl));
+          yield loadContainer(targetUrl, true);
+          return;
+        }
+        console.error("Failed to create pod folder:", err);
+        setFolderModalError("Folder could not be created.");
+      } finally {
+        setCreating(false);
+      }
+    });
+    return function handleCreateFolder(_x2) {
+      return _ref3.apply(this, arguments);
+    };
+  }();
+  return /*#__PURE__*/React.createElement("div", {
+    className: "pod-container-picker"
+  }, rootUrl ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    className: "pod-picker-toolbar"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "pod-picker-crumbs"
+  }, crumbs.map((crumb, index) => /*#__PURE__*/React.createElement(React.Fragment, {
+    key: crumb.url
+  }, index > 0 && /*#__PURE__*/React.createElement("i", {
+    className: "fa-solid fa-chevron-right pod-picker-crumb-separator"
+  }), index === crumbs.length - 1 ? /*#__PURE__*/React.createElement("span", {
+    className: "pod-picker-crumb-current"
+  }, crumb.name) : /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    className: "pod-picker-crumb-link",
+    onClick: () => openContainer(crumb.url)
+  }, crumb.name)))), /*#__PURE__*/React.createElement("div", {
+    className: "pod-picker-toolbar-actions pod-container-toolbar-actions"
+  }, /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    className: "pod-picker-new-folder-button",
+    onClick: handleOpenFolderModal,
+    disabled: !currentUrl || loading || creating,
+    title: "New Folder"
+  }, /*#__PURE__*/React.createElement("i", {
+    className: "fa-solid fa-folder-plus"
+  }), creating ? "Creating..." : "New Folder"), /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    className: "pod-picker-icon-button",
+    onClick: handleRefresh,
+    disabled: !currentUrl || loading,
+    title: "Refresh"
+  }, /*#__PURE__*/React.createElement("i", {
+    className: "fa-solid fa-rotate-right"
+  })))), error && /*#__PURE__*/React.createElement("div", {
+    className: "pod-picker-state pod-picker-state--error"
+  }, error), !error && loading && /*#__PURE__*/React.createElement("div", {
+    className: "pod-picker-state"
+  }, "Loading folders..."), !error && !loading && /*#__PURE__*/React.createElement("div", {
+    className: "pod-picker-table-wrap pod-container-table-wrap"
+  }, /*#__PURE__*/React.createElement("table", {
+    className: "pod-picker-table"
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "Folder"))), /*#__PURE__*/React.createElement("tbody", null, entries.map(entry => /*#__PURE__*/React.createElement("tr", {
+    key: entry.url,
+    className: "pod-picker-folder",
+    onClick: () => openContainer(entry.url)
+  }, /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("i", {
+    className: "fa-solid fa-folder pod-picker-entry-icon"
+  }), /*#__PURE__*/React.createElement("span", {
+    title: entry.name
+  }, entry.name)))), entries.length === 0 && /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
+    className: "pod-picker-empty"
+  }, "No subfolders in this folder.")))))) : /*#__PURE__*/React.createElement("div", {
+    className: "pod-picker-state pod-picker-state--error"
+  }, "No Solid Pod is available."), folderModalOpen && /*#__PURE__*/React.createElement("div", {
+    className: "pod-folder-modal-backdrop",
+    role: "presentation",
+    onClick: handleCloseFolderModal
+  }, /*#__PURE__*/React.createElement("form", {
+    className: "pod-folder-modal",
+    role: "dialog",
+    "aria-modal": "true",
+    "aria-labelledby": "pod-folder-modal-title",
+    onClick: event => event.stopPropagation(),
+    onSubmit: handleCreateFolder
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "pod-folder-modal-header"
+  }, /*#__PURE__*/React.createElement("h6", {
+    id: "pod-folder-modal-title"
+  }, /*#__PURE__*/React.createElement("i", {
+    className: "fa-solid fa-folder-plus"
+  }), "New Folder"), /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    className: "pod-folder-modal-close",
+    onClick: handleCloseFolderModal,
+    "aria-label": "Close"
+  }, /*#__PURE__*/React.createElement("i", {
+    className: "fa-solid fa-xmark"
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "pod-folder-modal-body"
+  }, /*#__PURE__*/React.createElement("label", {
+    htmlFor: "pod-folder-name"
+  }, "Folder name"), /*#__PURE__*/React.createElement("input", {
+    id: "pod-folder-name",
+    type: "text",
+    value: folderName,
+    onChange: event => setFolderName(event.target.value),
+    placeholder: "e.g. raw-data",
+    autoFocus: true
+  }), folderModalError && /*#__PURE__*/React.createElement("div", {
+    className: "pod-folder-modal-error"
+  }, folderModalError)), /*#__PURE__*/React.createElement("div", {
+    className: "pod-folder-modal-footer"
+  }, /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    className: "pod-folder-modal-secondary",
+    onClick: handleCloseFolderModal,
+    disabled: creating
+  }, "Cancel"), /*#__PURE__*/React.createElement("button", {
+    type: "submit",
+    className: "pod-folder-modal-primary",
+    disabled: creating || !folderName.trim()
+  }, creating ? "Creating..." : "Create Folder")))));
+}
+
+var DATASET_EXTENSIONS = ["csv", "json", "geojson", "ttl", "jsonld", "rdf", "xml", "pdf", "docx", "txt"];
+var SEMANTIC_MODEL_EXTENSIONS = ["ttl"];
+var getPodRootFromWebId$1 = webId => {
+  if (!webId) return "";
+  try {
+    var url = new URL(webId);
+    var segments = url.pathname.split("/").filter(Boolean);
+    var profileIndex = segments.indexOf("profile");
+    var baseSegments = profileIndex > -1 ? segments.slice(0, profileIndex) : segments.slice(0, -1);
+    var basePath = baseSegments.length ? "/".concat(baseSegments.join("/"), "/") : "/";
+    return "".concat(url.origin).concat(basePath);
+  } catch (_unused) {
+    var base = webId.split("/profile/")[0];
+    return base.endsWith("/") ? base : "".concat(base, "/");
+  }
+};
+var normalizeContainerUrl = url => url && url.endsWith("/") ? url : "".concat(url, "/");
+var getResourceName = function getResourceName(url) {
+  var containerUrl = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : "";
+  var relative = containerUrl && url.startsWith(containerUrl) ? url.slice(containerUrl.length) : url.split("/").filter(Boolean).pop() || url;
+  return decodeURIComponent(relative.replace(/\/$/, ""));
+};
+var getExtension = url => {
+  var cleanUrl = url.split(/[?#]/)[0];
+  var name = cleanUrl.split("/").filter(Boolean).pop() || "";
+  var parts = name.split(".");
+  return parts.length > 1 ? parts.pop().toLowerCase() : "";
+};
+var isCatalogResource = url => url.includes("/catalog/");
+var compareEntries = (a, b) => {
+  if (a.isFolder !== b.isFolder) return a.isFolder ? -1 : 1;
+  return a.name.localeCompare(b.name, undefined, {
+    sensitivity: "base"
+  });
+};
+var isTtlResource = value => getExtension(value) === "ttl";
+function PodResourcePicker(_ref) {
+  var {
+    multiple = false,
+    resourceType = "dataset",
+    selectedUrl = "",
+    selectedUrls = [],
+    onSelect,
+    webId
+  } = _ref;
+  var effectiveWebId = webId || session.info.webId;
+  var allowedExtensions = React.useMemo(() => new Set(resourceType === "semanticModel" ? SEMANTIC_MODEL_EXTENSIONS : DATASET_EXTENSIONS), [resourceType]);
+  var rootUrl = React.useMemo(() => getPodRootFromWebId$1(effectiveWebId), [effectiveWebId]);
+  var cacheRef = React.useRef(new Map());
+  var [currentUrl, setCurrentUrl] = React.useState("");
+  var [entries, setEntries] = React.useState([]);
+  var [loading, setLoading] = React.useState(false);
+  var [error, setError] = React.useState("");
+  var [searchQuery, setSearchQuery] = React.useState("");
+  var isSelectableResource = React.useCallback(url => allowedExtensions.has(getExtension(url)), [allowedExtensions]);
+  var mapEntries = React.useCallback((containerUrl, urls) => urls.filter(url => !isCatalogResource(url)).map(url => {
+    var isFolder = url.endsWith("/");
+    return {
+      url,
+      name: getResourceName(url, containerUrl),
+      isFolder,
+      selectable: !isFolder && isSelectableResource(url)
+    };
+  }).filter(entry => entry.isFolder || entry.selectable).sort(compareEntries), [isSelectableResource]);
+  var loadContainer = React.useCallback(/*#__PURE__*/function () {
+    var _ref2 = _asyncToGenerator(function* (containerUrl) {
+      var force = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
+      if (!containerUrl) return;
+      var normalizedUrl = normalizeContainerUrl(containerUrl);
+      setCurrentUrl(normalizedUrl);
+      setError("");
+      if (!force && cacheRef.current.has(normalizedUrl)) {
+        setEntries(cacheRef.current.get(normalizedUrl));
+        return;
+      }
+      try {
+        setLoading(true);
+        var dataset = yield solidClient.getSolidDataset(normalizedUrl, {
+          fetch: session.fetch
+        });
+        var containedUrls = solidClient.getContainedResourceUrlAll(dataset);
+        var nextEntries = mapEntries(normalizedUrl, Array.from(new Set(containedUrls)));
+        cacheRef.current.set(normalizedUrl, nextEntries);
+        setEntries(nextEntries);
+      } catch (err) {
+        console.error("Failed to load pod container ".concat(normalizedUrl, ":"), err);
+        setEntries([]);
+        setError("This folder could not be loaded.");
+      } finally {
+        setLoading(false);
+      }
+    });
+    return function (_x) {
+      return _ref2.apply(this, arguments);
+    };
+  }(), [mapEntries]);
+  React.useEffect(() => {
+    cacheRef.current.clear();
+    setSearchQuery("");
+    if (!rootUrl) {
+      setCurrentUrl("");
+      setEntries([]);
+      return;
+    }
+    loadContainer(rootUrl, true);
+  }, [rootUrl, loadContainer]);
+  var crumbs = React.useMemo(() => {
+    if (!rootUrl || !currentUrl) return [];
+    try {
+      var root = new URL(rootUrl);
+      var current = new URL(currentUrl);
+      var rootPath = root.pathname.endsWith("/") ? root.pathname : "".concat(root.pathname, "/");
+      var currentPath = current.pathname.endsWith("/") ? current.pathname : "".concat(current.pathname, "/");
+      var relativePath = currentPath.startsWith(rootPath) ? currentPath.slice(rootPath.length) : "";
+      var parts = relativePath.split("/").filter(Boolean);
+      var nextCrumbs = [{
+        name: "Pod root",
+        url: rootUrl
+      }];
+      parts.forEach((part, index) => {
+        nextCrumbs.push({
+          name: decodeURIComponent(part),
+          url: "".concat(rootUrl).concat(parts.slice(0, index + 1).join("/"), "/")
+        });
+      });
+      return nextCrumbs;
+    } catch (_unused2) {
+      return [{
+        name: "Pod root",
+        url: rootUrl
+      }];
+    }
+  }, [currentUrl, rootUrl]);
+  var visibleEntries = React.useMemo(() => {
+    var query = searchQuery.trim().toLowerCase();
+    if (!query) return entries;
+    return entries.filter(entry => entry.name.toLowerCase().includes(query));
+  }, [entries, searchQuery]);
+  var selectedUrlList = React.useMemo(() => {
+    var urls = multiple ? selectedUrls : [selectedUrl];
+    return Array.from(new Set((urls || []).filter(Boolean)));
+  }, [multiple, selectedUrl, selectedUrls]);
+  var selectedUrlSet = React.useMemo(() => new Set(selectedUrlList), [selectedUrlList]);
+  var hasSelectedUrls = selectedUrlList.length > 0;
+  var selectedLabel = multiple && selectedUrlList.length > 1 ? "Selected Datasets (".concat(selectedUrlList.length, ")") : "Selected";
+  var handleRefresh = () => {
+    if (!currentUrl) return;
+    cacheRef.current.delete(currentUrl);
+    loadContainer(currentUrl, true);
+  };
+  var handleSelect = url => {
+    if (!isSelectableResource(url)) return;
+    if (!multiple) {
+      onSelect === null || onSelect === void 0 || onSelect(url);
+      return;
+    }
+    var nextUrls = selectedUrlSet.has(url) ? selectedUrlList.filter(selected => selected !== url) : [...selectedUrlList, url];
+    onSelect === null || onSelect === void 0 || onSelect(nextUrls, url);
+  };
+  var handleRemoveSelected = url => {
+    if (!multiple) return;
+    onSelect === null || onSelect === void 0 || onSelect(selectedUrlList.filter(selected => selected !== url), url);
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    className: "pod-resource-picker"
+  }, hasSelectedUrls && /*#__PURE__*/React.createElement("div", {
+    className: "pod-picker-heading"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "pod-picker-selected"
+  }, /*#__PURE__*/React.createElement("i", {
+    className: "fa-solid fa-circle-check"
+  }), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", null, selectedLabel), /*#__PURE__*/React.createElement("div", {
+    className: "pod-picker-selected-list"
+  }, selectedUrlList.map(url => /*#__PURE__*/React.createElement("div", {
+    key: url,
+    className: "pod-picker-selected-item"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "pod-picker-selected-text"
+  }, /*#__PURE__*/React.createElement("strong", null, getResourceName(url)), /*#__PURE__*/React.createElement("small", null, url)), multiple && /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    className: "pod-picker-selected-remove",
+    onClick: event => {
+      event.stopPropagation();
+      handleRemoveSelected(url);
+    },
+    "aria-label": "Remove ".concat(getResourceName(url)),
+    title: "Remove"
+  }, /*#__PURE__*/React.createElement("i", {
+    className: "fa-solid fa-xmark"
+  })))))))), rootUrl ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    className: "pod-picker-toolbar"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "pod-picker-crumbs"
+  }, crumbs.map((crumb, index) => /*#__PURE__*/React.createElement(React.Fragment, {
+    key: crumb.url
+  }, index > 0 && /*#__PURE__*/React.createElement("i", {
+    className: "fa-solid fa-chevron-right pod-picker-crumb-separator"
+  }), index === crumbs.length - 1 ? /*#__PURE__*/React.createElement("span", {
+    className: "pod-picker-crumb-current"
+  }, crumb.name) : /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    className: "pod-picker-crumb-link",
+    onClick: () => loadContainer(crumb.url)
+  }, crumb.name)))), /*#__PURE__*/React.createElement("div", {
+    className: "pod-picker-toolbar-actions"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "pod-picker-search"
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    value: searchQuery,
+    onChange: event => setSearchQuery(event.target.value),
+    placeholder: "Search files..."
+  }), /*#__PURE__*/React.createElement("i", {
+    className: "fa-solid fa-magnifying-glass"
+  })), /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    className: "pod-picker-icon-button",
+    onClick: handleRefresh,
+    disabled: !currentUrl || loading,
+    title: "Refresh"
+  }, /*#__PURE__*/React.createElement("i", {
+    className: "fa-solid fa-rotate-right"
+  })))), error ? /*#__PURE__*/React.createElement("div", {
+    className: "pod-picker-state pod-picker-state--error"
+  }, error) : loading ? /*#__PURE__*/React.createElement("div", {
+    className: "pod-picker-state"
+  }, "Loading...") : /*#__PURE__*/React.createElement("div", {
+    className: "pod-picker-table-wrap"
+  }, /*#__PURE__*/React.createElement("table", {
+    className: "pod-picker-table"
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "Name"))), /*#__PURE__*/React.createElement("tbody", null, visibleEntries.map(entry => {
+    var isSelected = selectedUrlSet.has(entry.url);
+    return /*#__PURE__*/React.createElement("tr", {
+      key: entry.url,
+      className: "".concat(entry.isFolder ? "pod-picker-folder" : "pod-picker-file", " ").concat(isSelected ? "pod-picker-row-selected" : ""),
+      onClick: () => {
+        if (entry.isFolder) {
+          loadContainer(entry.url);
+        } else {
+          handleSelect(entry.url);
+        }
+      }
+    }, /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("i", {
+      className: "fa-solid ".concat(entry.isFolder ? "fa-folder" : "fa-file", " pod-picker-entry-icon")
+    }), /*#__PURE__*/React.createElement("span", {
+      title: entry.name
+    }, entry.name)));
+  }), visibleEntries.length === 0 && /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
+    className: "pod-picker-empty"
+  }, "No matching files in this folder.")))))) : /*#__PURE__*/React.createElement("div", {
+    className: "pod-picker-state pod-picker-state--error"
+  }, "No Solid Pod is available."));
+}
+
 var DatasetAddModal = _ref => {
   var {
     onClose,
@@ -4768,14 +5322,12 @@ var DatasetAddModal = _ref => {
     theme: '',
     is_public: true
   });
-  var [datasetPodFiles, setDatasetPodFiles] = React.useState([]);
-  var [modelPodFiles, setModelPodFiles] = React.useState([]);
   var [loading, setLoading] = React.useState(false);
   var [datasetSource, setDatasetSource] = React.useState("upload");
   var [modelSource, setModelSource] = React.useState("upload");
   var [datasetUpload, setDatasetUpload] = React.useState({
-    file: null,
-    url: "",
+    files: [],
+    urls: [],
     error: ""
   });
   var [modelUpload, setModelUpload] = React.useState({
@@ -4783,33 +5335,42 @@ var DatasetAddModal = _ref => {
     url: "",
     error: ""
   });
-  var hasRequiredFields = Boolean(newDataset.access_url_dataset);
+  var [selectedDatasetUrls, setSelectedDatasetUrls] = React.useState([]);
+  var [externalDatasetLinks, setExternalDatasetLinks] = React.useState([""]);
   var [showSemanticModel, setShowSemanticModel] = React.useState(false);
 
   // Use shared Solid session from solidSession.js
   var [solidUserName, setSolidUserName] = React.useState('');
   var [solidUserPhoto, setSolidUserPhoto] = React.useState('');
   var [webId, setWebId] = React.useState('');
-  var [datasetUploadPath, setDatasetUploadPath] = React.useState("/public/");
-  var [modelUploadPath, setModelUploadPath] = React.useState("/public/");
-  var [datasetType, setDatasetType] = React.useState("dataset");
+  var [datasetUploadPath, setDatasetUploadPath] = React.useState("/");
+  var [modelUploadPath, setModelUploadPath] = React.useState("/");
   var [existingDatasets, setExistingDatasets] = React.useState([]);
-  var [seriesMembers, setSeriesMembers] = React.useState([]);
-  var [seriesData, setSeriesData] = React.useState({
-    title: "",
-    description: "",
-    theme: "",
-    issued: "",
-    publisher: "",
-    contact_point: ""
-  });
-  var requiresPublicAccess = datasetSource === "external" || modelSource === "external";
+  var datasetUploadFiles = datasetUpload.files || [];
+  var externalDatasetUrls = Array.from(new Set((externalDatasetLinks || []).map(url => url.trim()).filter(Boolean)));
+  var selectedDatasetResourceUrls = datasetSource === "pod" ? selectedDatasetUrls : datasetSource === "upload" ? datasetUploadFiles.map((file, index) => "upload:".concat(index, ":").concat(file.name, ":").concat(file.size, ":").concat(file.lastModified)) : externalDatasetUrls;
+  var isAutomaticSeries = selectedDatasetResourceUrls.length > 1;
+  var hasRequiredFields = selectedDatasetResourceUrls.length > 0;
+  var requiresPublicAccess = datasetSource === "external" || !isAutomaticSeries && modelSource === "external";
   React.useEffect(() => {
     if (!requiresPublicAccess || newDataset.is_public) return;
-    setNewDataset(prev => _objectSpread2(_objectSpread2({}, prev), {}, {
+    setNewDataset(prev => _objectSpread2$2(_objectSpread2$2({}, prev), {}, {
       is_public: true
     }));
   }, [requiresPublicAccess, newDataset.is_public]);
+  React.useEffect(() => {
+    if (!isAutomaticSeries) return;
+    setShowSemanticModel(false);
+    setModelSource("upload");
+    setModelUpload({
+      file: null,
+      url: "",
+      error: ""
+    });
+    setNewDataset(prev => prev.access_url_semantic_model ? _objectSpread2$2(_objectSpread2$2({}, prev), {}, {
+      access_url_semantic_model: ""
+    }) : prev);
+  }, [isAutomaticSeries]);
   React.useEffect(() => {
     var fetchSolidProfile = /*#__PURE__*/function () {
       var _ref2 = _asyncToGenerator(function* () {
@@ -4829,18 +5390,14 @@ var DatasetAddModal = _ref => {
               email = mailto.replace("mailto:", "");
             }
           }
-          setNewDataset(prev => _objectSpread2(_objectSpread2({}, prev), {}, {
+          setNewDataset(prev => _objectSpread2$2(_objectSpread2$2({}, prev), {}, {
             publisher: name,
             contact_point: email
           }));
           setSolidUserName(name);
           setWebId(session.info.webId);
-          setNewDataset(prev => _objectSpread2(_objectSpread2({}, prev), {}, {
+          setNewDataset(prev => _objectSpread2$2(_objectSpread2$2({}, prev), {}, {
             webid: session.info.webId
-          }));
-          setSeriesData(prev => _objectSpread2(_objectSpread2({}, prev), {}, {
-            publisher: name,
-            contact_point: email
           }));
           var photoRef = solidClient.getUrl(profile, vocabCommonRdf.VCARD.hasPhoto) || solidClient.getUrl(profile, vocabCommonRdf.FOAF.img);
           var photoUrl = "";
@@ -4866,59 +5423,8 @@ var DatasetAddModal = _ref => {
         return _ref2.apply(this, arguments);
       };
     }();
-    var loadPodFiles = /*#__PURE__*/function () {
-      var _ref3 = _asyncToGenerator(function* () {
-        if (!session.info.webId) return;
-        var datasetFiles = [];
-        var modelFiles = [];
-        var isCatalogResource = url => url.includes("/catalog/");
-        var _traverse = /*#__PURE__*/function () {
-          var _ref4 = _asyncToGenerator(function* (containerUrl) {
-            try {
-              if (isCatalogResource(containerUrl)) return;
-              var dataset = yield solidClient.getSolidDataset(containerUrl, {
-                fetch: session.fetch
-              });
-              var resources = solidClient.getContainedResourceUrlAll(dataset);
-              for (var res of resources) {
-                if (isCatalogResource(res)) {
-                  continue;
-                }
-                if (res.endsWith('/')) {
-                  yield _traverse(res);
-                } else if (/\.(csv|json|ttl|jsonld|rdf|xml|pdf|docx|txt)$/i.test(res)) {
-                  datasetFiles.push(res);
-                  if (res.endsWith('.ttl')) {
-                    modelFiles.push(res);
-                  }
-                } else if (res.endsWith('.ttl')) {
-                  modelFiles.push(res);
-                }
-              }
-            } catch (err) {
-              console.error("Error loading container ".concat(containerUrl, ":"), err);
-            }
-          });
-          return function traverse(_x) {
-            return _ref4.apply(this, arguments);
-          };
-        }();
-        try {
-          var podRoot = session.info.webId.split("/profile/")[0];
-          var rootContainer = podRoot.endsWith('/') ? podRoot : "".concat(podRoot, "/");
-          yield _traverse(rootContainer);
-          setDatasetPodFiles(datasetFiles);
-          setModelPodFiles(modelFiles);
-        } catch (err) {
-          console.error("Error loading pod files:", err);
-        }
-      });
-      return function loadPodFiles() {
-        return _ref3.apply(this, arguments);
-      };
-    }();
     var loadExistingDatasets = /*#__PURE__*/function () {
-      var _ref5 = _asyncToGenerator(function* () {
+      var _ref3 = _asyncToGenerator(function* () {
         if (!session.info.isLoggedIn || !session.info.webId) return;
         try {
           var {
@@ -4931,11 +5437,10 @@ var DatasetAddModal = _ref => {
         }
       });
       return function loadExistingDatasets() {
-        return _ref5.apply(this, arguments);
+        return _ref3.apply(this, arguments);
       };
     }();
     fetchSolidProfile();
-    loadPodFiles();
     loadExistingDatasets();
   }, [session]);
   var inferMediaType = value => {
@@ -4954,13 +5459,24 @@ var DatasetAddModal = _ref => {
     if (lowered.endsWith(".txt")) return "text/plain";
     return "application/octet-stream";
   };
+  var uniqueUrls = urls => Array.from(new Set((urls || []).filter(Boolean)));
+  var getFileNameFromUrl = url => {
+    if (!url) return "Dataset";
+    var cleanUrl = url.split(/[?#]/)[0];
+    return decodeURIComponent(cleanUrl.split("/").filter(Boolean).pop() || "Dataset");
+  };
+  var getDatasetTitleFromUrl = url => {
+    var fileName = getFileNameFromUrl(url);
+    return fileName.replace(/\.[^.]+$/, "") || fileName || "Dataset";
+  };
+  var findExistingDatasetForResource = resourceUrl => existingDatasets.find(item => item.access_url_dataset === resourceUrl);
   var handleInputChange = e => {
     var {
       name,
       value
     } = e.target;
     var inferredMediaType = name === 'access_url_dataset' ? inferMediaType(value) : '';
-    setNewDataset(prev => _objectSpread2(_objectSpread2({}, prev), {}, {
+    setNewDataset(prev => _objectSpread2$2(_objectSpread2$2({}, prev), {}, {
       [name]: value
     }, name === 'access_url_dataset' ? {
       file_format: inferredMediaType !== "application/octet-stream" ? inferredMediaType : ""
@@ -4968,14 +5484,18 @@ var DatasetAddModal = _ref => {
   };
   var handleDatasetSourceChange = next => {
     setDatasetSource(next);
+    setSelectedDatasetUrls([]);
     if (next !== "upload") {
       setDatasetUpload({
-        file: null,
-        url: "",
+        files: [],
+        urls: [],
         error: ""
       });
     }
-    setNewDataset(prev => _objectSpread2(_objectSpread2({}, prev), {}, {
+    if (next !== "external") {
+      setExternalDatasetLinks([""]);
+    }
+    setNewDataset(prev => _objectSpread2$2(_objectSpread2$2({}, prev), {}, {
       access_url_dataset: "",
       file_format: "",
       distribution_access_type: next === "external" ? "access" : "download",
@@ -4991,7 +5511,7 @@ var DatasetAddModal = _ref => {
         error: ""
       });
     }
-    setNewDataset(prev => _objectSpread2(_objectSpread2({}, prev), {}, {
+    setNewDataset(prev => _objectSpread2$2(_objectSpread2$2({}, prev), {}, {
       access_url_semantic_model: "",
       is_public: next === "external" || datasetSource === "external" ? true : prev.is_public
     }));
@@ -5002,7 +5522,7 @@ var DatasetAddModal = _ref => {
     return base.endsWith("/") ? base : "".concat(base, "/");
   };
   var normalizeUploadPath = function normalizeUploadPath(value) {
-    var fallback = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : "/public/";
+    var fallback = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : "/";
     if (!value) return fallback;
     var path = value.trim();
     if (!path.startsWith("/")) path = "/".concat(path);
@@ -5010,7 +5530,7 @@ var DatasetAddModal = _ref => {
     return path;
   };
   var ensureContainer = /*#__PURE__*/function () {
-    var _ref6 = _asyncToGenerator(function* (containerUrl) {
+    var _ref4 = _asyncToGenerator(function* (containerUrl) {
       try {
         yield solidClient.createContainerAt(containerUrl, {
           fetch: session.fetch
@@ -5021,12 +5541,12 @@ var DatasetAddModal = _ref => {
         }
       }
     });
-    return function ensureContainer(_x2) {
-      return _ref6.apply(this, arguments);
+    return function ensureContainer(_x) {
+      return _ref4.apply(this, arguments);
     };
   }();
   var ensureUploadContainer = /*#__PURE__*/function () {
-    var _ref7 = _asyncToGenerator(function* (path) {
+    var _ref5 = _asyncToGenerator(function* (path) {
       var root = getPodRoot();
       if (!root) throw new Error("Missing pod root.");
       var normalized = normalizeUploadPath(path);
@@ -5039,15 +5559,15 @@ var DatasetAddModal = _ref => {
       }
       return uploads;
     });
-    return function ensureUploadContainer(_x3) {
-      return _ref7.apply(this, arguments);
+    return function ensureUploadContainer(_x2) {
+      return _ref5.apply(this, arguments);
     };
   }();
   var uploadFile = /*#__PURE__*/function () {
-    var _ref8 = _asyncToGenerator(function* (file, pathOverride) {
+    var _ref6 = _asyncToGenerator(function* (file, pathOverride) {
       if (!file) return "";
       var uploads = yield ensureUploadContainer(pathOverride);
-      var safeName = file.name || "upload-".concat(Date.now());
+      var safeName = encodeURIComponent(file.name || "upload-".concat(Date.now()));
       var targetUrl = "".concat(uploads).concat(safeName);
       var res = yield session.fetch(targetUrl, {
         method: "PUT",
@@ -5061,159 +5581,175 @@ var DatasetAddModal = _ref => {
       }
       return targetUrl;
     });
-    return function uploadFile(_x4, _x5) {
-      return _ref8.apply(this, arguments);
+    return function uploadFile(_x3, _x4) {
+      return _ref6.apply(this, arguments);
     };
   }();
-  var handleDatasetFileSelect = /*#__PURE__*/function () {
-    var _ref9 = _asyncToGenerator(function* (event) {
-      var _event$target;
-      var file = event === null || event === void 0 || (_event$target = event.target) === null || _event$target === void 0 || (_event$target = _event$target.files) === null || _event$target === void 0 ? void 0 : _event$target[0];
-      setDatasetUpload({
-        file: file || null,
-        url: "",
-        error: ""
-      });
-      if (!file) return;
-      try {
-        var url = yield uploadFile(file, datasetUploadPath);
-        setDatasetUpload({
-          file,
-          url,
-          error: ""
-        });
-        setNewDataset(prev => _objectSpread2(_objectSpread2({}, prev), {}, {
-          access_url_dataset: url,
-          file_format: inferMediaType(url)
-        }));
-      } catch (err) {
-        setDatasetUpload({
-          file,
-          url: "",
-          error: "Upload failed. Please try again."
-        });
-      }
+  var handleDatasetFileSelect = event => {
+    var _event$target;
+    var files = Array.from((event === null || event === void 0 || (_event$target = event.target) === null || _event$target === void 0 ? void 0 : _event$target.files) || []);
+    setDatasetUpload({
+      files,
+      urls: [],
+      error: ""
     });
-    return function handleDatasetFileSelect(_x6) {
-      return _ref9.apply(this, arguments);
-    };
-  }();
-  var handleModelFileSelect = /*#__PURE__*/function () {
-    var _ref10 = _asyncToGenerator(function* (event) {
-      var _event$target2;
-      var file = event === null || event === void 0 || (_event$target2 = event.target) === null || _event$target2 === void 0 || (_event$target2 = _event$target2.files) === null || _event$target2 === void 0 ? void 0 : _event$target2[0];
+    setSelectedDatasetUrls([]);
+    setNewDataset(prev => _objectSpread2$2(_objectSpread2$2({}, prev), {}, {
+      access_url_dataset: "",
+      file_format: files.length === 1 ? inferMediaType(files[0].name) : ""
+    }));
+  };
+  var handleModelFileSelect = event => {
+    var _event$target2;
+    var file = event === null || event === void 0 || (_event$target2 = event.target) === null || _event$target2 === void 0 || (_event$target2 = _event$target2.files) === null || _event$target2 === void 0 ? void 0 : _event$target2[0];
+    setModelUpload({
+      file: file || null,
+      url: "",
+      error: ""
+    });
+    if (!file) return;
+    if (!isTtlResource(file.name)) {
       setModelUpload({
-        file: file || null,
+        file: null,
         url: "",
-        error: ""
+        error: "Only TTL files are allowed."
       });
-      if (!file) return;
-      try {
-        var url = yield uploadFile(file, modelUploadPath);
-        setModelUpload({
-          file,
-          url,
-          error: ""
-        });
-        setNewDataset(prev => _objectSpread2(_objectSpread2({}, prev), {}, {
-          access_url_semantic_model: url
-        }));
-      } catch (err) {
-        setModelUpload({
-          file,
-          url: "",
-          error: "Upload failed. Please try again."
-        });
+      return;
+    }
+    setNewDataset(prev => _objectSpread2$2(_objectSpread2$2({}, prev), {}, {
+      access_url_semantic_model: ""
+    }));
+  };
+  var handleDatasetDrop = event => {
+    var _event$dataTransfer;
+    event.preventDefault();
+    var files = Array.from(((_event$dataTransfer = event.dataTransfer) === null || _event$dataTransfer === void 0 ? void 0 : _event$dataTransfer.files) || []);
+    if (files.length === 0) return;
+    handleDatasetFileSelect({
+      target: {
+        files
       }
     });
-    return function handleModelFileSelect(_x7) {
-      return _ref10.apply(this, arguments);
-    };
-  }();
-  var handleDatasetDrop = /*#__PURE__*/function () {
-    var _ref11 = _asyncToGenerator(function* (event) {
-      var _event$dataTransfer;
-      event.preventDefault();
-      var file = (_event$dataTransfer = event.dataTransfer) === null || _event$dataTransfer === void 0 || (_event$dataTransfer = _event$dataTransfer.files) === null || _event$dataTransfer === void 0 ? void 0 : _event$dataTransfer[0];
-      if (!file) return;
-      yield handleDatasetFileSelect({
-        target: {
-          files: [file]
-        }
+  };
+  var handleModelDrop = event => {
+    var _event$dataTransfer2;
+    event.preventDefault();
+    var file = (_event$dataTransfer2 = event.dataTransfer) === null || _event$dataTransfer2 === void 0 || (_event$dataTransfer2 = _event$dataTransfer2.files) === null || _event$dataTransfer2 === void 0 ? void 0 : _event$dataTransfer2[0];
+    if (!file) return;
+    if (!isTtlResource(file.name)) {
+      setModelUpload({
+        file: null,
+        url: "",
+        error: "Only TTL files are allowed."
       });
+      return;
+    }
+    handleModelFileSelect({
+      target: {
+        files: [file]
+      }
     });
-    return function handleDatasetDrop(_x8) {
-      return _ref11.apply(this, arguments);
-    };
-  }();
-  var handleModelDrop = /*#__PURE__*/function () {
-    var _ref12 = _asyncToGenerator(function* (event) {
-      var _event$dataTransfer2;
-      event.preventDefault();
-      var file = (_event$dataTransfer2 = event.dataTransfer) === null || _event$dataTransfer2 === void 0 || (_event$dataTransfer2 = _event$dataTransfer2.files) === null || _event$dataTransfer2 === void 0 ? void 0 : _event$dataTransfer2[0];
-      if (!file) return;
-      yield handleModelFileSelect({
-        target: {
-          files: [file]
-        }
-      });
-    });
-    return function handleModelDrop(_x9) {
-      return _ref12.apply(this, arguments);
-    };
-  }();
+  };
   var handleSave = /*#__PURE__*/function () {
-    var _ref13 = _asyncToGenerator(function* () {
+    var _ref7 = _asyncToGenerator(function* () {
       try {
         setLoading(true);
-        if (datasetType === "dataset") {
-          if (!hasRequiredFields) {
-            alert("Dataset link is required.");
-            return;
-          }
-          if (datasetSource === "external" && !newDataset.is_public) {
-            alert("Public external links are currently supported only for public datasets.");
-            return;
-          }
-          if (modelSource === "external" && !newDataset.is_public) {
-            alert("External semantic model links are currently supported only for public datasets.");
-            return;
-          }
-          if (datasetSource === "upload" && datasetUpload.file && !newDataset.access_url_dataset) {
-            var url = yield uploadFile(datasetUpload.file, datasetUploadPath);
-            setNewDataset(prev => _objectSpread2(_objectSpread2({}, prev), {}, {
-              access_url_dataset: url
-            }));
-          }
-          if (showSemanticModel && modelSource === "upload" && modelUpload.file && !newDataset.access_url_semantic_model) {
-            var _url = yield uploadFile(modelUpload.file, modelUploadPath);
-            setNewDataset(prev => _objectSpread2(_objectSpread2({}, prev), {}, {
-              access_url_semantic_model: _url
-            }));
-          }
-          yield ensureCatalogStructure(session, {
-            title: solidUserName ? "".concat(solidUserName, "'s Catalog") : undefined
-          });
-          yield createDataset(session, _objectSpread2(_objectSpread2({}, newDataset), {}, {
-            webid: webId
-          }));
-          yield fetchDatasets();
-          onClose();
+        var pendingDataset = _objectSpread2$2({}, newDataset);
+        var selectedUploadFiles = datasetUpload.files || [];
+        var plannedDatasetResourceUrls = datasetSource === "pod" ? uniqueUrls(selectedDatasetUrls) : datasetSource === "upload" ? selectedUploadFiles.map((file, index) => "upload:".concat(index, ":").concat(file.name, ":").concat(file.size, ":").concat(file.lastModified)) : externalDatasetUrls;
+        var plannedSaveAsSeries = plannedDatasetResourceUrls.length > 1;
+        if (plannedDatasetResourceUrls.length === 0) {
+          alert("Dataset link is required.");
           return;
         }
-        if (!seriesData.title.trim()) {
+        if (plannedSaveAsSeries && !pendingDataset.title.trim()) {
           alert("Series title is required.");
           return;
         }
-        if (seriesMembers.length === 0) {
-          alert("Please add at least one series member.");
+        if ((datasetSource === "external" || !plannedSaveAsSeries && modelSource === "external") && !pendingDataset.is_public) {
+          pendingDataset = _objectSpread2$2(_objectSpread2$2({}, pendingDataset), {}, {
+            is_public: true
+          });
+        }
+        if (!plannedSaveAsSeries && showSemanticModel && pendingDataset.access_url_semantic_model && !isTtlResource(pendingDataset.access_url_semantic_model)) {
+          alert("Semantic Models must be TTL files.");
           return;
         }
-        var createdMembers = seriesMembers.filter(member => member.kind === "existing" && member.datasetUrl).map(member => member.datasetUrl);
-        yield createDatasetSeries(session, _objectSpread2(_objectSpread2({}, seriesData), {}, {
-          webid: webId,
-          seriesMembers: Array.from(new Set(createdMembers))
-        }));
+        var uploadedDatasetUrls = [];
+        if (datasetSource === "upload" && selectedUploadFiles.length > 0) {
+          for (var file of selectedUploadFiles) {
+            uploadedDatasetUrls.push(yield uploadFile(file, datasetUploadPath));
+          }
+          setDatasetUpload(prev => _objectSpread2$2(_objectSpread2$2({}, prev), {}, {
+            urls: uploadedDatasetUrls,
+            error: ""
+          }));
+          if (uploadedDatasetUrls.length === 1) {
+            pendingDataset = _objectSpread2$2(_objectSpread2$2({}, pendingDataset), {}, {
+              access_url_dataset: uploadedDatasetUrls[0],
+              file_format: inferMediaType(uploadedDatasetUrls[0])
+            });
+            setNewDataset(prev => _objectSpread2$2(_objectSpread2$2({}, prev), {}, {
+              access_url_dataset: uploadedDatasetUrls[0],
+              file_format: inferMediaType(uploadedDatasetUrls[0])
+            }));
+          }
+        }
+        var datasetResourceUrls = datasetSource === "pod" ? uniqueUrls(selectedDatasetUrls) : datasetSource === "upload" ? uploadedDatasetUrls : externalDatasetUrls;
+        var saveAsSeries = datasetResourceUrls.length > 1;
+        var semanticModelUrl = saveAsSeries ? "" : pendingDataset.access_url_semantic_model;
+        if (!saveAsSeries && showSemanticModel && modelSource === "upload" && modelUpload.file && !semanticModelUrl) {
+          var url = yield uploadFile(modelUpload.file, modelUploadPath);
+          semanticModelUrl = url;
+          setModelUpload(prev => _objectSpread2$2(_objectSpread2$2({}, prev), {}, {
+            url,
+            error: ""
+          }));
+          setNewDataset(prev => _objectSpread2$2(_objectSpread2$2({}, prev), {}, {
+            access_url_semantic_model: url
+          }));
+        }
+        yield ensureCatalogStructure(session, {
+          title: solidUserName ? "".concat(solidUserName, "'s Catalog") : undefined
+        });
+        if (saveAsSeries) {
+          var memberDatasetUrls = [];
+          for (var resourceUrl of datasetResourceUrls) {
+            var existingDataset = findExistingDatasetForResource(resourceUrl);
+            if (existingDataset !== null && existingDataset !== void 0 && existingDataset.datasetUrl) {
+              memberDatasetUrls.push(existingDataset.datasetUrl);
+              continue;
+            }
+            var created = yield createDataset(session, _objectSpread2$2(_objectSpread2$2({}, pendingDataset), {}, {
+              title: getDatasetTitleFromUrl(resourceUrl),
+              access_url_dataset: resourceUrl,
+              access_url_semantic_model: "",
+              file_format: inferMediaType(resourceUrl),
+              distribution_access_type: datasetSource === "external" ? "access" : "download",
+              is_public: datasetSource === "external" ? true : pendingDataset.is_public,
+              webid: webId
+            }));
+            memberDatasetUrls.push(created.datasetUrl);
+          }
+          yield createDatasetSeries(session, {
+            title: pendingDataset.title,
+            description: pendingDataset.description,
+            theme: pendingDataset.theme,
+            issued: pendingDataset.issued,
+            publisher: pendingDataset.publisher,
+            contact_point: pendingDataset.contact_point,
+            webid: webId,
+            seriesMembers: uniqueUrls(memberDatasetUrls)
+          });
+        } else {
+          var _resourceUrl = datasetResourceUrls[0];
+          yield createDataset(session, _objectSpread2$2(_objectSpread2$2({}, pendingDataset), {}, {
+            access_url_dataset: _resourceUrl,
+            access_url_semantic_model: semanticModelUrl,
+            file_format: pendingDataset.file_format || inferMediaType(_resourceUrl),
+            webid: webId
+          }));
+        }
         yield fetchDatasets();
         onClose();
       } catch (err) {
@@ -5224,7 +5760,7 @@ var DatasetAddModal = _ref => {
       }
     });
     return function handleSave() {
-      return _ref13.apply(this, arguments);
+      return _ref7.apply(this, arguments);
     };
   }();
   var renderInputWithIcon = function renderInputWithIcon(label, name) {
@@ -5259,28 +5795,6 @@ var DatasetAddModal = _ref => {
       }
     }));
   };
-  var renderFileCards = (label, selectedValue, files, icon, onSelect) => /*#__PURE__*/React.createElement("div", {
-    className: "mb-3"
-  }, /*#__PURE__*/React.createElement("label", {
-    className: "font-weight-bold mb-2"
-  }, label), /*#__PURE__*/React.createElement("div", {
-    className: "d-flex flex-wrap file-card-container"
-  }, files.map(fileUrl => {
-    var fileName = fileUrl.split('/').pop();
-    var isSelected = selectedValue === fileUrl;
-    return /*#__PURE__*/React.createElement("div", {
-      key: fileUrl,
-      onClick: () => onSelect(fileUrl),
-      className: "card p-2 shadow-sm file-card ".concat(isSelected ? 'file-card-selected border-primary' : '')
-    }, /*#__PURE__*/React.createElement("div", {
-      className: "d-flex align-items-center"
-    }, /*#__PURE__*/React.createElement("i", {
-      className: "fa-solid ".concat(icon, " fa-lg text-secondary mr-2")
-    }), /*#__PURE__*/React.createElement("span", {
-      className: "text-truncate",
-      title: fileName
-    }, fileName)));
-  })));
   var renderSourceToggle = (value, onChange) => /*#__PURE__*/React.createElement("div", {
     className: "source-toggle"
   }, /*#__PURE__*/React.createElement("button", {
@@ -5296,7 +5810,40 @@ var DatasetAddModal = _ref => {
     className: "toggle-btn ".concat(value === "external" ? "active" : ""),
     onClick: () => onChange("external")
   }, "External link"));
-  var renderUploadBox = _ref14 => {
+  var handleRemoveDatasetUploadFile = indexToRemove => {
+    var nextFiles = datasetUploadFiles.filter((_, index) => index !== indexToRemove);
+    setDatasetUpload({
+      files: nextFiles,
+      urls: [],
+      error: ""
+    });
+    setNewDataset(prev => _objectSpread2$2(_objectSpread2$2({}, prev), {}, {
+      access_url_dataset: "",
+      file_format: nextFiles.length === 1 ? inferMediaType(nextFiles[0].name) : ""
+    }));
+  };
+  var syncExternalDatasetState = links => {
+    var urls = Array.from(new Set((links || []).map(url => url.trim()).filter(Boolean)));
+    setNewDataset(prev => _objectSpread2$2(_objectSpread2$2({}, prev), {}, {
+      access_url_dataset: urls[0] || "",
+      file_format: urls.length === 1 ? inferMediaType(urls[0]) : ""
+    }));
+  };
+  var handleExternalDatasetLinkChange = (indexToUpdate, value) => {
+    var nextLinks = externalDatasetLinks.map((link, index) => index === indexToUpdate ? value : link);
+    setExternalDatasetLinks(nextLinks);
+    syncExternalDatasetState(nextLinks);
+  };
+  var handleAddExternalDatasetLink = () => {
+    setExternalDatasetLinks(prev => [...prev, ""]);
+  };
+  var handleRemoveExternalDatasetLink = indexToRemove => {
+    var nextLinks = externalDatasetLinks.filter((_, index) => index !== indexToRemove);
+    var safeLinks = nextLinks.length > 0 ? nextLinks : [""];
+    setExternalDatasetLinks(safeLinks);
+    syncExternalDatasetState(safeLinks);
+  };
+  var renderUploadBox = _ref8 => {
     var {
       label,
       accept,
@@ -5304,8 +5851,12 @@ var DatasetAddModal = _ref => {
       onDrop,
       state,
       inputId,
-      hint
-    } = _ref14;
+      hint,
+      multiple = false,
+      onRemoveFile
+    } = _ref8;
+    var selectedFiles = state.files || (state.file ? [state.file] : []);
+    var uploadedUrls = state.urls || (state.url ? [state.url] : []);
     return /*#__PURE__*/React.createElement("div", {
       className: "upload-box"
     }, /*#__PURE__*/React.createElement("div", {
@@ -5318,7 +5869,7 @@ var DatasetAddModal = _ref => {
       className: "fa-solid fa-cloud-arrow-up"
     })), /*#__PURE__*/React.createElement("div", {
       className: "upload-text"
-    }, /*#__PURE__*/React.createElement("strong", null, "Drag & drop"), " your file here"), /*#__PURE__*/React.createElement("div", {
+    }, /*#__PURE__*/React.createElement("strong", null, "Drag & drop"), " your file", multiple ? "s" : "", " here"), /*#__PURE__*/React.createElement("div", {
       className: "upload-subtext"
     }, "or"), /*#__PURE__*/React.createElement("label", {
       htmlFor: inputId,
@@ -5327,24 +5878,37 @@ var DatasetAddModal = _ref => {
       id: inputId,
       type: "file",
       accept: accept,
+      multiple: multiple,
       onChange: onFileChange,
       className: "upload-input"
-    })), hint && /*#__PURE__*/React.createElement("div", {
+    })), selectedFiles.length > 0 && /*#__PURE__*/React.createElement("div", {
+      className: "upload-selected-files"
+    }, /*#__PURE__*/React.createElement("span", null, selectedFiles.length, " file", selectedFiles.length === 1 ? "" : "s", " selected"), selectedFiles.map((file, index) => /*#__PURE__*/React.createElement("div", {
+      key: "".concat(file.name, "-").concat(file.size, "-").concat(file.lastModified, "-").concat(index),
+      className: "upload-selected-file"
+    }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("strong", null, file.name), /*#__PURE__*/React.createElement("small", null, Math.ceil((file.size || 0) / 1024), " KB")), onRemoveFile && /*#__PURE__*/React.createElement("button", {
+      type: "button",
+      onClick: () => onRemoveFile(index),
+      "aria-label": "Remove ".concat(file.name),
+      title: "Remove"
+    }, /*#__PURE__*/React.createElement("i", {
+      className: "fa-solid fa-xmark"
+    }))))), hint && /*#__PURE__*/React.createElement("div", {
       className: "upload-hint"
-    }, hint), state.url && /*#__PURE__*/React.createElement("div", {
+    }, hint), uploadedUrls.length > 0 && /*#__PURE__*/React.createElement("div", {
       className: "upload-hint success"
-    }, "Uploaded to ", state.url), state.error && /*#__PURE__*/React.createElement("div", {
+    }, "Uploaded ", uploadedUrls.length, " file", uploadedUrls.length === 1 ? "" : "s", "."), state.error && /*#__PURE__*/React.createElement("div", {
       className: "upload-hint error"
     }, state.error));
   };
-  var renderExternalUrlInput = _ref15 => {
+  var renderExternalUrlInput = _ref9 => {
     var {
       label,
       name,
       value,
       placeholder,
       hint
-    } = _ref15;
+    } = _ref9;
     return /*#__PURE__*/React.createElement("div", {
       className: "mb-3"
     }, /*#__PURE__*/React.createElement("label", {
@@ -5360,6 +5924,35 @@ var DatasetAddModal = _ref => {
       className: "upload-hint"
     }, hint));
   };
+  var renderExternalDatasetLinks = () => /*#__PURE__*/React.createElement("div", {
+    className: "external-link-list"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "external-link-list-header"
+  }, /*#__PURE__*/React.createElement("label", null, "External Dataset link")), externalDatasetLinks.map((link, index) => /*#__PURE__*/React.createElement("div", {
+    className: "external-link-row",
+    key: "external-link-".concat(index)
+  }, /*#__PURE__*/React.createElement("input", {
+    className: "form-control",
+    type: "url",
+    value: link,
+    onChange: event => handleExternalDatasetLinkChange(index, event.target.value),
+    placeholder: "https://..."
+  }), /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    className: "external-link-remove",
+    onClick: () => handleRemoveExternalDatasetLink(index),
+    disabled: externalDatasetLinks.length === 1 && !link.trim(),
+    "aria-label": "Remove external link",
+    title: "Remove"
+  }, /*#__PURE__*/React.createElement("i", {
+    className: "fa-solid fa-xmark"
+  })))), /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    className: "external-link-add",
+    onClick: handleAddExternalDatasetLink
+  }, /*#__PURE__*/React.createElement("i", {
+    className: "fa-solid fa-plus"
+  }), "Add External Link"));
   return /*#__PURE__*/React.createElement("div", {
     className: "modal show modal-show dataset-add-modal"
   }, /*#__PURE__*/React.createElement("div", {
@@ -5373,7 +5966,7 @@ var DatasetAddModal = _ref => {
     className: "modal-title"
   }, /*#__PURE__*/React.createElement("i", {
     className: "fa-solid fa-plus mr-2"
-  }), " Add Dataset (Series)"), /*#__PURE__*/React.createElement("button", {
+  }), " Add Dataset"), /*#__PURE__*/React.createElement("button", {
     type: "button",
     className: "close",
     onClick: onClose
@@ -5403,25 +5996,10 @@ var DatasetAddModal = _ref => {
     className: "form-section mb-4"
   }, /*#__PURE__*/React.createElement("h6", {
     className: "section-title"
-  }, "What do you want to add?"), /*#__PURE__*/React.createElement("div", {
-    className: "d-flex flex-wrap gap-2"
-  }, /*#__PURE__*/React.createElement("button", {
-    type: "button",
-    className: "btn ".concat(datasetType === "dataset" ? "btn-primary" : "btn-outline-secondary"),
-    onClick: () => setDatasetType("dataset")
-  }, /*#__PURE__*/React.createElement("i", {
-    className: "fa-solid fa-database mr-2"
-  }), "Dataset"), /*#__PURE__*/React.createElement("button", {
-    type: "button",
-    className: "btn ".concat(datasetType === "series" ? "btn-primary" : "btn-outline-secondary"),
-    onClick: () => setDatasetType("series")
-  }, /*#__PURE__*/React.createElement("i", {
-    className: "fa-solid fa-layer-group mr-2"
-  }), "Dataset Series"))), datasetType === "dataset" && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
-    className: "form-section mb-4"
-  }, /*#__PURE__*/React.createElement("h6", {
-    className: "section-title"
-  }, "General Information"), renderInputWithIcon("Title", "title", "text", "fa-heading"), renderInputWithIcon("Description", "description", "textarea", "fa-align-left"), renderInputWithIcon("Theme", "theme", "text", "fa-tags"), /*#__PURE__*/React.createElement("label", {
+  }, isAutomaticSeries ? "Dataset Series" : "General Information"), isAutomaticSeries ? /*#__PURE__*/React.createElement(React.Fragment, null, renderInputWithIcon("Series Title", "title", "text", "fa-layer-group"), renderInputWithIcon("Series Description", "description", "textarea", "fa-align-left"), renderInputWithIcon("Series Theme (IRI)", "theme", "text", "fa-tags"), /*#__PURE__*/React.createElement("label", {
+    htmlFor: "issued",
+    className: "form-label-compact"
+  }, "Issued Date"), renderInputWithIcon("Issued Date", "issued", "date", "fa-calendar-plus")) : /*#__PURE__*/React.createElement(React.Fragment, null, renderInputWithIcon("Title", "title", "text", "fa-heading"), renderInputWithIcon("Description", "description", "textarea", "fa-align-left"), renderInputWithIcon("Theme", "theme", "text", "fa-tags"), !requiresPublicAccess && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("label", {
     className: "form-label-compact"
   }, "Access Rights"), /*#__PURE__*/React.createElement("div", {
     className: "form-group position-relative mb-3"
@@ -5431,10 +6009,9 @@ var DatasetAddModal = _ref => {
     className: "form-control",
     name: "is_public",
     value: newDataset.is_public ? 'public' : 'restricted',
-    onChange: e => setNewDataset(prev => _objectSpread2(_objectSpread2({}, prev), {}, {
+    onChange: e => setNewDataset(prev => _objectSpread2$2(_objectSpread2$2({}, prev), {}, {
       is_public: e.target.value === 'public'
     })),
-    disabled: requiresPublicAccess,
     style: {
       paddingLeft: '30px'
     }
@@ -5442,43 +6019,39 @@ var DatasetAddModal = _ref => {
     value: "public"
   }, "Public"), /*#__PURE__*/React.createElement("option", {
     value: "restricted"
-  }, "Restricted"))), /*#__PURE__*/React.createElement("label", {
+  }, "Restricted")))), /*#__PURE__*/React.createElement("label", {
     htmlFor: "issued",
     className: "form-label-compact"
-  }, "Issued Date"), renderInputWithIcon("Issued Date", "issued", "date", "fa-calendar-plus")), /*#__PURE__*/React.createElement("div", {
+  }, "Issued Date"), renderInputWithIcon("Issued Date", "issued", "date", "fa-calendar-plus"))), /*#__PURE__*/React.createElement("div", {
     className: "form-section"
   }, /*#__PURE__*/React.createElement("h6", {
     className: "section-title"
-  }, "Dataset Resource"), renderSourceToggle(datasetSource, handleDatasetSourceChange), datasetSource === "upload" && /*#__PURE__*/React.createElement("div", {
-    className: "upload-path-row"
-  }, /*#__PURE__*/React.createElement("label", {
-    htmlFor: "dataset-upload-path"
-  }, "Save files to"), /*#__PURE__*/React.createElement("input", {
-    id: "dataset-upload-path",
-    type: "text",
-    value: datasetUploadPath,
-    onChange: e => setDatasetUploadPath(e.target.value),
-    onBlur: e => setDatasetUploadPath(normalizeUploadPath(e.target.value, "/public/")),
-    placeholder: "/public/"
-  })), datasetSource === "upload" ? renderUploadBox({
-    label: "Upload dataset file",
+  }, "Dataset Resource"), renderSourceToggle(datasetSource, handleDatasetSourceChange), datasetSource === "upload" && /*#__PURE__*/React.createElement(PodContainerPicker, {
+    onSelectPath: path => setDatasetUploadPath(normalizeUploadPath(path, "/")),
+    webId: webId
+  }), datasetSource === "upload" ? renderUploadBox({
+    label: "Upload dataset files",
     accept: ".csv,.json,.ttl,.jsonld,.rdf,.xml,.pdf,.docx,.txt",
     onFileChange: handleDatasetFileSelect,
     onDrop: handleDatasetDrop,
     state: datasetUpload,
-    hint: "Allowed: CSV, JSON, TTL, JSON-LD, RDF, XML, PDF, DOCX, TXT",
-    inputId: "dataset-upload-input"
-  }) : datasetSource === "pod" ? renderFileCards("Select Dataset File", newDataset.access_url_dataset, datasetPodFiles, "fa-file-csv", fileUrl => setNewDataset(prev => _objectSpread2(_objectSpread2({}, prev), {}, {
-    access_url_dataset: fileUrl,
-    file_format: inferMediaType(fileUrl)
-  }))) : renderExternalUrlInput({
-    label: "External Dataset link",
-    name: "access_url_dataset",
-    value: newDataset.access_url_dataset,
-    placeholder: "https://..."
-  }), datasetSource === "external" && /*#__PURE__*/React.createElement("div", {
-    className: "upload-hint"
-  }, "External links are currently supported only for public datasets.")), /*#__PURE__*/React.createElement("div", {
+    inputId: "dataset-upload-input",
+    multiple: true,
+    onRemoveFile: handleRemoveDatasetUploadFile
+  }) : datasetSource === "pod" ? /*#__PURE__*/React.createElement(PodResourcePicker, {
+    multiple: true,
+    resourceType: "dataset",
+    selectedUrls: selectedDatasetUrls,
+    webId: webId,
+    onSelect: fileUrls => {
+      var nextUrls = uniqueUrls(fileUrls);
+      setSelectedDatasetUrls(nextUrls);
+      setNewDataset(prev => _objectSpread2$2(_objectSpread2$2({}, prev), {}, {
+        access_url_dataset: nextUrls[0] || "",
+        file_format: nextUrls.length === 1 ? inferMediaType(nextUrls[0]) : ""
+      }));
+    }
+  }) : renderExternalDatasetLinks()), !isAutomaticSeries && /*#__PURE__*/React.createElement("div", {
     className: "form-section"
   }, /*#__PURE__*/React.createElement("div", {
     className: "section-header"
@@ -5487,7 +6060,7 @@ var DatasetAddModal = _ref => {
   }, "Semantic Model File"), /*#__PURE__*/React.createElement("div", {
     className: "text-muted"
   }, "Optional")), /*#__PURE__*/React.createElement("div", {
-    className: "d-flex gap-2"
+    className: "d-flex gap-2 semantic-model-actions"
   }, !showSemanticModel && /*#__PURE__*/React.createElement("button", {
     type: "button",
     className: "btn btn-outline-secondary btn-sm",
@@ -5505,7 +6078,7 @@ var DatasetAddModal = _ref => {
         error: ""
       });
       setModelSource("upload");
-      setNewDataset(prev => _objectSpread2(_objectSpread2({}, prev), {}, {
+      setNewDataset(prev => _objectSpread2$2(_objectSpread2$2({}, prev), {}, {
         access_url_semantic_model: ""
       }));
     }
@@ -5518,18 +6091,10 @@ var DatasetAddModal = _ref => {
     className: "btn btn-outline-primary btn-sm"
   }, /*#__PURE__*/React.createElement("i", {
     className: "fa-solid fa-plus mr-1"
-  }), " Create Semantic Model"))), showSemanticModel && /*#__PURE__*/React.createElement(React.Fragment, null, renderSourceToggle(modelSource, handleModelSourceChange), modelSource === "upload" && /*#__PURE__*/React.createElement("div", {
-    className: "upload-path-row"
-  }, /*#__PURE__*/React.createElement("label", {
-    htmlFor: "model-upload-path"
-  }, "Save files to"), /*#__PURE__*/React.createElement("input", {
-    id: "model-upload-path",
-    type: "text",
-    value: modelUploadPath,
-    onChange: e => setModelUploadPath(e.target.value),
-    onBlur: e => setModelUploadPath(normalizeUploadPath(e.target.value, "/public/")),
-    placeholder: "/public/"
-  })), modelSource === "upload" ? renderUploadBox({
+  }), " Create Semantic Model"))), showSemanticModel && /*#__PURE__*/React.createElement(React.Fragment, null, renderSourceToggle(modelSource, handleModelSourceChange), modelSource === "upload" && /*#__PURE__*/React.createElement(PodContainerPicker, {
+    onSelectPath: path => setModelUploadPath(normalizeUploadPath(path, "/")),
+    webId: webId
+  }), modelSource === "upload" ? renderUploadBox({
     label: "Upload semantic model",
     accept: ".ttl",
     onFileChange: handleModelFileSelect,
@@ -5537,138 +6102,31 @@ var DatasetAddModal = _ref => {
     state: modelUpload,
     hint: "Allowed: TTL",
     inputId: "model-upload-input"
-  }) : modelSource === "pod" ? renderFileCards("", newDataset.access_url_semantic_model, modelPodFiles, "fa-project-diagram", fileUrl => setNewDataset(prev => _objectSpread2(_objectSpread2({}, prev), {}, {
-    access_url_semantic_model: fileUrl
-  }))) : renderExternalUrlInput({
+  }) : modelSource === "pod" ? /*#__PURE__*/React.createElement(PodResourcePicker, {
+    label: "Select Semantic Model",
+    resourceType: "semanticModel",
+    selectedUrl: newDataset.access_url_semantic_model,
+    webId: webId,
+    onSelect: fileUrl => setNewDataset(prev => _objectSpread2$2(_objectSpread2$2({}, prev), {}, {
+      access_url_semantic_model: fileUrl
+    }))
+  }) : renderExternalUrlInput({
     label: "Public external semantic model link",
     name: "access_url_semantic_model",
     value: newDataset.access_url_semantic_model,
-    placeholder: "https://example.org/model.ttl",
-    hint: "The detail view can only render the graph if this URL returns RDF/Turtle directly."
-  })))), datasetType === "series" && /*#__PURE__*/React.createElement("div", {
-    className: "form-section mb-4"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "section-header"
-  }, /*#__PURE__*/React.createElement("h6", {
-    className: "section-title"
-  }, "Dataset Series")), /*#__PURE__*/React.createElement("div", {
-    className: "form-group position-relative mb-3"
-  }, /*#__PURE__*/React.createElement("i", {
-    className: "fa-solid fa-layer-group input-icon input-icon-text"
-  }), /*#__PURE__*/React.createElement("input", {
-    className: "form-control",
-    type: "text",
-    placeholder: "Series Title",
-    value: seriesData.title,
-    onChange: e => setSeriesData(prev => _objectSpread2(_objectSpread2({}, prev), {}, {
-      title: e.target.value
-    })),
-    style: {
-      paddingLeft: '30px'
-    }
-  })), /*#__PURE__*/React.createElement("div", {
-    className: "form-group position-relative mb-3"
-  }, /*#__PURE__*/React.createElement("i", {
-    className: "fa-solid fa-align-left input-icon input-icon-textarea"
-  }), /*#__PURE__*/React.createElement("textarea", {
-    className: "form-control",
-    placeholder: "Series Description",
-    rows: 2,
-    value: seriesData.description,
-    onChange: e => setSeriesData(prev => _objectSpread2(_objectSpread2({}, prev), {}, {
-      description: e.target.value
-    })),
-    style: {
-      paddingLeft: '30px'
-    }
-  })), /*#__PURE__*/React.createElement("div", {
-    className: "form-group position-relative mb-3"
-  }, /*#__PURE__*/React.createElement("i", {
-    className: "fa-solid fa-tags input-icon input-icon-text"
-  }), /*#__PURE__*/React.createElement("input", {
-    className: "form-control",
-    type: "text",
-    placeholder: "Series Theme (IRI)",
-    value: seriesData.theme,
-    onChange: e => setSeriesData(prev => _objectSpread2(_objectSpread2({}, prev), {}, {
-      theme: e.target.value
-    })),
-    style: {
-      paddingLeft: '30px'
-    }
-  })), /*#__PURE__*/React.createElement("label", {
-    htmlFor: "series-issued",
-    className: "form-label-compact"
-  }, "Issued Date"), /*#__PURE__*/React.createElement("div", {
-    className: "form-group position-relative mb-3"
-  }, /*#__PURE__*/React.createElement("i", {
-    className: "fa-solid fa-calendar-plus input-icon input-icon-date"
-  }), /*#__PURE__*/React.createElement("input", {
-    id: "series-issued",
-    className: "form-control",
-    type: "date",
-    value: seriesData.issued,
-    onChange: e => setSeriesData(prev => _objectSpread2(_objectSpread2({}, prev), {}, {
-      issued: e.target.value
-    })),
-    style: {
-      paddingLeft: '30px'
-    }
-  })), /*#__PURE__*/React.createElement("div", {
-    className: "mb-3"
-  }, /*#__PURE__*/React.createElement("label", {
-    className: "form-label-compact"
-  }, "Series Members (Existing Datasets)"), /*#__PURE__*/React.createElement("div", {
-    className: "d-flex flex-wrap gap-2"
-  }, existingDatasets.map(item => {
-    var selected = seriesMembers.some(member => member.kind === "existing" && member.datasetUrl === item.datasetUrl);
-    return /*#__PURE__*/React.createElement("button", {
-      key: item.datasetUrl,
-      type: "button",
-      className: "btn btn-sm ".concat(selected ? "btn-primary" : "btn-outline-secondary"),
-      onClick: () => {
-        if (selected) {
-          setSeriesMembers(prev => prev.filter(member => !(member.kind === "existing" && member.datasetUrl === item.datasetUrl)));
-        } else {
-          setSeriesMembers(prev => [...prev, {
-            kind: "existing",
-            datasetUrl: item.datasetUrl,
-            label: item.title || item.identifier || item.datasetUrl
-          }]);
-        }
-      }
-    }, /*#__PURE__*/React.createElement("i", {
-      className: "fa-solid fa-database mr-2"
-    }), item.title || item.identifier || "Dataset");
-  }))), seriesMembers.length > 0 && /*#__PURE__*/React.createElement("div", {
-    className: "mb-3"
-  }, /*#__PURE__*/React.createElement("label", {
-    className: "form-label-compact"
-  }, "Current Members"), /*#__PURE__*/React.createElement("div", {
-    className: "d-flex flex-wrap gap-2"
-  }, seriesMembers.map((member, idx) => {
-    var _member$input;
-    var label = member.kind === "existing" ? member.label : ((_member$input = member.input) === null || _member$input === void 0 ? void 0 : _member$input.title) || "New dataset";
-    return /*#__PURE__*/React.createElement("span", {
-      key: "".concat(member.kind, "-").concat(idx),
-      className: "badge badge-light border"
-    }, label, /*#__PURE__*/React.createElement("button", {
-      type: "button",
-      className: "btn btn-link btn-sm ml-2",
-      onClick: () => setSeriesMembers(prev => prev.filter((_, index) => index !== idx))
-    }, "x"));
-  }))))), /*#__PURE__*/React.createElement("div", {
+    placeholder: "https://example.org/model.ttl"
+  })))), /*#__PURE__*/React.createElement("div", {
     className: "modal-footer"
   }, /*#__PURE__*/React.createElement("button", {
     className: "btn btn-success",
     onClick: handleSave,
-    disabled: loading || datasetType === "dataset" && !hasRequiredFields || datasetType === "series" && !seriesData.title.trim(),
-    title: datasetType === "dataset" && !hasRequiredFields ? "Dataset link is required" : ""
+    disabled: loading || !hasRequiredFields || isAutomaticSeries && !newDataset.title.trim(),
+    title: !hasRequiredFields ? "Dataset link is required" : isAutomaticSeries && !newDataset.title.trim() ? "Series title is required" : ""
   }, loading ? /*#__PURE__*/React.createElement("i", {
     className: "fa-solid fa-spinner fa-spin mr-2"
   }) : /*#__PURE__*/React.createElement("i", {
     className: "fa-solid fa-floppy-disk mr-2"
-  }), loading ? "Saving..." : datasetType === "series" ? "Save Series" : "Save Dataset")))));
+  }), loading ? "Saving..." : isAutomaticSeries ? "Save Series" : "Save Dataset")))));
 };
 
 var RDFGraph = _ref => {
@@ -6009,42 +6467,6 @@ var RequestSuccessModal = _ref => {
   }, "Close")))));
 };
 
-var SemanticModelModal = _ref => {
-  var {
-    triples,
-    onClose
-  } = _ref;
-  return /*#__PURE__*/React.createElement("div", {
-    className: "modal fade show modal-show semantic-model-modal",
-    tabIndex: "-1",
-    role: "dialog"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "modal-dialog modal-xl",
-    role: "document"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "modal-content"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "modal-header"
-  }, /*#__PURE__*/React.createElement("h5", {
-    className: "modal-title"
-  }, /*#__PURE__*/React.createElement("i", {
-    className: "fa-solid fa-project-diagram mr-2"
-  }), " Semantic Model"), /*#__PURE__*/React.createElement("button", {
-    type: "button",
-    className: "close",
-    onClick: onClose,
-    "aria-label": "Close"
-  }, /*#__PURE__*/React.createElement("span", {
-    "aria-hidden": "true"
-  }, "\xD7"))), /*#__PURE__*/React.createElement("div", {
-    className: "modal-body"
-  }, triples.length > 0 ? /*#__PURE__*/React.createElement(RDFGraph, {
-    triples: triples
-  }) : /*#__PURE__*/React.createElement("p", {
-    className: "text-muted"
-  }, "No RDF triples found.")))));
-};
-
 var getPodRootFromWebId = webId => {
   if (!webId) return "";
   try {
@@ -6080,7 +6502,7 @@ var handleFileDownload = /*#__PURE__*/function () {
       URL.revokeObjectURL(link.href);
     } catch (err) {
       console.error("Download error:", err);
-      alert("Failed to download file.");
+      openExternalLink(url);
     }
   });
   return function handleFileDownload(_x, _x2) {
@@ -6133,9 +6555,14 @@ var DatasetDetailModal = _ref2 => {
   var [triples, setTriples] = React.useState([]);
   var [canAccessDataset, setCanAccessDataset] = React.useState(false);
   var [canAccessModel, setCanAccessModel] = React.useState(false);
+  var [ownerProfile, setOwnerProfile] = React.useState({
+    name: "",
+    email: "",
+    photo: "",
+    webId: ""
+  });
   var [showRequestModal, setShowRequestModal] = React.useState(false);
   var [showRequestSuccess, setShowRequestSuccess] = React.useState(false);
-  var [showSemanticModal, setShowSemanticModal] = React.useState(false);
   var [requestPending, setRequestPending] = React.useState(false);
   var isSeries = (dataset === null || dataset === void 0 ? void 0 : dataset.datasetType) === "series";
   var datasetLookup = new Map((datasets || []).map(item => [item.datasetUrl, item]));
@@ -6298,6 +6725,84 @@ var DatasetDetailModal = _ref2 => {
     }
     setRequestPending(false);
   }, [dataset, sessionWebId]);
+  React.useEffect(() => {
+    var cancelled = false;
+    var photoObjectUrl = "";
+    var ownerWebId = (dataset === null || dataset === void 0 ? void 0 : dataset.webid) || "";
+    var fallbackProfile = {
+      name: (dataset === null || dataset === void 0 ? void 0 : dataset.publisher) || "Solid Pod User",
+      email: (dataset === null || dataset === void 0 ? void 0 : dataset.contact_point) || "No email provided",
+      photo: "",
+      webId: ownerWebId
+    };
+    var loadOwnerProfile = /*#__PURE__*/function () {
+      var _ref6 = _asyncToGenerator(function* () {
+        if (!ownerWebId) {
+          setOwnerProfile(fallbackProfile);
+          return;
+        }
+        try {
+          var profileDocUrl = ownerWebId.split("#")[0] || ownerWebId;
+          var profileDataset = yield solidClient.getSolidDataset(profileDocUrl, {
+            fetch: session.fetch
+          });
+          var profile = solidClient.getThing(profileDataset, ownerWebId);
+          if (!profile) {
+            if (!cancelled) setOwnerProfile(fallbackProfile);
+            return;
+          }
+          var name = solidClient.getStringNoLocale(profile, vocabCommonRdf.FOAF.name) || solidClient.getStringNoLocale(profile, vocabCommonRdf.VCARD.fn) || fallbackProfile.name;
+          var emailNode = solidClient.getUrlAll(profile, vocabCommonRdf.VCARD.hasEmail)[0];
+          var email = fallbackProfile.email;
+          if (emailNode) {
+            var emailThing = solidClient.getThing(profileDataset, emailNode);
+            var emailValue = emailThing ? solidClient.getStringNoLocale(emailThing, vocabCommonRdf.VCARD.value) : "";
+            email = emailValue ? emailValue.replace(/^mailto:/, "") : email;
+          }
+          var photoRef = solidClient.getUrl(profile, vocabCommonRdf.VCARD.hasPhoto) || solidClient.getUrl(profile, vocabCommonRdf.FOAF.img);
+          var photo = "";
+          if (photoRef) {
+            try {
+              var photoUrl = new URL(photoRef, profileDocUrl).toString();
+              var photoResponse = yield session.fetch(photoUrl);
+              if (photoResponse.ok) {
+                var photoBlob = yield photoResponse.blob();
+                photoObjectUrl = URL.createObjectURL(photoBlob);
+                if (cancelled) {
+                  URL.revokeObjectURL(photoObjectUrl);
+                  return;
+                }
+                photo = photoObjectUrl;
+              }
+            } catch (_unused4) {
+              photo = "";
+            }
+          }
+          if (!cancelled) {
+            setOwnerProfile({
+              name,
+              email,
+              photo,
+              webId: ownerWebId
+            });
+          }
+        } catch (err) {
+          console.error("Failed to load dataset owner profile:", err);
+          if (!cancelled) setOwnerProfile(fallbackProfile);
+        }
+      });
+      return function loadOwnerProfile() {
+        return _ref6.apply(this, arguments);
+      };
+    }();
+    loadOwnerProfile();
+    return () => {
+      cancelled = true;
+      if (photoObjectUrl) {
+        URL.revokeObjectURL(photoObjectUrl);
+      }
+    };
+  }, [dataset]);
   if (!dataset) return null;
   var hasSemanticModel = Boolean(dataset.access_url_semantic_model);
   var datasetLinkType = dataset.distribution_access_type === "access" ? "access" : "download";
@@ -6307,27 +6812,108 @@ var DatasetDetailModal = _ref2 => {
   var modelFileName = getResourceLabel(dataset.access_url_semantic_model, {
     fallback: "Semantic model"
   });
-  var datasetActionIsDownload = datasetLinkType === "download" && isPodManagedUrl(dataset.access_url_dataset);
-  var modelActionIsDownload = hasSemanticModel && isPodManagedUrl(dataset.access_url_semantic_model);
+  var datasetFileType = datasetLinkType === "access" ? "URL" : (datasetFileName.split(".").pop() || "DATA").slice(0, 5).toUpperCase();
+  var modelFileType = (modelFileName.split(".").pop() || "RDF").slice(0, 5).toUpperCase();
+  var datasetActionIsDownload = datasetLinkType === "download";
+  var modelActionIsDownload = hasSemanticModel;
   var hasUserAccess = dataset.is_public || canAccessDataset || canAccessModel;
   var canRequestAccess = !isSeries && !dataset.is_public && !hasUserAccess && Boolean(dataset.webid);
   var requestButtonDisabled = canRequestAccess && requestPending;
+  var titleValue = dataset.title || "Untitled dataset";
+  var descriptionValue = dataset.description || "No description provided.";
+  var themeValues = String(dataset.theme || "").split(/[,;|]/).map(value => value.trim()).filter(Boolean);
+  var accessRightsValue = dataset.is_public ? "Public" : hasUserAccess ? "Restricted (you have access)" : "Restricted";
+  var detailRows = [{
+    predicate: "dct:identifier",
+    value: dataset.identifier
+  }, {
+    predicate: "dct:issued",
+    value: formatDate(dataset.issued)
+  }, {
+    predicate: "dct:modified",
+    value: formatDate(dataset.modified)
+  }, {
+    predicate: "dct:publisher",
+    value: dataset.publisher
+  }, {
+    predicate: "dcat:contactPoint",
+    value: dataset.contact_point ? /*#__PURE__*/React.createElement("a", {
+      href: "mailto:".concat(dataset.contact_point)
+    }, dataset.contact_point) : null
+  }, {
+    predicate: "dct:creator",
+    value: dataset.webid ? /*#__PURE__*/React.createElement("a", {
+      href: dataset.webid,
+      target: "_blank",
+      rel: "noopener noreferrer"
+    }, dataset.webid) : null
+  }, {
+    predicate: "dct:accessRights",
+    value: accessRightsValue
+  }, {
+    predicate: "dcat:distribution",
+    value: isSeries ? "Dataset series" : datasetLinkType === "access" ? "Access URL" : "Download URL"
+  }];
+  if (!isSeries && dataset.access_url_dataset) {
+    detailRows.push({
+      predicate: datasetLinkType === "access" ? "dcat:accessURL" : "dcat:downloadURL",
+      value: /*#__PURE__*/React.createElement("a", {
+        href: dataset.access_url_dataset,
+        target: "_blank",
+        rel: "noopener noreferrer"
+      }, dataset.access_url_dataset)
+    });
+  }
+  if (!isSeries && hasSemanticModel) {
+    detailRows.push({
+      predicate: "dct:conformsTo",
+      value: /*#__PURE__*/React.createElement("a", {
+        href: dataset.access_url_semantic_model,
+        target: "_blank",
+        rel: "noopener noreferrer"
+      }, dataset.access_url_semantic_model)
+    });
+  }
+  if (isSeries) {
+    detailRows.push({
+      predicate: "dcat:seriesMember",
+      value: "".concat((dataset.seriesMembers || []).length, " member").concat((dataset.seriesMembers || []).length === 1 ? "" : "s")
+    });
+  }
+  var renderDetailValue = value => {
+    if (value === 0) return value;
+    return value || /*#__PURE__*/React.createElement("span", {
+      className: "text-muted"
+    }, "N/A");
+  };
+  var triggerDatasetAction = () => {
+    if (datasetActionIsDownload) {
+      handleFileDownload(dataset.access_url_dataset, datasetFileName);
+      return;
+    }
+    openExternalLink(dataset.access_url_dataset);
+  };
+  var triggerModelAction = () => {
+    if (modelActionIsDownload) {
+      handleFileDownload(dataset.access_url_semantic_model, modelFileName);
+      return;
+    }
+    openExternalLink(dataset.access_url_semantic_model);
+  };
   return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
-    className: "modal show modal-show dataset-detail-modal"
+    className: "modal show modal-show dataset-add-modal dataset-detail-modal"
   }, /*#__PURE__*/React.createElement("div", {
-    className: "modal-dialog modal-xl"
+    className: "modal-dialog modal-xl dataset-detail-dialog"
   }, /*#__PURE__*/React.createElement("div", {
     className: "modal-content"
   }, /*#__PURE__*/React.createElement("div", {
-    className: "modal-header d-flex justify-content-between align-items-center"
+    className: "modal-header"
   }, /*#__PURE__*/React.createElement("h5", {
     className: "modal-title"
   }, /*#__PURE__*/React.createElement("i", {
-    className: "fa-solid fa-circle-info mr-2"
-  }), ' ', isSeries ? "Dataset Series Details" : "Dataset Details"), /*#__PURE__*/React.createElement("div", {
-    className: "d-flex align-items-center"
-  }, canRequestAccess && /*#__PURE__*/React.createElement("button", {
-    className: "btn btn-light mr-2",
+    className: "fa-solid fa-database mr-2"
+  }), " Detail Dataset"), canRequestAccess && /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-light mr-2 dataset-detail-request-button",
     onClick: () => setShowRequestModal(true),
     disabled: requestButtonDisabled,
     title: requestButtonDisabled ? "Request already sent. Waiting for the dataset owner." : "Request access to this dataset"
@@ -6335,145 +6921,125 @@ var DatasetDetailModal = _ref2 => {
     type: "button",
     className: "close",
     onClick: onClose
-  }, /*#__PURE__*/React.createElement("span", null, "\xD7")))), /*#__PURE__*/React.createElement("div", {
-    className: "modal-body d-flex ".concat(isSeries ? "series-only" : "")
+  }, /*#__PURE__*/React.createElement("span", null, "\xD7"))), /*#__PURE__*/React.createElement("div", {
+    className: "modal-body dataset-detail-body"
   }, /*#__PURE__*/React.createElement("div", {
-    className: "dataset-detail-left"
-  }, /*#__PURE__*/React.createElement("ul", {
-    className: "list-group"
-  }, /*#__PURE__*/React.createElement("li", {
-    className: "list-group-item"
+    className: "pod-info-card dataset-detail-owner-card"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "pod-info-left"
+  }, ownerProfile.photo ? /*#__PURE__*/React.createElement("img", {
+    src: ownerProfile.photo,
+    alt: "Dataset owner",
+    className: "pod-avatar"
+  }) : /*#__PURE__*/React.createElement("div", {
+    className: "pod-avatar pod-avatar--placeholder"
   }, /*#__PURE__*/React.createElement("i", {
-    className: "fa-solid fa-heading mr-2"
-  }), /*#__PURE__*/React.createElement("strong", null, "Title:"), " ", dataset.title), /*#__PURE__*/React.createElement("li", {
-    className: "list-group-item"
+    className: "fa-solid fa-user"
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "pod-name"
+  }, ownerProfile.name || "Solid Pod User"), /*#__PURE__*/React.createElement("div", {
+    className: "pod-meta"
+  }, ownerProfile.email || "No email provided"), /*#__PURE__*/React.createElement("div", {
+    className: "pod-meta pod-webid"
   }, /*#__PURE__*/React.createElement("i", {
-    className: "fa-solid fa-align-left mr-2"
-  }), /*#__PURE__*/React.createElement("strong", null, "Description:"), " ", dataset.description), /*#__PURE__*/React.createElement("li", {
-    className: "list-group-item"
-  }, /*#__PURE__*/React.createElement("i", {
-    className: "fa-solid fa-tags mr-2"
-  }), /*#__PURE__*/React.createElement("strong", null, "Theme:"), " ", formatTheme(dataset.theme)), /*#__PURE__*/React.createElement("li", {
-    className: "list-group-item"
-  }, /*#__PURE__*/React.createElement("i", {
-    className: "fa-solid fa-calendar-plus mr-2"
-  }), /*#__PURE__*/React.createElement("strong", null, "Issued Date:"), " ", formatDate(dataset.issued)), /*#__PURE__*/React.createElement("li", {
-    className: "list-group-item"
-  }, /*#__PURE__*/React.createElement("i", {
-    className: "fa-solid fa-calendar-check mr-2"
-  }), /*#__PURE__*/React.createElement("strong", null, "Modified Date:"), " ", formatDate(dataset.modified)), /*#__PURE__*/React.createElement("li", {
-    className: "list-group-item"
-  }, /*#__PURE__*/React.createElement("i", {
-    className: "fa-solid fa-user mr-2"
-  }), /*#__PURE__*/React.createElement("strong", null, "Publisher:"), " ", dataset.publisher), /*#__PURE__*/React.createElement("li", {
-    className: "list-group-item"
-  }, /*#__PURE__*/React.createElement("i", {
-    className: "fa-solid fa-envelope mr-2"
-  }), /*#__PURE__*/React.createElement("strong", null, "Contact:"), ' ', dataset.contact_point ? /*#__PURE__*/React.createElement("a", {
-    href: "mailto:".concat(dataset.contact_point)
-  }, dataset.contact_point) : /*#__PURE__*/React.createElement("span", {
+    className: "fa-solid fa-link"
+  }), /*#__PURE__*/React.createElement("span", null, ownerProfile.webId || "No WebID"))))), /*#__PURE__*/React.createElement("section", {
+    className: "dataset-detail-hero"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "detail-predicate-label"
+  }, "dct:title"), /*#__PURE__*/React.createElement("h2", null, titleValue), /*#__PURE__*/React.createElement("div", {
+    className: "dataset-detail-description"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "detail-predicate-label"
+  }, "dct:description"), /*#__PURE__*/React.createElement("p", null, descriptionValue))), !isSeries && /*#__PURE__*/React.createElement("section", {
+    className: "dataset-detail-section dataset-detail-card"
+  }, /*#__PURE__*/React.createElement("h3", null, "Files and Sources"), /*#__PURE__*/React.createElement("div", {
+    className: "detail-file-list"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "detail-file-row ".concat(!canAccessDataset ? "is-restricted" : "")
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "detail-file-icon"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "detail-file-icon-code"
+  }, datasetFileType)), /*#__PURE__*/React.createElement("div", {
+    className: "detail-file-main"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "detail-file-title"
+  }, datasetFileName), /*#__PURE__*/React.createElement("div", {
+    className: "detail-file-meta"
+  }, "Content: Dataset file"), /*#__PURE__*/React.createElement("div", {
+    className: "detail-file-meta"
+  }, "Access: ", canAccessDataset ? accessRightsValue : "Restricted")), /*#__PURE__*/React.createElement("button", {
+    className: "detail-download-button",
+    onClick: triggerDatasetAction,
+    disabled: !canAccessDataset || !dataset.access_url_dataset
+  }, datasetActionIsDownload ? "Download" : "Open")), hasSemanticModel && /*#__PURE__*/React.createElement("div", {
+    className: "detail-file-row ".concat(!canAccessModel ? "is-restricted" : "")
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "detail-file-icon semantic"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "detail-file-icon-code"
+  }, modelFileType)), /*#__PURE__*/React.createElement("div", {
+    className: "detail-file-main"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "detail-file-title"
+  }, modelFileName), /*#__PURE__*/React.createElement("div", {
+    className: "detail-file-meta"
+  }, "Content: Semantic model"), /*#__PURE__*/React.createElement("div", {
+    className: "detail-file-meta"
+  }, "Format: Turtle/RDF model")), /*#__PURE__*/React.createElement("button", {
+    className: "detail-download-button",
+    onClick: triggerModelAction,
+    disabled: !canAccessModel
+  }, modelActionIsDownload ? "Download" : "Open")))), /*#__PURE__*/React.createElement("section", {
+    className: "dataset-detail-section dataset-detail-card"
+  }, /*#__PURE__*/React.createElement("h3", null, "Categories"), /*#__PURE__*/React.createElement("div", {
+    className: "detail-predicate-label"
+  }, "dcat:theme"), themeValues.length > 0 ? /*#__PURE__*/React.createElement("div", {
+    className: "detail-theme-list"
+  }, themeValues.map(themeValue => /*#__PURE__*/React.createElement("span", {
+    className: "detail-theme-chip",
+    key: themeValue
+  }, formatTheme(themeValue)))) : /*#__PURE__*/React.createElement("span", {
     className: "text-muted"
-  }, "N/A")), isSeries ? /*#__PURE__*/React.createElement("li", {
-    className: "list-group-item"
-  }, /*#__PURE__*/React.createElement("i", {
-    className: "fa-solid fa-layer-group mr-2"
-  }), /*#__PURE__*/React.createElement("strong", null, "Series Members:"), /*#__PURE__*/React.createElement("div", {
-    className: "mt-3"
-  }, (dataset.seriesMembers || []).length === 0 ? /*#__PURE__*/React.createElement("span", {
+  }, "N/A")), /*#__PURE__*/React.createElement("section", {
+    className: "dataset-detail-section dataset-detail-card"
+  }, /*#__PURE__*/React.createElement("table", {
+    className: "detail-metadata-table"
+  }, /*#__PURE__*/React.createElement("tbody", null, detailRows.map(row => /*#__PURE__*/React.createElement("tr", {
+    key: row.predicate
+  }, /*#__PURE__*/React.createElement("th", {
+    scope: "row"
+  }, row.predicate), /*#__PURE__*/React.createElement("td", null, renderDetailValue(row.value))))))), isSeries && /*#__PURE__*/React.createElement("section", {
+    className: "dataset-detail-section dataset-detail-card"
+  }, /*#__PURE__*/React.createElement("h3", null, "dcat:seriesMember"), (dataset.seriesMembers || []).length === 0 ? /*#__PURE__*/React.createElement("span", {
     className: "text-muted"
   }, "No members listed.") : /*#__PURE__*/React.createElement("div", {
-    className: "series-members-scroll"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "d-flex flex-column gap-3"
+    className: "detail-series-list"
   }, dataset.seriesMembers.map(url => {
     var resolved = resolveSeriesMember(url);
     var info = datasetLookup.get(url);
     return /*#__PURE__*/React.createElement("div", {
       key: url,
-      className: "card shadow-sm border-0 p-3"
-    }, /*#__PURE__*/React.createElement("div", {
-      className: "d-flex justify-content-between align-items-start"
+      className: "detail-series-row"
     }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-      className: "font-weight-bold"
+      className: "detail-series-title"
     }, resolved.title), (info === null || info === void 0 ? void 0 : info.description) && /*#__PURE__*/React.createElement("div", {
-      className: "text-muted small mt-1"
-    }, info.description)), /*#__PURE__*/React.createElement("span", {
-      className: "badge badge-light"
-    }, info !== null && info !== void 0 && info.is_public ? "Public" : "Restricted")), /*#__PURE__*/React.createElement("div", {
-      className: "small text-muted mt-2"
-    }, (info === null || info === void 0 ? void 0 : info.publisher) && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("strong", null, "Publisher:"), " ", info.publisher), (info === null || info === void 0 ? void 0 : info.issued) && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("strong", null, "Issued:"), " ", formatDate(info.issued)), (info === null || info === void 0 ? void 0 : info.modified) && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("strong", null, "Modified:"), " ", formatDate(info.modified))), /*#__PURE__*/React.createElement("div", {
-      className: "mt-2"
-    }, /*#__PURE__*/React.createElement("a", {
+      className: "detail-series-description"
+    }, info.description)), /*#__PURE__*/React.createElement("a", {
       href: resolved.url,
       target: "_blank",
       rel: "noopener noreferrer"
-    }, "Open dataset")));
-  }))))) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("li", {
-    className: "list-group-item d-flex justify-content-between align-items-center"
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("i", {
-    className: "fa-solid fa-file-csv mr-2"
-  }), /*#__PURE__*/React.createElement("strong", null, "Dataset:"), ' ', canAccessDataset ? /*#__PURE__*/React.createElement("a", {
-    href: dataset.access_url_dataset,
-    target: "_blank",
-    rel: "noopener noreferrer"
-  }, datasetFileName) : /*#__PURE__*/React.createElement("span", {
-    className: "text-muted"
-  }, "Restricted")), canAccessDataset && /*#__PURE__*/React.createElement("button", {
-    className: "btn btn-link text-dark",
-    onClick: () => {
-      if (datasetActionIsDownload) {
-        handleFileDownload(dataset.access_url_dataset, datasetFileName);
-        return;
-      }
-      openExternalLink(dataset.access_url_dataset);
-    },
-    title: datasetActionIsDownload ? "Download dataset" : "Open external link"
-  }, /*#__PURE__*/React.createElement("i", {
-    className: "fa-solid ".concat(datasetActionIsDownload ? "fa-download" : "fa-arrow-up-right-from-square")
-  }))), hasSemanticModel && /*#__PURE__*/React.createElement("li", {
-    className: "list-group-item d-flex justify-content-between align-items-center"
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("i", {
-    className: "fa-solid fa-project-diagram mr-2"
-  }), /*#__PURE__*/React.createElement("strong", null, "Semantic Model:"), ' ', canAccessModel ? /*#__PURE__*/React.createElement("a", {
-    href: dataset.access_url_semantic_model,
-    target: "_blank",
-    rel: "noopener noreferrer"
-  }, modelFileName) : /*#__PURE__*/React.createElement("span", {
-    className: "text-muted"
-  }, "Restricted")), canAccessModel && /*#__PURE__*/React.createElement("button", {
-    className: "btn btn-link text-dark",
-    onClick: () => {
-      if (modelActionIsDownload) {
-        handleFileDownload(dataset.access_url_semantic_model, modelFileName);
-        return;
-      }
-      openExternalLink(dataset.access_url_semantic_model);
-    },
-    title: modelActionIsDownload ? "Download semantic model" : "Open semantic model link"
-  }, /*#__PURE__*/React.createElement("i", {
-    className: "fa-solid ".concat(modelActionIsDownload ? "fa-download" : "fa-arrow-up-right-from-square")
-  }))), /*#__PURE__*/React.createElement("li", {
-    className: "list-group-item"
-  }, /*#__PURE__*/React.createElement("i", {
-    className: "fa-solid fa-lock mr-2"
-  }), /*#__PURE__*/React.createElement("strong", null, "Access Rights:"), ' ', dataset.is_public ? /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("i", {
-    className: "fa-solid fa-globe",
-    title: "Public"
-  }), " Public") : hasUserAccess ? /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("i", {
-    className: "fa-solid fa-lock-open text-success",
-    title: "Restricted (You have access)"
-  }), " Restricted (You have access)") : /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("i", {
-    className: "fa-solid fa-lock text-danger",
-    title: "Restricted"
-  }), " Restricted"))))), !isSeries && hasSemanticModel && /*#__PURE__*/React.createElement("div", {
-    className: "dataset-detail-right d-flex align-items-center justify-content-center ml-3",
-    title: "Double-click to enlarge"
+    }, "Open dataset"));
+  }))), !isSeries && hasSemanticModel && /*#__PURE__*/React.createElement("section", {
+    className: "dataset-detail-section dataset-detail-card dataset-detail-visualization"
+  }, /*#__PURE__*/React.createElement("h3", null, "Semantic Model Visualization"), /*#__PURE__*/React.createElement("div", {
+    className: "detail-graph-wide"
   }, triples.length > 0 ? /*#__PURE__*/React.createElement(RDFGraph, {
-    triples: triples,
-    onDoubleClick: () => setShowSemanticModal(true)
+    triples: triples
   }) : /*#__PURE__*/React.createElement("p", {
     className: "text-muted"
-  }, "No RDF triples found.")))))), showRequestModal && !isSeries && /*#__PURE__*/React.createElement(RequestDatasetModal, {
+  }, "No RDF triples found."))))))), showRequestModal && !isSeries && /*#__PURE__*/React.createElement(RequestDatasetModal, {
     dataset: dataset,
     sessionWebId: sessionWebId,
     userName: userName,
@@ -6485,9 +7051,6 @@ var DatasetDetailModal = _ref2 => {
     }
   }), showRequestSuccess && !isSeries && /*#__PURE__*/React.createElement(RequestSuccessModal, {
     onClose: () => setShowRequestSuccess(false)
-  }), showSemanticModal && !isSeries && /*#__PURE__*/React.createElement(SemanticModelModal, {
-    triples: triples,
-    onClose: () => setShowSemanticModal(false)
   }));
 };
 
@@ -6562,8 +7125,6 @@ var DatasetEditModal = _ref => {
   // Shared Solid session instance
 
   var [editedDataset, setEditedDataset] = React.useState(null);
-  var [datasetPodFiles, setDatasetPodFiles] = React.useState([]);
-  var [modelPodFiles, setModelPodFiles] = React.useState([]);
   var [webId, setWebId] = React.useState('');
   var [loading, setLoading] = React.useState(false);
   var [datasetSource, setDatasetSource] = React.useState("pod");
@@ -6578,8 +7139,8 @@ var DatasetEditModal = _ref => {
     url: "",
     error: ""
   });
-  var [datasetUploadPath, setDatasetUploadPath] = React.useState("/public/");
-  var [modelUploadPath, setModelUploadPath] = React.useState("/public/");
+  var [datasetUploadPath, setDatasetUploadPath] = React.useState("/");
+  var [modelUploadPath, setModelUploadPath] = React.useState("/");
   var [solidUserName, setSolidUserName] = React.useState('');
   var [solidUserPhoto, setSolidUserPhoto] = React.useState('');
   var [showSemanticModel, setShowSemanticModel] = React.useState(false);
@@ -6593,12 +7154,12 @@ var DatasetEditModal = _ref => {
     publisher: "",
     contact_point: ""
   });
-  var hasRequiredFields = Boolean(editedDataset === null || editedDataset === void 0 ? void 0 : editedDataset.access_url_dataset);
+  var hasRequiredFields = Boolean((editedDataset === null || editedDataset === void 0 ? void 0 : editedDataset.access_url_dataset) || datasetSource === "upload" && datasetUpload.file);
   var requiresPublicAccess = datasetSource === "external" || modelSource === "external";
   var isSeries = (dataset === null || dataset === void 0 ? void 0 : dataset.datasetType) === "series";
   React.useEffect(() => {
     if (!requiresPublicAccess || !editedDataset || editedDataset.is_public) return;
-    setEditedDataset(prev => _objectSpread2(_objectSpread2({}, prev), {}, {
+    setEditedDataset(prev => _objectSpread2$2(_objectSpread2$2({}, prev), {}, {
       is_public: true
     }));
   }, [requiresPublicAccess, editedDataset]);
@@ -6609,7 +7170,7 @@ var DatasetEditModal = _ref => {
       var base = session.info.webId.split("/profile/")[0];
       return base.endsWith("/") ? base : "".concat(base, "/");
     })() : "";
-    setEditedDataset(_objectSpread2(_objectSpread2({}, dataset), {}, {
+    setEditedDataset(_objectSpread2$2(_objectSpread2$2({}, dataset), {}, {
       issued: ((_dataset$issued = dataset.issued) === null || _dataset$issued === void 0 ? void 0 : _dataset$issued.split('T')[0]) || '',
       modified: ((_dataset$modified = dataset.modified) === null || _dataset$modified === void 0 ? void 0 : _dataset$modified.split('T')[0]) || '',
       distribution_access_type: dataset.distribution_access_type || "download"
@@ -6655,12 +7216,12 @@ var DatasetEditModal = _ref => {
           }
           setSolidUserName(name);
           setWebId(session.info.webId);
-          setEditedDataset(prev => _objectSpread2(_objectSpread2({}, prev), {}, {
+          setEditedDataset(prev => _objectSpread2$2(_objectSpread2$2({}, prev), {}, {
             publisher: name,
             contact_point: email,
             webid: session.info.webId
           }));
-          setSeriesData(prev => _objectSpread2(_objectSpread2({}, prev), {}, {
+          setSeriesData(prev => _objectSpread2$2(_objectSpread2$2({}, prev), {}, {
             publisher: name,
             contact_point: email
           }));
@@ -6680,45 +7241,6 @@ var DatasetEditModal = _ref => {
             }
           }
           setSolidUserPhoto(photoUrl);
-          var podRoot = session.info.webId.split("/profile/")[0];
-          var rootContainer = podRoot.endsWith('/') ? podRoot : "".concat(podRoot, "/");
-          var datasetFiles = [];
-          var modelFiles = [];
-          var isCatalogResource = url => url.includes("/catalog/");
-          var _traverse = /*#__PURE__*/function () {
-            var _ref3 = _asyncToGenerator(function* (containerUrl) {
-              try {
-                if (isCatalogResource(containerUrl)) return;
-                var _dataset = yield solidClient.getSolidDataset(containerUrl, {
-                  fetch: session.fetch
-                });
-                var resources = solidClient.getContainedResourceUrlAll(_dataset);
-                for (var _res of resources) {
-                  if (isCatalogResource(_res)) {
-                    continue;
-                  }
-                  if (_res.endsWith('/')) {
-                    yield _traverse(_res);
-                  } else if (/\.(csv|json|ttl|jsonld|rdf|xml|pdf|docx|txt)$/i.test(_res)) {
-                    datasetFiles.push(_res);
-                    if (_res.endsWith('.ttl')) {
-                      modelFiles.push(_res);
-                    }
-                  } else if (_res.endsWith('.ttl')) {
-                    modelFiles.push(_res);
-                  }
-                }
-              } catch (err) {
-                console.error("Failed to load container ".concat(containerUrl), err);
-              }
-            });
-            return function traverse(_x) {
-              return _ref3.apply(this, arguments);
-            };
-          }();
-          yield _traverse(rootContainer);
-          setDatasetPodFiles(datasetFiles);
-          setModelPodFiles(modelFiles);
           try {
             var {
               datasets
@@ -6744,7 +7266,7 @@ var DatasetEditModal = _ref => {
     return base.endsWith("/") ? base : "".concat(base, "/");
   };
   var normalizeUploadPath = function normalizeUploadPath(value) {
-    var fallback = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : "/public/";
+    var fallback = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : "/";
     if (!value) return fallback;
     var path = value.trim();
     if (!path.startsWith("/")) path = "/".concat(path);
@@ -6752,7 +7274,7 @@ var DatasetEditModal = _ref => {
     return path;
   };
   var ensureContainer = /*#__PURE__*/function () {
-    var _ref4 = _asyncToGenerator(function* (containerUrl) {
+    var _ref3 = _asyncToGenerator(function* (containerUrl) {
       try {
         yield solidClient.createContainerAt(containerUrl, {
           fetch: session.fetch
@@ -6763,12 +7285,12 @@ var DatasetEditModal = _ref => {
         }
       }
     });
-    return function ensureContainer(_x2) {
-      return _ref4.apply(this, arguments);
+    return function ensureContainer(_x) {
+      return _ref3.apply(this, arguments);
     };
   }();
   var ensureUploadContainer = /*#__PURE__*/function () {
-    var _ref5 = _asyncToGenerator(function* (path) {
+    var _ref4 = _asyncToGenerator(function* (path) {
       var root = getPodRoot();
       if (!root) throw new Error("Missing pod root.");
       var normalized = normalizeUploadPath(path);
@@ -6781,15 +7303,15 @@ var DatasetEditModal = _ref => {
       }
       return uploads;
     });
-    return function ensureUploadContainer(_x3) {
-      return _ref5.apply(this, arguments);
+    return function ensureUploadContainer(_x2) {
+      return _ref4.apply(this, arguments);
     };
   }();
   var uploadFile = /*#__PURE__*/function () {
-    var _ref6 = _asyncToGenerator(function* (file, pathOverride) {
+    var _ref5 = _asyncToGenerator(function* (file, pathOverride) {
       if (!file) return "";
       var uploads = yield ensureUploadContainer(pathOverride);
-      var safeName = file.name || "upload-".concat(Date.now());
+      var safeName = encodeURIComponent(file.name || "upload-".concat(Date.now()));
       var targetUrl = "".concat(uploads).concat(safeName);
       var res = yield session.fetch(targetUrl, {
         method: "PUT",
@@ -6803,107 +7325,71 @@ var DatasetEditModal = _ref => {
       }
       return targetUrl;
     });
-    return function uploadFile(_x4, _x5) {
-      return _ref6.apply(this, arguments);
+    return function uploadFile(_x3, _x4) {
+      return _ref5.apply(this, arguments);
     };
   }();
-  var handleDatasetFileSelect = /*#__PURE__*/function () {
-    var _ref7 = _asyncToGenerator(function* (event) {
-      var _event$target;
-      var file = event === null || event === void 0 || (_event$target = event.target) === null || _event$target === void 0 || (_event$target = _event$target.files) === null || _event$target === void 0 ? void 0 : _event$target[0];
-      setDatasetUpload({
-        file: file || null,
-        url: "",
-        error: ""
-      });
-      if (!file) return;
-      try {
-        var url = yield uploadFile(file, datasetUploadPath);
-        setDatasetUpload({
-          file,
-          url,
-          error: ""
-        });
-        setEditedDataset(prev => _objectSpread2(_objectSpread2({}, prev), {}, {
-          access_url_dataset: url,
-          file_format: inferMediaType(url)
-        }));
-      } catch (err) {
-        setDatasetUpload({
-          file,
-          url: "",
-          error: "Upload failed. Please try again."
-        });
-      }
+  var handleDatasetFileSelect = event => {
+    var _event$target;
+    var file = event === null || event === void 0 || (_event$target = event.target) === null || _event$target === void 0 || (_event$target = _event$target.files) === null || _event$target === void 0 ? void 0 : _event$target[0];
+    setDatasetUpload({
+      file: file || null,
+      url: "",
+      error: ""
     });
-    return function handleDatasetFileSelect(_x6) {
-      return _ref7.apply(this, arguments);
-    };
-  }();
-  var handleModelFileSelect = /*#__PURE__*/function () {
-    var _ref8 = _asyncToGenerator(function* (event) {
-      var _event$target2;
-      var file = event === null || event === void 0 || (_event$target2 = event.target) === null || _event$target2 === void 0 || (_event$target2 = _event$target2.files) === null || _event$target2 === void 0 ? void 0 : _event$target2[0];
+    if (!file) return;
+    setEditedDataset(prev => _objectSpread2$2(_objectSpread2$2({}, prev), {}, {
+      file_format: inferMediaType(file.name)
+    }));
+  };
+  var handleModelFileSelect = event => {
+    var _event$target2;
+    var file = event === null || event === void 0 || (_event$target2 = event.target) === null || _event$target2 === void 0 || (_event$target2 = _event$target2.files) === null || _event$target2 === void 0 ? void 0 : _event$target2[0];
+    setModelUpload({
+      file: file || null,
+      url: "",
+      error: ""
+    });
+    if (!file) return;
+    if (!isTtlResource(file.name)) {
       setModelUpload({
-        file: file || null,
+        file: null,
         url: "",
-        error: ""
+        error: "Only TTL files are allowed."
       });
-      if (!file) return;
-      try {
-        var url = yield uploadFile(file, modelUploadPath);
-        setModelUpload({
-          file,
-          url,
-          error: ""
-        });
-        setEditedDataset(prev => _objectSpread2(_objectSpread2({}, prev), {}, {
-          access_url_semantic_model: url
-        }));
-      } catch (err) {
-        setModelUpload({
-          file,
-          url: "",
-          error: "Upload failed. Please try again."
-        });
+      return;
+    }
+  };
+  var handleDatasetDrop = event => {
+    var _event$dataTransfer;
+    event.preventDefault();
+    var file = (_event$dataTransfer = event.dataTransfer) === null || _event$dataTransfer === void 0 || (_event$dataTransfer = _event$dataTransfer.files) === null || _event$dataTransfer === void 0 ? void 0 : _event$dataTransfer[0];
+    if (!file) return;
+    handleDatasetFileSelect({
+      target: {
+        files: [file]
       }
     });
-    return function handleModelFileSelect(_x7) {
-      return _ref8.apply(this, arguments);
-    };
-  }();
-  var handleDatasetDrop = /*#__PURE__*/function () {
-    var _ref9 = _asyncToGenerator(function* (event) {
-      var _event$dataTransfer;
-      event.preventDefault();
-      var file = (_event$dataTransfer = event.dataTransfer) === null || _event$dataTransfer === void 0 || (_event$dataTransfer = _event$dataTransfer.files) === null || _event$dataTransfer === void 0 ? void 0 : _event$dataTransfer[0];
-      if (!file) return;
-      yield handleDatasetFileSelect({
-        target: {
-          files: [file]
-        }
+  };
+  var handleModelDrop = event => {
+    var _event$dataTransfer2;
+    event.preventDefault();
+    var file = (_event$dataTransfer2 = event.dataTransfer) === null || _event$dataTransfer2 === void 0 || (_event$dataTransfer2 = _event$dataTransfer2.files) === null || _event$dataTransfer2 === void 0 ? void 0 : _event$dataTransfer2[0];
+    if (!file) return;
+    if (!isTtlResource(file.name)) {
+      setModelUpload({
+        file: null,
+        url: "",
+        error: "Only TTL files are allowed."
       });
+      return;
+    }
+    handleModelFileSelect({
+      target: {
+        files: [file]
+      }
     });
-    return function handleDatasetDrop(_x8) {
-      return _ref9.apply(this, arguments);
-    };
-  }();
-  var handleModelDrop = /*#__PURE__*/function () {
-    var _ref10 = _asyncToGenerator(function* (event) {
-      var _event$dataTransfer2;
-      event.preventDefault();
-      var file = (_event$dataTransfer2 = event.dataTransfer) === null || _event$dataTransfer2 === void 0 || (_event$dataTransfer2 = _event$dataTransfer2.files) === null || _event$dataTransfer2 === void 0 ? void 0 : _event$dataTransfer2[0];
-      if (!file) return;
-      yield handleModelFileSelect({
-        target: {
-          files: [file]
-        }
-      });
-    });
-    return function handleModelDrop(_x9) {
-      return _ref10.apply(this, arguments);
-    };
-  }();
+  };
   var inferMediaType = value => {
     if (!value) return "";
     var lowered = value.toLowerCase();
@@ -6926,7 +7412,7 @@ var DatasetEditModal = _ref => {
       value
     } = e.target;
     var inferredMediaType = name === 'access_url_dataset' ? inferMediaType(value) : '';
-    setEditedDataset(prev => _objectSpread2(_objectSpread2({}, prev), {}, {
+    setEditedDataset(prev => _objectSpread2$2(_objectSpread2$2({}, prev), {}, {
       [name]: value
     }, name === 'access_url_dataset' ? {
       file_format: inferredMediaType !== "application/octet-stream" ? inferredMediaType : ""
@@ -6941,7 +7427,7 @@ var DatasetEditModal = _ref => {
         error: ""
       });
     }
-    setEditedDataset(prev => _objectSpread2(_objectSpread2({}, prev), {}, {
+    setEditedDataset(prev => _objectSpread2$2(_objectSpread2$2({}, prev), {}, {
       access_url_dataset: "",
       file_format: "",
       distribution_access_type: next === "external" ? "access" : "download",
@@ -6957,13 +7443,13 @@ var DatasetEditModal = _ref => {
         error: ""
       });
     }
-    setEditedDataset(prev => _objectSpread2(_objectSpread2({}, prev), {}, {
+    setEditedDataset(prev => _objectSpread2$2(_objectSpread2$2({}, prev), {}, {
       access_url_semantic_model: "",
       is_public: next === "external" || datasetSource === "external" ? true : prev.is_public
     }));
   };
   var handleSave = /*#__PURE__*/function () {
-    var _ref11 = _asyncToGenerator(function* () {
+    var _ref6 = _asyncToGenerator(function* () {
       try {
         setLoading(true);
         if (isSeries) {
@@ -6976,7 +7462,7 @@ var DatasetEditModal = _ref => {
             return;
           }
           var memberUrls = seriesMembers.filter(member => member.kind === "existing" && member.datasetUrl).map(member => member.datasetUrl);
-          yield updateDatasetSeries(session, _objectSpread2(_objectSpread2({}, seriesData), {}, {
+          yield updateDatasetSeries(session, _objectSpread2$2(_objectSpread2$2({}, seriesData), {}, {
             identifier: dataset.identifier,
             datasetUrl: dataset.datasetUrl,
             seriesUrl: dataset.datasetUrl,
@@ -6984,31 +7470,49 @@ var DatasetEditModal = _ref => {
             webid: webId
           }));
         } else {
-          if (!hasRequiredFields) {
+          var datasetToSave = _objectSpread2$2({}, editedDataset);
+          if (!datasetToSave.access_url_dataset && !(datasetSource === "upload" && datasetUpload.file)) {
             alert("Dataset link is required.");
             return;
           }
-          if (datasetSource === "external" && !editedDataset.is_public) {
-            alert("Public external links are currently supported only for public datasets.");
+          if ((datasetSource === "external" || modelSource === "external") && !datasetToSave.is_public) {
+            datasetToSave = _objectSpread2$2(_objectSpread2$2({}, datasetToSave), {}, {
+              is_public: true
+            });
+          }
+          if (showSemanticModel && datasetToSave.access_url_semantic_model && !isTtlResource(datasetToSave.access_url_semantic_model)) {
+            alert("Semantic Models must be TTL files.");
             return;
           }
-          if (modelSource === "external" && !editedDataset.is_public) {
-            alert("External semantic model links are currently supported only for public datasets.");
-            return;
-          }
-          if (datasetSource === "upload" && datasetUpload.file && !editedDataset.access_url_dataset) {
+          if (datasetSource === "upload" && datasetUpload.file) {
             var url = yield uploadFile(datasetUpload.file, datasetUploadPath);
-            setEditedDataset(prev => _objectSpread2(_objectSpread2({}, prev), {}, {
-              access_url_dataset: url
+            datasetToSave = _objectSpread2$2(_objectSpread2$2({}, datasetToSave), {}, {
+              access_url_dataset: url,
+              file_format: inferMediaType(url)
+            });
+            setDatasetUpload(prev => _objectSpread2$2(_objectSpread2$2({}, prev), {}, {
+              url,
+              error: ""
+            }));
+            setEditedDataset(prev => _objectSpread2$2(_objectSpread2$2({}, prev), {}, {
+              access_url_dataset: url,
+              file_format: inferMediaType(url)
             }));
           }
-          if (showSemanticModel && modelSource === "upload" && modelUpload.file && !editedDataset.access_url_semantic_model) {
+          if (showSemanticModel && modelSource === "upload" && modelUpload.file) {
             var _url = yield uploadFile(modelUpload.file, modelUploadPath);
-            setEditedDataset(prev => _objectSpread2(_objectSpread2({}, prev), {}, {
+            datasetToSave = _objectSpread2$2(_objectSpread2$2({}, datasetToSave), {}, {
+              access_url_semantic_model: _url
+            });
+            setModelUpload(prev => _objectSpread2$2(_objectSpread2$2({}, prev), {}, {
+              url: _url,
+              error: ""
+            }));
+            setEditedDataset(prev => _objectSpread2$2(_objectSpread2$2({}, prev), {}, {
               access_url_semantic_model: _url
             }));
           }
-          yield updateDataset(session, editedDataset);
+          yield updateDataset(session, datasetToSave);
         }
         yield fetchDatasets();
         onClose();
@@ -7019,7 +7523,7 @@ var DatasetEditModal = _ref => {
       }
     });
     return function handleSave() {
-      return _ref11.apply(this, arguments);
+      return _ref6.apply(this, arguments);
     };
   }();
   var renderInput = function renderInput(label, name) {
@@ -7054,32 +7558,6 @@ var DatasetEditModal = _ref => {
       }
     }));
   };
-  var renderFileCards = (label, name, files, icon) => /*#__PURE__*/React.createElement("div", {
-    className: "mb-3"
-  }, /*#__PURE__*/React.createElement("label", {
-    className: "font-weight-bold mb-2"
-  }, label), /*#__PURE__*/React.createElement("div", {
-    className: "d-flex flex-wrap file-card-container"
-  }, files.map(fileUrl => {
-    var fileName = fileUrl.split('/').pop();
-    var isSelected = editedDataset[name] === fileUrl;
-    return /*#__PURE__*/React.createElement("div", {
-      key: fileUrl,
-      onClick: () => setEditedDataset(prev => _objectSpread2(_objectSpread2({}, prev), {}, {
-        [name]: fileUrl
-      }, name === 'access_url_dataset' ? {
-        file_format: inferMediaType(fileUrl)
-      } : {})),
-      className: "card p-2 shadow-sm file-card ".concat(isSelected ? 'file-card-selected border-primary' : '')
-    }, /*#__PURE__*/React.createElement("div", {
-      className: "d-flex align-items-center"
-    }, /*#__PURE__*/React.createElement("i", {
-      className: "fa-solid ".concat(icon, " fa-lg text-secondary mr-2")
-    }), /*#__PURE__*/React.createElement("span", {
-      className: "text-truncate",
-      title: fileName
-    }, fileName)));
-  })));
   var renderSourceToggle = (value, onChange) => /*#__PURE__*/React.createElement("div", {
     className: "source-toggle"
   }, /*#__PURE__*/React.createElement("button", {
@@ -7095,7 +7573,7 @@ var DatasetEditModal = _ref => {
     className: "toggle-btn ".concat(value === "external" ? "active" : ""),
     onClick: () => onChange("external")
   }, "External link"));
-  var renderUploadBox = _ref12 => {
+  var renderUploadBox = _ref7 => {
     var {
       label,
       accept,
@@ -7104,7 +7582,7 @@ var DatasetEditModal = _ref => {
       state,
       inputId,
       hint
-    } = _ref12;
+    } = _ref7;
     return /*#__PURE__*/React.createElement("div", {
       className: "upload-box"
     }, /*#__PURE__*/React.createElement("div", {
@@ -7128,7 +7606,11 @@ var DatasetEditModal = _ref => {
       accept: accept,
       onChange: onFileChange,
       className: "upload-input"
-    })), hint && /*#__PURE__*/React.createElement("div", {
+    })), state.file && /*#__PURE__*/React.createElement("div", {
+      className: "upload-selected-files"
+    }, /*#__PURE__*/React.createElement("span", null, "1 file selected"), /*#__PURE__*/React.createElement("div", {
+      className: "upload-selected-file"
+    }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("strong", null, state.file.name), /*#__PURE__*/React.createElement("small", null, Math.ceil((state.file.size || 0) / 1024), " KB")))), hint && /*#__PURE__*/React.createElement("div", {
       className: "upload-hint"
     }, hint), state.url && /*#__PURE__*/React.createElement("div", {
       className: "upload-hint success"
@@ -7136,14 +7618,14 @@ var DatasetEditModal = _ref => {
       className: "upload-hint error"
     }, state.error));
   };
-  var renderExternalUrlInput = _ref13 => {
+  var renderExternalUrlInput = _ref8 => {
     var {
       label,
       name,
       value,
       placeholder,
       hint
-    } = _ref13;
+    } = _ref8;
     return /*#__PURE__*/React.createElement("div", {
       className: "mb-3"
     }, /*#__PURE__*/React.createElement("label", {
@@ -7210,7 +7692,7 @@ var DatasetEditModal = _ref => {
     className: "form-section mb-4"
   }, /*#__PURE__*/React.createElement("h6", {
     className: "section-title"
-  }, "General Information"), renderInput("Title", "title", "text", "fa-heading"), renderInput("Description", "description", "textarea", "fa-align-left"), renderInput("Theme", "theme", "text", "fa-tags"), /*#__PURE__*/React.createElement("label", {
+  }, "General Information"), renderInput("Title", "title", "text", "fa-heading"), renderInput("Description", "description", "textarea", "fa-align-left"), renderInput("Theme", "theme", "text", "fa-tags"), !requiresPublicAccess && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("label", {
     className: "form-label-compact"
   }, "Access Rights"), /*#__PURE__*/React.createElement("div", {
     className: "form-group position-relative mb-3"
@@ -7220,10 +7702,9 @@ var DatasetEditModal = _ref => {
     className: "form-control",
     name: "is_public",
     value: editedDataset.is_public ? 'public' : 'restricted',
-    onChange: e => setEditedDataset(prev => _objectSpread2(_objectSpread2({}, prev), {}, {
+    onChange: e => setEditedDataset(prev => _objectSpread2$2(_objectSpread2$2({}, prev), {}, {
       is_public: e.target.value === 'public'
     })),
-    disabled: requiresPublicAccess,
     style: {
       paddingLeft: '30px'
     }
@@ -7231,47 +7712,45 @@ var DatasetEditModal = _ref => {
     value: "public"
   }, "Public"), /*#__PURE__*/React.createElement("option", {
     value: "restricted"
-  }, "Restricted"))), /*#__PURE__*/React.createElement("label", {
+  }, "Restricted")))), /*#__PURE__*/React.createElement("label", {
     htmlFor: "issued",
     className: "form-label-compact"
   }, "Issued Date"), renderInput("Issued Date", "issued", "date", "fa-calendar-plus")), /*#__PURE__*/React.createElement("div", {
     className: "form-section"
   }, /*#__PURE__*/React.createElement("h6", {
     className: "section-title"
-  }, "Dataset Resource"), renderSourceToggle(datasetSource, handleDatasetSourceChange), datasetSource === "upload" && /*#__PURE__*/React.createElement("div", {
-    className: "upload-path-row"
-  }, /*#__PURE__*/React.createElement("label", {
-    htmlFor: "dataset-upload-path"
-  }, "Save files to"), /*#__PURE__*/React.createElement("input", {
-    id: "dataset-upload-path",
-    type: "text",
-    value: datasetUploadPath,
-    onChange: e => setDatasetUploadPath(e.target.value),
-    onBlur: e => setDatasetUploadPath(normalizeUploadPath(e.target.value, "/public/")),
-    placeholder: "/public/"
-  })), datasetSource === "upload" ? renderUploadBox({
+  }, "Dataset Resource"), renderSourceToggle(datasetSource, handleDatasetSourceChange), datasetSource === "upload" && /*#__PURE__*/React.createElement(PodContainerPicker, {
+    onSelectPath: path => setDatasetUploadPath(normalizeUploadPath(path, "/")),
+    webId: webId
+  }), datasetSource === "upload" ? renderUploadBox({
     label: "Upload dataset file",
     accept: ".csv,.json,.ttl,.jsonld,.rdf,.xml,.pdf,.docx,.txt",
     onFileChange: handleDatasetFileSelect,
     onDrop: handleDatasetDrop,
     state: datasetUpload,
-    hint: "Allowed: CSV, JSON, TTL, JSON-LD, RDF, XML, PDF, DOCX, TXT",
     inputId: "edit-dataset-upload-input"
-  }) : datasetSource === "pod" ? renderFileCards("Select Dataset File", "access_url_dataset", datasetPodFiles, "fa-file-csv") : renderExternalUrlInput({
+  }) : datasetSource === "pod" ? /*#__PURE__*/React.createElement(PodResourcePicker, {
+    label: "Select Dataset File",
+    resourceType: "dataset",
+    selectedUrl: editedDataset.access_url_dataset,
+    webId: webId,
+    onSelect: fileUrl => setEditedDataset(prev => _objectSpread2$2(_objectSpread2$2({}, prev), {}, {
+      access_url_dataset: fileUrl,
+      file_format: inferMediaType(fileUrl)
+    }))
+  }) : renderExternalUrlInput({
     label: "External Dataset link",
     name: "access_url_dataset",
     value: editedDataset.access_url_dataset,
     placeholder: "https://..."
-  }), datasetSource === "external" && /*#__PURE__*/React.createElement("div", {
-    className: "upload-hint"
-  }, "External links are currently supported only for public datasets."), /*#__PURE__*/React.createElement("div", {
+  }), /*#__PURE__*/React.createElement("div", {
     className: "section-header"
   }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h6", {
     className: "section-title"
   }, "Semantic Model File"), /*#__PURE__*/React.createElement("div", {
     className: "text-muted"
   }, "Optional")), /*#__PURE__*/React.createElement("div", {
-    className: "d-flex gap-2"
+    className: "d-flex gap-2 semantic-model-actions"
   }, !showSemanticModel && /*#__PURE__*/React.createElement("button", {
     type: "button",
     className: "btn btn-outline-secondary btn-sm",
@@ -7289,7 +7768,7 @@ var DatasetEditModal = _ref => {
         error: ""
       });
       setModelSource("upload");
-      setEditedDataset(prev => _objectSpread2(_objectSpread2({}, prev), {}, {
+      setEditedDataset(prev => _objectSpread2$2(_objectSpread2$2({}, prev), {}, {
         access_url_semantic_model: ""
       }));
     }
@@ -7302,18 +7781,10 @@ var DatasetEditModal = _ref => {
     className: "btn btn-outline-primary btn-sm"
   }, /*#__PURE__*/React.createElement("i", {
     className: "fa-solid fa-plus mr-1"
-  }), " Create Semantic Model"))), showSemanticModel && /*#__PURE__*/React.createElement(React.Fragment, null, renderSourceToggle(modelSource, handleModelSourceChange), modelSource === "upload" && /*#__PURE__*/React.createElement("div", {
-    className: "upload-path-row"
-  }, /*#__PURE__*/React.createElement("label", {
-    htmlFor: "model-upload-path"
-  }, "Save files to"), /*#__PURE__*/React.createElement("input", {
-    id: "model-upload-path",
-    type: "text",
-    value: modelUploadPath,
-    onChange: e => setModelUploadPath(e.target.value),
-    onBlur: e => setModelUploadPath(normalizeUploadPath(e.target.value, "/public/")),
-    placeholder: "/public/"
-  })), modelSource === "upload" ? renderUploadBox({
+  }), " Create Semantic Model"))), showSemanticModel && /*#__PURE__*/React.createElement(React.Fragment, null, renderSourceToggle(modelSource, handleModelSourceChange), modelSource === "upload" && /*#__PURE__*/React.createElement(PodContainerPicker, {
+    onSelectPath: path => setModelUploadPath(normalizeUploadPath(path, "/")),
+    webId: webId
+  }), modelSource === "upload" ? renderUploadBox({
     label: "Upload semantic model",
     accept: ".ttl",
     onFileChange: handleModelFileSelect,
@@ -7321,12 +7792,19 @@ var DatasetEditModal = _ref => {
     state: modelUpload,
     hint: "Allowed: TTL",
     inputId: "edit-model-upload-input"
-  }) : modelSource === "pod" ? renderFileCards("", "access_url_semantic_model", modelPodFiles, "fa-project-diagram") : renderExternalUrlInput({
+  }) : modelSource === "pod" ? /*#__PURE__*/React.createElement(PodResourcePicker, {
+    label: "Select Semantic Model",
+    resourceType: "semanticModel",
+    selectedUrl: editedDataset.access_url_semantic_model,
+    webId: webId,
+    onSelect: fileUrl => setEditedDataset(prev => _objectSpread2$2(_objectSpread2$2({}, prev), {}, {
+      access_url_semantic_model: fileUrl
+    }))
+  }) : renderExternalUrlInput({
     label: "Public external semantic model link",
     name: "access_url_semantic_model",
     value: editedDataset.access_url_semantic_model,
-    placeholder: "https://example.org/model.ttl",
-    hint: "The detail view can only render the graph if this URL returns RDF/Turtle directly."
+    placeholder: "https://example.org/model.ttl"
   })))), isSeries && /*#__PURE__*/React.createElement("div", {
     className: "form-section mb-4"
   }, /*#__PURE__*/React.createElement("div", {
@@ -7342,7 +7820,7 @@ var DatasetEditModal = _ref => {
     type: "text",
     placeholder: "Series Title",
     value: seriesData.title,
-    onChange: e => setSeriesData(prev => _objectSpread2(_objectSpread2({}, prev), {}, {
+    onChange: e => setSeriesData(prev => _objectSpread2$2(_objectSpread2$2({}, prev), {}, {
       title: e.target.value
     })),
     style: {
@@ -7357,7 +7835,7 @@ var DatasetEditModal = _ref => {
     placeholder: "Series Description",
     rows: 2,
     value: seriesData.description,
-    onChange: e => setSeriesData(prev => _objectSpread2(_objectSpread2({}, prev), {}, {
+    onChange: e => setSeriesData(prev => _objectSpread2$2(_objectSpread2$2({}, prev), {}, {
       description: e.target.value
     })),
     style: {
@@ -7372,7 +7850,7 @@ var DatasetEditModal = _ref => {
     type: "text",
     placeholder: "Series Theme (IRI)",
     value: seriesData.theme,
-    onChange: e => setSeriesData(prev => _objectSpread2(_objectSpread2({}, prev), {}, {
+    onChange: e => setSeriesData(prev => _objectSpread2$2(_objectSpread2$2({}, prev), {}, {
       theme: e.target.value
     })),
     style: {
@@ -7389,7 +7867,7 @@ var DatasetEditModal = _ref => {
     className: "form-control",
     type: "date",
     value: seriesData.issued,
-    onChange: e => setSeriesData(prev => _objectSpread2(_objectSpread2({}, prev), {}, {
+    onChange: e => setSeriesData(prev => _objectSpread2$2(_objectSpread2$2({}, prev), {}, {
       issued: e.target.value
     })),
     style: {
@@ -7446,6 +7924,5374 @@ var DatasetEditModal = _ref => {
   }) : /*#__PURE__*/React.createElement("i", {
     className: "fa-solid fa-floppy-disk mr-2"
   }), loading ? "Saving..." : "Save Changes")))));
+};
+
+/*!
+ * Font Awesome Free 7.3.0 by @fontawesome - https://fontawesome.com
+ * License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License)
+ * Copyright 2026 Fonticons, Inc.
+ */
+function _arrayLikeToArray$1(r, a) {
+  (null == a || a > r.length) && (a = r.length);
+  for (var e = 0, n = Array(a); e < a; e++) n[e] = r[e];
+  return n;
+}
+function _arrayWithHoles$1(r) {
+  if (Array.isArray(r)) return r;
+}
+function _arrayWithoutHoles$1(r) {
+  if (Array.isArray(r)) return _arrayLikeToArray$1(r);
+}
+function _classCallCheck(a, n) {
+  if (!(a instanceof n)) throw new TypeError("Cannot call a class as a function");
+}
+function _defineProperties(e, r) {
+  for (var t = 0; t < r.length; t++) {
+    var o = r[t];
+    o.enumerable = o.enumerable || false, o.configurable = true, "value" in o && (o.writable = true), Object.defineProperty(e, _toPropertyKey$1(o.key), o);
+  }
+}
+function _createClass(e, r, t) {
+  return r && _defineProperties(e.prototype, r), Object.defineProperty(e, "prototype", {
+    writable: false
+  }), e;
+}
+function _createForOfIteratorHelper(r, e) {
+  var t = "undefined" != typeof Symbol && r[Symbol.iterator] || r["@@iterator"];
+  if (!t) {
+    if (Array.isArray(r) || (t = _unsupportedIterableToArray$1(r)) || e) {
+      t && (r = t);
+      var n = 0,
+        F = function () {};
+      return {
+        s: F,
+        n: function () {
+          return n >= r.length ? {
+            done: true
+          } : {
+            done: false,
+            value: r[n++]
+          };
+        },
+        e: function (r) {
+          throw r;
+        },
+        f: F
+      };
+    }
+    throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+  }
+  var o,
+    a = true,
+    u = false;
+  return {
+    s: function () {
+      t = t.call(r);
+    },
+    n: function () {
+      var r = t.next();
+      return a = r.done, r;
+    },
+    e: function (r) {
+      u = true, o = r;
+    },
+    f: function () {
+      try {
+        a || null == t.return || t.return();
+      } finally {
+        if (u) throw o;
+      }
+    }
+  };
+}
+function _defineProperty$1(e, r, t) {
+  return (r = _toPropertyKey$1(r)) in e ? Object.defineProperty(e, r, {
+    value: t,
+    enumerable: true,
+    configurable: true,
+    writable: true
+  }) : e[r] = t, e;
+}
+function _iterableToArray$1(r) {
+  if ("undefined" != typeof Symbol && null != r[Symbol.iterator] || null != r["@@iterator"]) return Array.from(r);
+}
+function _iterableToArrayLimit$1(r, l) {
+  var t = null == r ? null : "undefined" != typeof Symbol && r[Symbol.iterator] || r["@@iterator"];
+  if (null != t) {
+    var e,
+      n,
+      i,
+      u,
+      a = [],
+      f = true,
+      o = false;
+    try {
+      if (i = (t = t.call(r)).next, 0 === l) {
+        if (Object(t) !== t) return;
+        f = !1;
+      } else for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== l); f = !0);
+    } catch (r) {
+      o = true, n = r;
+    } finally {
+      try {
+        if (!f && null != t.return && (u = t.return(), Object(u) !== u)) return;
+      } finally {
+        if (o) throw n;
+      }
+    }
+    return a;
+  }
+}
+function _nonIterableRest$1() {
+  throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function _nonIterableSpread$1() {
+  throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function ownKeys$1(e, r) {
+  var t = Object.keys(e);
+  if (Object.getOwnPropertySymbols) {
+    var o = Object.getOwnPropertySymbols(e);
+    r && (o = o.filter(function (r) {
+      return Object.getOwnPropertyDescriptor(e, r).enumerable;
+    })), t.push.apply(t, o);
+  }
+  return t;
+}
+function _objectSpread2$1(e) {
+  for (var r = 1; r < arguments.length; r++) {
+    var t = null != arguments[r] ? arguments[r] : {};
+    r % 2 ? ownKeys$1(Object(t), true).forEach(function (r) {
+      _defineProperty$1(e, r, t[r]);
+    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys$1(Object(t)).forEach(function (r) {
+      Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r));
+    });
+  }
+  return e;
+}
+function _slicedToArray$1(r, e) {
+  return _arrayWithHoles$1(r) || _iterableToArrayLimit$1(r, e) || _unsupportedIterableToArray$1(r, e) || _nonIterableRest$1();
+}
+function _toConsumableArray$1(r) {
+  return _arrayWithoutHoles$1(r) || _iterableToArray$1(r) || _unsupportedIterableToArray$1(r) || _nonIterableSpread$1();
+}
+function _toPrimitive$1(t, r) {
+  if ("object" != typeof t || !t) return t;
+  var e = t[Symbol.toPrimitive];
+  if (void 0 !== e) {
+    var i = e.call(t, r);
+    if ("object" != typeof i) return i;
+    throw new TypeError("@@toPrimitive must return a primitive value.");
+  }
+  return ("string" === r ? String : Number)(t);
+}
+function _toPropertyKey$1(t) {
+  var i = _toPrimitive$1(t, "string");
+  return "symbol" == typeof i ? i : i + "";
+}
+function _typeof$1(o) {
+  "@babel/helpers - typeof";
+
+  return _typeof$1 = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (o) {
+    return typeof o;
+  } : function (o) {
+    return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o;
+  }, _typeof$1(o);
+}
+function _unsupportedIterableToArray$1(r, a) {
+  if (r) {
+    if ("string" == typeof r) return _arrayLikeToArray$1(r, a);
+    var t = {}.toString.call(r).slice(8, -1);
+    return "Object" === t && r.constructor && (t = r.constructor.name), "Map" === t || "Set" === t ? Array.from(r) : "Arguments" === t || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t) ? _arrayLikeToArray$1(r, a) : void 0;
+  }
+}
+
+var noop = function noop() {};
+var _WINDOW = {};
+var _DOCUMENT = {};
+var _MUTATION_OBSERVER = null;
+var _PERFORMANCE = {
+  mark: noop,
+  measure: noop
+};
+try {
+  if (typeof window !== 'undefined') _WINDOW = window;
+  if (typeof document !== 'undefined') _DOCUMENT = document;
+  if (typeof MutationObserver !== 'undefined') _MUTATION_OBSERVER = MutationObserver;
+  if (typeof performance !== 'undefined') _PERFORMANCE = performance;
+} catch (e) {} // eslint-disable-line no-empty
+
+var _ref = _WINDOW.navigator || {},
+  _ref$userAgent = _ref.userAgent,
+  userAgent = _ref$userAgent === void 0 ? '' : _ref$userAgent;
+var WINDOW = _WINDOW;
+var DOCUMENT = _DOCUMENT;
+var MUTATION_OBSERVER = _MUTATION_OBSERVER;
+var PERFORMANCE = _PERFORMANCE;
+!!WINDOW.document;
+var IS_DOM = !!DOCUMENT.documentElement && !!DOCUMENT.head && typeof DOCUMENT.addEventListener === 'function' && typeof DOCUMENT.createElement === 'function';
+var IS_IE = ~userAgent.indexOf('MSIE') || ~userAgent.indexOf('Trident/');
+
+var _cl;
+var Z = /fa(k|kd|s|r|l|t|d|dr|dl|dt|b|slr|slpr|wsb|tl|ns|nds|es|gt|jr|jfr|jdr|usb|ufsb|udsb|cr|ss|sr|sl|st|sds|sdr|sdl|sdt|sldr|slpdr|pr|ms|vs)?[\-\ ]/,
+  $ = /Font ?Awesome ?([567 ]*)(Solid|Regular|Light|Thin|Duotone|Brands|Free|Pro|Sharp Duotone|Sharp|Kit|Notdog Duo|Notdog|Chisel|Etch|Graphite|Thumbprint|Jelly Fill|Jelly Duo|Jelly|Utility|Utility Fill|Utility Duo|Slab Press|Slab|Slab Duo|Slab Press Duo|Pixel|Mosaic|Vellum|Whiteboard)?.*/i;
+var rl = {
+    classic: {
+      fa: "solid",
+      fas: "solid",
+      "fa-solid": "solid",
+      far: "regular",
+      "fa-regular": "regular",
+      fal: "light",
+      "fa-light": "light",
+      fat: "thin",
+      "fa-thin": "thin",
+      fab: "brands",
+      "fa-brands": "brands"
+    },
+    duotone: {
+      fa: "solid",
+      fad: "solid",
+      "fa-solid": "solid",
+      "fa-duotone": "solid",
+      fadr: "regular",
+      "fa-regular": "regular",
+      fadl: "light",
+      "fa-light": "light",
+      fadt: "thin",
+      "fa-thin": "thin"
+    },
+    sharp: {
+      fa: "solid",
+      fass: "solid",
+      "fa-solid": "solid",
+      fasr: "regular",
+      "fa-regular": "regular",
+      fasl: "light",
+      "fa-light": "light",
+      fast: "thin",
+      "fa-thin": "thin"
+    },
+    "sharp-duotone": {
+      fa: "solid",
+      fasds: "solid",
+      "fa-solid": "solid",
+      fasdr: "regular",
+      "fa-regular": "regular",
+      fasdl: "light",
+      "fa-light": "light",
+      fasdt: "thin",
+      "fa-thin": "thin"
+    },
+    slab: {
+      "fa-regular": "regular",
+      faslr: "regular"
+    },
+    "slab-press": {
+      "fa-regular": "regular",
+      faslpr: "regular"
+    },
+    "slab-duo": {
+      "fa-regular": "regular",
+      fasldr: "regular"
+    },
+    "slab-press-duo": {
+      "fa-regular": "regular",
+      faslpdr: "regular"
+    },
+    thumbprint: {
+      "fa-light": "light",
+      fatl: "light"
+    },
+    vellum: {
+      "fa-solid": "solid",
+      favs: "solid"
+    },
+    pixel: {
+      "fa-regular": "regular",
+      fapr: "regular"
+    },
+    mosaic: {
+      "fa-solid": "solid",
+      fams: "solid"
+    },
+    whiteboard: {
+      "fa-semibold": "semibold",
+      fawsb: "semibold"
+    },
+    notdog: {
+      "fa-solid": "solid",
+      fans: "solid"
+    },
+    "notdog-duo": {
+      "fa-solid": "solid",
+      fands: "solid"
+    },
+    etch: {
+      "fa-solid": "solid",
+      faes: "solid"
+    },
+    graphite: {
+      "fa-thin": "thin",
+      fagt: "thin"
+    },
+    jelly: {
+      "fa-regular": "regular",
+      fajr: "regular"
+    },
+    "jelly-fill": {
+      "fa-regular": "regular",
+      fajfr: "regular"
+    },
+    "jelly-duo": {
+      "fa-regular": "regular",
+      fajdr: "regular"
+    },
+    chisel: {
+      "fa-regular": "regular",
+      facr: "regular"
+    },
+    utility: {
+      "fa-semibold": "semibold",
+      fausb: "semibold"
+    },
+    "utility-duo": {
+      "fa-semibold": "semibold",
+      faudsb: "semibold"
+    },
+    "utility-fill": {
+      "fa-semibold": "semibold",
+      faufsb: "semibold"
+    }
+  },
+  il = {
+    GROUP: "duotone-group",
+    PRIMARY: "primary",
+    SECONDARY: "secondary"
+  },
+  dl = ["fa-classic", "fa-duotone", "fa-sharp", "fa-sharp-duotone", "fa-thumbprint", "fa-whiteboard", "fa-notdog", "fa-notdog-duo", "fa-chisel", "fa-etch", "fa-graphite", "fa-jelly", "fa-jelly-fill", "fa-jelly-duo", "fa-slab", "fa-slab-press", "fa-slab-press-duo", "fa-slab-duo", "fa-mosaic", "fa-pixel", "fa-vellum", "fa-utility", "fa-utility-duo", "fa-utility-fill"];
+var u = "classic",
+  l = "duotone",
+  h = "sharp",
+  t = "sharp-duotone",
+  g = "chisel",
+  n = "etch",
+  m = "graphite",
+  p = "jelly",
+  s = "jelly-duo",
+  y = "jelly-fill",
+  w = "mosaic",
+  x = "notdog",
+  e = "notdog-duo",
+  b = "pixel",
+  c = "slab",
+  o = "slab-duo",
+  I = "slab-press",
+  a = "slab-press-duo",
+  r = "thumbprint",
+  v = "utility",
+  i = "utility-duo",
+  F = "utility-fill",
+  d = "vellum",
+  S = "whiteboard",
+  A = "Classic",
+  P = "Duotone",
+  j = "Sharp",
+  B = "Sharp Duotone",
+  N = "Chisel",
+  D = "Etch",
+  k = "Graphite",
+  T = "Jelly",
+  C = "Jelly Duo",
+  W = "Jelly Fill",
+  R = "Mosaic",
+  K = "Notdog",
+  L = "Notdog Duo",
+  U = "Pixel",
+  J = "Slab",
+  _ = "Slab Duo",
+  M = "Slab Press",
+  E = "Slab Press Duo",
+  G = "Thumbprint",
+  V = "Utility",
+  z = "Utility Duo",
+  O = "Utility Fill",
+  Y = "Vellum",
+  q = "Whiteboard",
+  xl = [u, l, h, t, g, n, m, p, s, y, w, x, e, b, c, o, I, a, r, v, i, F, d, S];
+  (_cl = {}, _defineProperty$1(_defineProperty$1(_defineProperty$1(_defineProperty$1(_defineProperty$1(_defineProperty$1(_defineProperty$1(_defineProperty$1(_defineProperty$1(_defineProperty$1(_cl, u, A), l, P), h, j), t, B), g, N), n, D), m, k), p, T), s, C), y, W), _defineProperty$1(_defineProperty$1(_defineProperty$1(_defineProperty$1(_defineProperty$1(_defineProperty$1(_defineProperty$1(_defineProperty$1(_defineProperty$1(_defineProperty$1(_cl, w, R), x, K), e, L), b, U), c, J), o, _), I, M), a, E), r, G), v, V), _defineProperty$1(_defineProperty$1(_defineProperty$1(_defineProperty$1(_cl, i, z), F, O), d, Y), S, q));
+var Al = {
+    classic: {
+      900: "fas",
+      400: "far",
+      normal: "far",
+      300: "fal",
+      100: "fat"
+    },
+    duotone: {
+      900: "fad",
+      400: "fadr",
+      300: "fadl",
+      100: "fadt"
+    },
+    sharp: {
+      900: "fass",
+      400: "fasr",
+      300: "fasl",
+      100: "fast"
+    },
+    "sharp-duotone": {
+      900: "fasds",
+      400: "fasdr",
+      300: "fasdl",
+      100: "fasdt"
+    },
+    slab: {
+      400: "faslr"
+    },
+    "slab-press": {
+      400: "faslpr"
+    },
+    "slab-duo": {
+      400: "fasldr"
+    },
+    "slab-press-duo": {
+      400: "faslpdr"
+    },
+    vellum: {
+      900: "favs"
+    },
+    mosaic: {
+      900: "fams"
+    },
+    pixel: {
+      400: "fapr"
+    },
+    whiteboard: {
+      600: "fawsb"
+    },
+    thumbprint: {
+      300: "fatl"
+    },
+    notdog: {
+      900: "fans"
+    },
+    "notdog-duo": {
+      900: "fands"
+    },
+    etch: {
+      900: "faes"
+    },
+    graphite: {
+      100: "fagt"
+    },
+    chisel: {
+      400: "facr"
+    },
+    jelly: {
+      400: "fajr"
+    },
+    "jelly-fill": {
+      400: "fajfr"
+    },
+    "jelly-duo": {
+      400: "fajdr"
+    },
+    utility: {
+      600: "fausb"
+    },
+    "utility-duo": {
+      600: "faudsb"
+    },
+    "utility-fill": {
+      600: "faufsb"
+    }
+  };
+var zl = {
+    "Font Awesome 7 Free": {
+      900: "fas",
+      400: "far"
+    },
+    "Font Awesome 7 Pro": {
+      900: "fas",
+      400: "far",
+      normal: "far",
+      300: "fal",
+      100: "fat"
+    },
+    "Font Awesome 7 Brands": {
+      400: "fab",
+      normal: "fab"
+    },
+    "Font Awesome 7 Duotone": {
+      900: "fad",
+      400: "fadr",
+      normal: "fadr",
+      300: "fadl",
+      100: "fadt"
+    },
+    "Font Awesome 7 Sharp": {
+      900: "fass",
+      400: "fasr",
+      normal: "fasr",
+      300: "fasl",
+      100: "fast"
+    },
+    "Font Awesome 7 Sharp Duotone": {
+      900: "fasds",
+      400: "fasdr",
+      normal: "fasdr",
+      300: "fasdl",
+      100: "fasdt"
+    },
+    "Font Awesome 7 Jelly": {
+      400: "fajr",
+      normal: "fajr"
+    },
+    "Font Awesome 7 Jelly Fill": {
+      400: "fajfr",
+      normal: "fajfr"
+    },
+    "Font Awesome 7 Jelly Duo": {
+      400: "fajdr",
+      normal: "fajdr"
+    },
+    "Font Awesome 7 Slab": {
+      400: "faslr",
+      normal: "faslr"
+    },
+    "Font Awesome 7 Slab Press": {
+      400: "faslpr",
+      normal: "faslpr"
+    },
+    "Font Awesome 7 Slab Duo": {
+      400: "fasldr",
+      normal: "fasldr"
+    },
+    "Font Awesome 7 Slab Press Duo": {
+      400: "faslpdr",
+      normal: "faslpdr"
+    },
+    "Font Awesome 7 Pixel": {
+      400: "fapr",
+      normal: "fapr"
+    },
+    "Font Awesome 7 Mosaic": {
+      900: "fams",
+      normal: "fams"
+    },
+    "Font Awesome 7 Vellum": {
+      900: "favs",
+      normal: "favs"
+    },
+    "Font Awesome 7 Thumbprint": {
+      300: "fatl",
+      normal: "fatl"
+    },
+    "Font Awesome 7 Notdog": {
+      900: "fans",
+      normal: "fans"
+    },
+    "Font Awesome 7 Notdog Duo": {
+      900: "fands",
+      normal: "fands"
+    },
+    "Font Awesome 7 Etch": {
+      900: "faes",
+      normal: "faes"
+    },
+    "Font Awesome 7 Graphite": {
+      100: "fagt",
+      normal: "fagt"
+    },
+    "Font Awesome 7 Chisel": {
+      400: "facr",
+      normal: "facr"
+    },
+    "Font Awesome 7 Whiteboard": {
+      600: "fawsb",
+      normal: "fawsb"
+    },
+    "Font Awesome 7 Utility": {
+      600: "fausb",
+      normal: "fausb"
+    },
+    "Font Awesome 7 Utility Duo": {
+      600: "faudsb",
+      normal: "faudsb"
+    },
+    "Font Awesome 7 Utility Fill": {
+      600: "faufsb",
+      normal: "faufsb"
+    }
+  };
+var Ql = new Map([["classic", {
+    defaultShortPrefixId: "fas",
+    defaultStyleId: "solid",
+    styleIds: ["solid", "regular", "light", "thin", "brands"],
+    futureStyleIds: [],
+    defaultFontWeight: 900
+  }], ["duotone", {
+    defaultShortPrefixId: "fad",
+    defaultStyleId: "solid",
+    styleIds: ["solid", "regular", "light", "thin"],
+    futureStyleIds: [],
+    defaultFontWeight: 900
+  }], ["sharp", {
+    defaultShortPrefixId: "fass",
+    defaultStyleId: "solid",
+    styleIds: ["solid", "regular", "light", "thin"],
+    futureStyleIds: [],
+    defaultFontWeight: 900
+  }], ["sharp-duotone", {
+    defaultShortPrefixId: "fasds",
+    defaultStyleId: "solid",
+    styleIds: ["solid", "regular", "light", "thin"],
+    futureStyleIds: [],
+    defaultFontWeight: 900
+  }], ["chisel", {
+    defaultShortPrefixId: "facr",
+    defaultStyleId: "regular",
+    styleIds: ["regular"],
+    futureStyleIds: [],
+    defaultFontWeight: 400
+  }], ["etch", {
+    defaultShortPrefixId: "faes",
+    defaultStyleId: "solid",
+    styleIds: ["solid"],
+    futureStyleIds: [],
+    defaultFontWeight: 900
+  }], ["graphite", {
+    defaultShortPrefixId: "fagt",
+    defaultStyleId: "thin",
+    styleIds: ["thin"],
+    futureStyleIds: [],
+    defaultFontWeight: 100
+  }], ["jelly", {
+    defaultShortPrefixId: "fajr",
+    defaultStyleId: "regular",
+    styleIds: ["regular"],
+    futureStyleIds: [],
+    defaultFontWeight: 400
+  }], ["jelly-duo", {
+    defaultShortPrefixId: "fajdr",
+    defaultStyleId: "regular",
+    styleIds: ["regular"],
+    futureStyleIds: [],
+    defaultFontWeight: 400
+  }], ["jelly-fill", {
+    defaultShortPrefixId: "fajfr",
+    defaultStyleId: "regular",
+    styleIds: ["regular"],
+    futureStyleIds: [],
+    defaultFontWeight: 400
+  }], ["mosaic", {
+    defaultShortPrefixId: "fams",
+    defaultStyleId: "solid",
+    styleIds: ["solid"],
+    futureStyleIds: [],
+    defaultFontWeight: 900
+  }], ["notdog", {
+    defaultShortPrefixId: "fans",
+    defaultStyleId: "solid",
+    styleIds: ["solid"],
+    futureStyleIds: [],
+    defaultFontWeight: 900
+  }], ["notdog-duo", {
+    defaultShortPrefixId: "fands",
+    defaultStyleId: "solid",
+    styleIds: ["solid"],
+    futureStyleIds: [],
+    defaultFontWeight: 900
+  }], ["pixel", {
+    defaultShortPrefixId: "fapr",
+    defaultStyleId: "regular",
+    styleIds: ["regular"],
+    futureStyleIds: [],
+    defaultFontWeight: 400
+  }], ["slab", {
+    defaultShortPrefixId: "faslr",
+    defaultStyleId: "regular",
+    styleIds: ["regular"],
+    futureStyleIds: [],
+    defaultFontWeight: 400
+  }], ["slab-duo", {
+    defaultShortPrefixId: "fasldr",
+    defaultStyleId: "regular",
+    styleIds: ["regular"],
+    futureStyleIds: [],
+    defaultFontWeight: 400
+  }], ["slab-press", {
+    defaultShortPrefixId: "faslpr",
+    defaultStyleId: "regular",
+    styleIds: ["regular"],
+    futureStyleIds: [],
+    defaultFontWeight: 400
+  }], ["slab-press-duo", {
+    defaultShortPrefixId: "faslpdr",
+    defaultStyleId: "regular",
+    styleIds: ["regular"],
+    futureStyleIds: [],
+    defaultFontWeight: 400
+  }], ["thumbprint", {
+    defaultShortPrefixId: "fatl",
+    defaultStyleId: "light",
+    styleIds: ["light"],
+    futureStyleIds: [],
+    defaultFontWeight: 300
+  }], ["utility", {
+    defaultShortPrefixId: "fausb",
+    defaultStyleId: "semibold",
+    styleIds: ["semibold"],
+    futureStyleIds: [],
+    defaultFontWeight: 600
+  }], ["utility-duo", {
+    defaultShortPrefixId: "faudsb",
+    defaultStyleId: "semibold",
+    styleIds: ["semibold"],
+    futureStyleIds: [],
+    defaultFontWeight: 600
+  }], ["utility-fill", {
+    defaultShortPrefixId: "faufsb",
+    defaultStyleId: "semibold",
+    styleIds: ["semibold"],
+    futureStyleIds: [],
+    defaultFontWeight: 600
+  }], ["vellum", {
+    defaultShortPrefixId: "favs",
+    defaultStyleId: "solid",
+    styleIds: ["solid"],
+    futureStyleIds: [],
+    defaultFontWeight: 900
+  }], ["whiteboard", {
+    defaultShortPrefixId: "fawsb",
+    defaultStyleId: "semibold",
+    styleIds: ["semibold"],
+    futureStyleIds: [],
+    defaultFontWeight: 600
+  }]]),
+  $l = {
+    chisel: {
+      regular: "facr"
+    },
+    classic: {
+      brands: "fab",
+      light: "fal",
+      regular: "far",
+      solid: "fas",
+      thin: "fat"
+    },
+    duotone: {
+      light: "fadl",
+      regular: "fadr",
+      solid: "fad",
+      thin: "fadt"
+    },
+    etch: {
+      solid: "faes"
+    },
+    graphite: {
+      thin: "fagt"
+    },
+    jelly: {
+      regular: "fajr"
+    },
+    "jelly-duo": {
+      regular: "fajdr"
+    },
+    "jelly-fill": {
+      regular: "fajfr"
+    },
+    mosaic: {
+      solid: "fams"
+    },
+    notdog: {
+      solid: "fans"
+    },
+    "notdog-duo": {
+      solid: "fands"
+    },
+    pixel: {
+      regular: "fapr"
+    },
+    sharp: {
+      light: "fasl",
+      regular: "fasr",
+      solid: "fass",
+      thin: "fast"
+    },
+    "sharp-duotone": {
+      light: "fasdl",
+      regular: "fasdr",
+      solid: "fasds",
+      thin: "fasdt"
+    },
+    slab: {
+      regular: "faslr"
+    },
+    "slab-duo": {
+      regular: "fasldr"
+    },
+    "slab-press": {
+      regular: "faslpr"
+    },
+    "slab-press-duo": {
+      regular: "faslpdr"
+    },
+    thumbprint: {
+      light: "fatl"
+    },
+    utility: {
+      semibold: "fausb"
+    },
+    "utility-duo": {
+      semibold: "faudsb"
+    },
+    "utility-fill": {
+      semibold: "faufsb"
+    },
+    vellum: {
+      solid: "favs"
+    },
+    whiteboard: {
+      semibold: "fawsb"
+    }
+  };
+var at = ["fak", "fa-kit", "fakd", "fa-kit-duotone"],
+  rt = {
+    kit: {
+      fak: "kit",
+      "fa-kit": "kit"
+    },
+    "kit-duotone": {
+      fakd: "kit-duotone",
+      "fa-kit-duotone": "kit-duotone"
+    }
+  },
+  it = ["kit"];
+var H = "kit",
+  f = "kit-duotone",
+  Q = "Kit",
+  X = "Kit Duotone";
+  _defineProperty$1(_defineProperty$1({}, H, Q), f, X);
+var mt = {
+  kit: {
+    "fa-kit": "fak"
+  }};
+var ct = {
+    "Font Awesome Kit": {
+      400: "fak",
+      normal: "fak"
+    },
+    "Font Awesome Kit Duotone": {
+      400: "fakd",
+      normal: "fakd"
+    }
+  },
+  It = {
+    kit: {
+      fak: "fa-kit"
+    }};
+var St = {
+    kit: {
+      kit: "fak"
+    },
+    "kit-duotone": {
+      "kit-duotone": "fakd"
+    }
+  };
+
+var _jl;
+var l$1 = {
+    GROUP: "duotone-group",
+    SWAP_OPACITY: "swap-opacity",
+    PRIMARY: "primary",
+    SECONDARY: "secondary"
+  },
+  n$1 = ["fa-classic", "fa-duotone", "fa-sharp", "fa-sharp-duotone", "fa-thumbprint", "fa-whiteboard", "fa-notdog", "fa-notdog-duo", "fa-chisel", "fa-etch", "fa-graphite", "fa-jelly", "fa-jelly-fill", "fa-jelly-duo", "fa-slab", "fa-slab-press", "fa-slab-press-duo", "fa-slab-duo", "fa-mosaic", "fa-pixel", "fa-vellum", "fa-utility", "fa-utility-duo", "fa-utility-fill"];
+var g$1 = "classic",
+  a$1 = "duotone",
+  m$1 = "sharp",
+  t$1 = "sharp-duotone",
+  p$1 = "chisel",
+  y$1 = "etch",
+  b$1 = "graphite",
+  w$1 = "jelly",
+  e$1 = "jelly-duo",
+  x$1 = "jelly-fill",
+  c$1 = "mosaic",
+  I$1 = "notdog",
+  o$1 = "notdog-duo",
+  v$1 = "pixel",
+  F$1 = "slab",
+  r$1 = "slab-duo",
+  S$1 = "slab-press",
+  i$1 = "slab-press-duo",
+  d$1 = "thumbprint",
+  A$1 = "utility",
+  f$1 = "utility-duo",
+  P$1 = "utility-fill",
+  u$1 = "vellum",
+  j$1 = "whiteboard",
+  B$1 = "Classic",
+  N$1 = "Duotone",
+  D$1 = "Sharp",
+  k$1 = "Sharp Duotone",
+  C$1 = "Chisel",
+  T$1 = "Etch",
+  L$1 = "Graphite",
+  W$1 = "Jelly",
+  R$1 = "Jelly Duo",
+  K$1 = "Jelly Fill",
+  U$1 = "Mosaic",
+  J$1 = "Notdog",
+  _$1 = "Notdog Duo",
+  M$1 = "Pixel",
+  E$1 = "Slab",
+  G$1 = "Slab Duo",
+  O$1 = "Slab Press",
+  V$1 = "Slab Press Duo",
+  z$1 = "Thumbprint",
+  Y$1 = "Utility",
+  $$1 = "Utility Duo",
+  q$1 = "Utility Fill",
+  H$1 = "Vellum",
+  Q$1 = "Whiteboard";
+  (_jl = {}, _defineProperty$1(_defineProperty$1(_defineProperty$1(_defineProperty$1(_defineProperty$1(_defineProperty$1(_defineProperty$1(_defineProperty$1(_defineProperty$1(_defineProperty$1(_jl, g$1, B$1), a$1, N$1), m$1, D$1), t$1, k$1), p$1, C$1), y$1, T$1), b$1, L$1), w$1, W$1), e$1, R$1), x$1, K$1), _defineProperty$1(_defineProperty$1(_defineProperty$1(_defineProperty$1(_defineProperty$1(_defineProperty$1(_defineProperty$1(_defineProperty$1(_defineProperty$1(_defineProperty$1(_jl, c$1, U$1), I$1, J$1), o$1, _$1), v$1, M$1), F$1, E$1), r$1, G$1), S$1, O$1), i$1, V$1), d$1, z$1), A$1, Y$1), _defineProperty$1(_defineProperty$1(_defineProperty$1(_defineProperty$1(_jl, f$1, $$1), P$1, q$1), u$1, H$1), j$1, Q$1));
+var X$1 = "kit",
+  h$1 = "kit-duotone",
+  Z$1 = "Kit",
+  ll$1 = "Kit Duotone";
+  _defineProperty$1(_defineProperty$1({}, X$1, Z$1), h$1, ll$1);
+var ra = {
+    classic: {
+      "fa-brands": "fab",
+      "fa-duotone": "fad",
+      "fa-light": "fal",
+      "fa-regular": "far",
+      "fa-solid": "fas",
+      "fa-thin": "fat"
+    },
+    duotone: {
+      "fa-regular": "fadr",
+      "fa-light": "fadl",
+      "fa-thin": "fadt"
+    },
+    sharp: {
+      "fa-solid": "fass",
+      "fa-regular": "fasr",
+      "fa-light": "fasl",
+      "fa-thin": "fast"
+    },
+    "sharp-duotone": {
+      "fa-solid": "fasds",
+      "fa-regular": "fasdr",
+      "fa-light": "fasdl",
+      "fa-thin": "fasdt"
+    },
+    slab: {
+      "fa-regular": "faslr"
+    },
+    "slab-press": {
+      "fa-regular": "faslpr"
+    },
+    "slab-duo": {
+      "fa-regular": "fasldr"
+    },
+    "slab-press-duo": {
+      "fa-regular": "faslpdr"
+    },
+    pixel: {
+      "fa-regular": "fapr"
+    },
+    mosaic: {
+      "fa-solid": "fams"
+    },
+    vellum: {
+      "fa-solid": "favs"
+    },
+    whiteboard: {
+      "fa-semibold": "fawsb"
+    },
+    thumbprint: {
+      "fa-light": "fatl"
+    },
+    notdog: {
+      "fa-solid": "fans"
+    },
+    "notdog-duo": {
+      "fa-solid": "fands"
+    },
+    etch: {
+      "fa-solid": "faes"
+    },
+    graphite: {
+      "fa-thin": "fagt"
+    },
+    jelly: {
+      "fa-regular": "fajr"
+    },
+    "jelly-fill": {
+      "fa-regular": "fajfr"
+    },
+    "jelly-duo": {
+      "fa-regular": "fajdr"
+    },
+    chisel: {
+      "fa-regular": "facr"
+    },
+    utility: {
+      "fa-semibold": "fausb"
+    },
+    "utility-duo": {
+      "fa-semibold": "faudsb"
+    },
+    "utility-fill": {
+      "fa-semibold": "faufsb"
+    }
+  },
+  al$1 = {
+    classic: ["fas", "far", "fal", "fat", "fad"],
+    duotone: ["fadr", "fadl", "fadt"],
+    sharp: ["fass", "fasr", "fasl", "fast"],
+    "sharp-duotone": ["fasds", "fasdr", "fasdl", "fasdt"],
+    slab: ["faslr"],
+    "slab-press": ["faslpr"],
+    "slab-duo": ["fasldr"],
+    "slab-press-duo": ["faslpdr"],
+    pixel: ["fapr"],
+    mosaic: ["fams"],
+    vellum: ["favs"],
+    whiteboard: ["fawsb"],
+    thumbprint: ["fatl"],
+    notdog: ["fans"],
+    "notdog-duo": ["fands"],
+    etch: ["faes"],
+    graphite: ["fagt"],
+    jelly: ["fajr"],
+    "jelly-fill": ["fajfr"],
+    "jelly-duo": ["fajdr"],
+    chisel: ["facr"],
+    utility: ["fausb"],
+    "utility-duo": ["faudsb"],
+    "utility-fill": ["faufsb"]
+  },
+  da = {
+    classic: {
+      fab: "fa-brands",
+      fad: "fa-duotone",
+      fal: "fa-light",
+      far: "fa-regular",
+      fas: "fa-solid",
+      fat: "fa-thin"
+    },
+    duotone: {
+      fadr: "fa-regular",
+      fadl: "fa-light",
+      fadt: "fa-thin"
+    },
+    sharp: {
+      fass: "fa-solid",
+      fasr: "fa-regular",
+      fasl: "fa-light",
+      fast: "fa-thin"
+    },
+    "sharp-duotone": {
+      fasds: "fa-solid",
+      fasdr: "fa-regular",
+      fasdl: "fa-light",
+      fasdt: "fa-thin"
+    },
+    slab: {
+      faslr: "fa-regular"
+    },
+    "slab-press": {
+      faslpr: "fa-regular"
+    },
+    "slab-duo": {
+      fasldr: "fa-regular"
+    },
+    "slab-press-duo": {
+      faslpdr: "fa-regular"
+    },
+    pixel: {
+      fapr: "fa-regular"
+    },
+    mosaic: {
+      fams: "fa-solid"
+    },
+    vellum: {
+      favs: "fa-solid"
+    },
+    whiteboard: {
+      fawsb: "fa-semibold"
+    },
+    thumbprint: {
+      fatl: "fa-light"
+    },
+    notdog: {
+      fans: "fa-solid"
+    },
+    "notdog-duo": {
+      fands: "fa-solid"
+    },
+    etch: {
+      faes: "fa-solid"
+    },
+    graphite: {
+      fagt: "fa-thin"
+    },
+    jelly: {
+      fajr: "fa-regular"
+    },
+    "jelly-fill": {
+      fajfr: "fa-regular"
+    },
+    "jelly-duo": {
+      fajdr: "fa-regular"
+    },
+    chisel: {
+      facr: "fa-regular"
+    },
+    utility: {
+      fausb: "fa-semibold"
+    },
+    "utility-duo": {
+      faudsb: "fa-semibold"
+    },
+    "utility-fill": {
+      faufsb: "fa-semibold"
+    }
+  },
+  tl = ["fa-solid", "fa-regular", "fa-light", "fa-thin", "fa-duotone", "fa-brands", "fa-semibold"],
+  ha = ["fa", "fas", "far", "fal", "fat", "fad", "fadr", "fadl", "fadt", "fab", "fass", "fasr", "fasl", "fast", "fasds", "fasdr", "fasdl", "fasdt", "faslr", "faslpr", "fasldr", "faslpdr", "fapr", "fams", "favs", "fawsb", "fatl", "fans", "fands", "faes", "fagt", "fajr", "fajfr", "fajdr", "facr", "fausb", "faudsb", "faufsb"].concat(n$1, tl),
+  el$1 = ["solid", "regular", "light", "thin", "duotone", "brands", "semibold"],
+  sl$1 = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+  ol$1 = sl$1.concat([11, 12, 13, 14, 15, 16, 17, 18, 19, 20]),
+  rl$1 = ["aw", "fw", "pull-left", "pull-right"],
+  ga = [].concat(_toConsumableArray$1(Object.keys(al$1)), el$1, rl$1, ["2xs", "xs", "sm", "lg", "xl", "2xl", "beat", "beat-fade", "border", "bounce", "buzz", "canvas-square", "canvas-roomy", "fade", "flip-360", "flip-both", "flip-horizontal", "flip-vertical", "flip", "float", "inverse", "jello", "layers", "layers-bottom-left", "layers-bottom-right", "layers-counter", "layers-text", "layers-top-left", "layers-top-right", "li", "pull-end", "pull-start", "pulse", "rotate-180", "rotate-270", "rotate-90", "rotate-by", "shake", "spin-pulse", "spin-reverse", "spin", "spin-snap", "spin-snap-4", "spin-snap-8", "stack-1x", "stack-2x", "stack", "swing", "ul", "wag", "width-auto", "width-fixed", l$1.GROUP, l$1.SWAP_OPACITY, l$1.PRIMARY, l$1.SECONDARY]).concat(sl$1.map(function (s) {
+    return "".concat(s, "x");
+  })).concat(ol$1.map(function (s) {
+    return "w-".concat(s);
+  }));
+var wa = {
+    "Font Awesome 5 Free": {
+      900: "fas",
+      400: "far"
+    },
+    "Font Awesome 5 Pro": {
+      900: "fas",
+      400: "far",
+      normal: "far",
+      300: "fal"
+    },
+    "Font Awesome 5 Brands": {
+      400: "fab",
+      normal: "fab"
+    },
+    "Font Awesome 5 Duotone": {
+      900: "fad"
+    }
+  };
+
+var NAMESPACE_IDENTIFIER = '___FONT_AWESOME___';
+var UNITS_IN_GRID = 16;
+var DEFAULT_CSS_PREFIX = 'fa';
+var DEFAULT_REPLACEMENT_CLASS = 'svg-inline--fa';
+var DATA_FA_I2SVG = 'data-fa-i2svg';
+var DATA_FA_PSEUDO_ELEMENT = 'data-fa-pseudo-element';
+var DATA_FA_PSEUDO_ELEMENT_PENDING = 'data-fa-pseudo-element-pending';
+var DATA_PREFIX = 'data-prefix';
+var DATA_ICON = 'data-icon';
+var HTML_CLASS_I2SVG_BASE_CLASS = 'fontawesome-i2svg';
+var MUTATION_APPROACH_ASYNC = 'async';
+var TAGNAMES_TO_SKIP_FOR_PSEUDOELEMENTS = ['HTML', 'HEAD', 'STYLE', 'SCRIPT'];
+var PSEUDO_ELEMENTS = ['::before', '::after', ':before', ':after'];
+var PRODUCTION$1 = function () {
+  try {
+    return process.env.NODE_ENV === 'production';
+  } catch (e$$1) {
+    return false;
+  }
+}();
+function familyProxy(obj) {
+  // Defaults to the classic family if family is not available
+  return new Proxy(obj, {
+    get: function get(target, prop) {
+      return prop in target ? target[prop] : target[u];
+    }
+  });
+}
+var _PREFIX_TO_STYLE = _objectSpread2$1({}, rl);
+
+// We changed FACSSClassesToStyleId in the icons repo to be canonical and as such, "classic" family does not have any
+// duotone styles.  But we do still need duotone in _PREFIX_TO_STYLE below, so we are manually adding
+// {'fa-duotone': 'duotone'}
+_PREFIX_TO_STYLE[u] = _objectSpread2$1(_objectSpread2$1(_objectSpread2$1(_objectSpread2$1({}, {
+  'fa-duotone': 'duotone'
+}), rl[u]), rt['kit']), rt['kit-duotone']);
+var PREFIX_TO_STYLE = familyProxy(_PREFIX_TO_STYLE);
+var _STYLE_TO_PREFIX = _objectSpread2$1({}, $l);
+
+// We changed FAStyleIdToShortPrefixId in the icons repo to be canonical and as such, "classic" family does not have any
+// duotone styles.  But we do still need duotone in _STYLE_TO_PREFIX below, so we are manually adding {duotone: 'fad'}
+_STYLE_TO_PREFIX[u] = _objectSpread2$1(_objectSpread2$1(_objectSpread2$1(_objectSpread2$1({}, {
+  duotone: 'fad'
+}), _STYLE_TO_PREFIX[u]), St['kit']), St['kit-duotone']);
+var STYLE_TO_PREFIX = familyProxy(_STYLE_TO_PREFIX);
+var _PREFIX_TO_LONG_STYLE = _objectSpread2$1({}, da);
+_PREFIX_TO_LONG_STYLE[u] = _objectSpread2$1(_objectSpread2$1({}, _PREFIX_TO_LONG_STYLE[u]), It['kit']);
+var PREFIX_TO_LONG_STYLE = familyProxy(_PREFIX_TO_LONG_STYLE);
+var _LONG_STYLE_TO_PREFIX = _objectSpread2$1({}, ra);
+_LONG_STYLE_TO_PREFIX[u] = _objectSpread2$1(_objectSpread2$1({}, _LONG_STYLE_TO_PREFIX[u]), mt['kit']);
+familyProxy(_LONG_STYLE_TO_PREFIX);
+var ICON_SELECTION_SYNTAX_PATTERN = Z;
+var LAYERS_TEXT_CLASSNAME = 'fa-layers-text';
+var FONT_FAMILY_PATTERN = $;
+var _FONT_WEIGHT_TO_PREFIX = _objectSpread2$1({}, Al);
+familyProxy(_FONT_WEIGHT_TO_PREFIX);
+var ATTRIBUTES_WATCHED_FOR_MUTATION = ['class', 'data-prefix', 'data-icon', 'data-fa-transform', 'data-fa-mask'];
+var DUOTONE_CLASSES = il;
+var RESERVED_CLASSES = [].concat(_toConsumableArray$1(it), _toConsumableArray$1(ga));
+
+var initial = WINDOW.FontAwesomeConfig || {};
+function getAttrConfig(attr) {
+  var element = DOCUMENT.querySelector('script[' + attr + ']');
+  if (element) {
+    return element.getAttribute(attr);
+  }
+}
+function coerce(val) {
+  // Getting an empty string will occur if the attribute is set on the HTML tag but without a value
+  // We'll assume that this is an indication that it should be toggled to true
+  if (val === '') return true;
+  if (val === 'false') return false;
+  if (val === 'true') return true;
+  return val;
+}
+if (DOCUMENT && typeof DOCUMENT.querySelector === 'function') {
+  var attrs = [['data-family-prefix', 'familyPrefix'], ['data-css-prefix', 'cssPrefix'], ['data-family-default', 'familyDefault'], ['data-style-default', 'styleDefault'], ['data-replacement-class', 'replacementClass'], ['data-auto-replace-svg', 'autoReplaceSvg'], ['data-auto-add-css', 'autoAddCss'], ['data-search-pseudo-elements', 'searchPseudoElements'], ['data-search-pseudo-elements-warnings', 'searchPseudoElementsWarnings'], ['data-search-pseudo-elements-full-scan', 'searchPseudoElementsFullScan'], ['data-observe-mutations', 'observeMutations'], ['data-mutate-approach', 'mutateApproach'], ['data-keep-original-source', 'keepOriginalSource'], ['data-measure-performance', 'measurePerformance'], ['data-show-missing-icons', 'showMissingIcons']];
+  attrs.forEach(function (_ref) {
+    var _ref2 = _slicedToArray$1(_ref, 2),
+      attr = _ref2[0],
+      key = _ref2[1];
+    var val = coerce(getAttrConfig(attr));
+    if (val !== undefined && val !== null) {
+      initial[key] = val;
+    }
+  });
+}
+var _default = {
+  styleDefault: 'solid',
+  familyDefault: u,
+  cssPrefix: DEFAULT_CSS_PREFIX,
+  replacementClass: DEFAULT_REPLACEMENT_CLASS,
+  autoReplaceSvg: true,
+  autoAddCss: true,
+  searchPseudoElements: false,
+  searchPseudoElementsWarnings: true,
+  searchPseudoElementsFullScan: false,
+  observeMutations: true,
+  mutateApproach: 'async',
+  keepOriginalSource: true,
+  measurePerformance: false,
+  showMissingIcons: true
+};
+
+// familyPrefix is deprecated but we must still support it if present
+if (initial.familyPrefix) {
+  initial.cssPrefix = initial.familyPrefix;
+}
+var _config = _objectSpread2$1(_objectSpread2$1({}, _default), initial);
+if (!_config.autoReplaceSvg) _config.observeMutations = false;
+var config = {};
+Object.keys(_default).forEach(function (key) {
+  Object.defineProperty(config, key, {
+    enumerable: true,
+    set: function set(val) {
+      _config[key] = val;
+      _onChangeCb.forEach(function (cb) {
+        return cb(config);
+      });
+    },
+    get: function get() {
+      return _config[key];
+    }
+  });
+});
+
+// familyPrefix is deprecated as of 6.2.0 and should be removed in 7.0.0
+Object.defineProperty(config, 'familyPrefix', {
+  enumerable: true,
+  set: function set(val) {
+    _config.cssPrefix = val;
+    _onChangeCb.forEach(function (cb) {
+      return cb(config);
+    });
+  },
+  get: function get() {
+    return _config.cssPrefix;
+  }
+});
+WINDOW.FontAwesomeConfig = config;
+var _onChangeCb = [];
+function onChange(cb) {
+  _onChangeCb.push(cb);
+  return function () {
+    _onChangeCb.splice(_onChangeCb.indexOf(cb), 1);
+  };
+}
+
+var d$2 = UNITS_IN_GRID;
+var meaninglessTransform = {
+  size: 16,
+  x: 0,
+  y: 0,
+  rotate: 0,
+  flipX: false,
+  flipY: false
+};
+function insertCss(css) {
+  if (!css || !IS_DOM) {
+    return;
+  }
+  var style = DOCUMENT.createElement('style');
+  style.setAttribute('type', 'text/css');
+  style.innerHTML = css;
+  var headChildren = DOCUMENT.head.childNodes;
+  var beforeChild = null;
+  for (var i = headChildren.length - 1; i > -1; i--) {
+    var child = headChildren[i];
+    var tagName = (child.tagName || '').toUpperCase();
+    if (['STYLE', 'LINK'].indexOf(tagName) > -1) {
+      beforeChild = child;
+    }
+  }
+  DOCUMENT.head.insertBefore(style, beforeChild);
+  return css;
+}
+var idPool = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+function nextUniqueId() {
+  var size = 12;
+  var id = '';
+  while (size-- > 0) {
+    id += idPool[Math.random() * 62 | 0];
+  }
+  return id;
+}
+function toArray(obj) {
+  var array = [];
+  for (var i = (obj || []).length >>> 0; i--;) {
+    array[i] = obj[i];
+  }
+  return array;
+}
+function classArray(node) {
+  if (node.classList) {
+    return toArray(node.classList);
+  } else {
+    return (node.getAttribute('class') || '').split(' ').filter(function (i) {
+      return i;
+    });
+  }
+}
+function htmlEscape(str) {
+  return "".concat(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+function joinAttributes(attributes) {
+  return Object.keys(attributes || {}).reduce(function (acc, attributeName) {
+    return acc + "".concat(attributeName, "=\"").concat(htmlEscape(attributes[attributeName]), "\" ");
+  }, '').trim();
+}
+function joinStyles(styles) {
+  return Object.keys(styles || {}).reduce(function (acc, styleName) {
+    return acc + "".concat(styleName, ": ").concat(styles[styleName].trim(), ";");
+  }, '');
+}
+function transformIsMeaningful(transform) {
+  return transform.size !== meaninglessTransform.size || transform.x !== meaninglessTransform.x || transform.y !== meaninglessTransform.y || transform.rotate !== meaninglessTransform.rotate || transform.flipX || transform.flipY;
+}
+function transformForSvg(_ref) {
+  var transform = _ref.transform,
+    containerWidth = _ref.containerWidth,
+    iconWidth = _ref.iconWidth;
+  var outer = {
+    transform: "translate(".concat(containerWidth / 2, " 256)")
+  };
+  var innerTranslate = "translate(".concat(transform.x * 32, ", ").concat(transform.y * 32, ") ");
+  var innerScale = "scale(".concat(transform.size / 16 * (transform.flipX ? -1 : 1), ", ").concat(transform.size / 16 * (transform.flipY ? -1 : 1), ") ");
+  var innerRotate = "rotate(".concat(transform.rotate, " 0 0)");
+  var inner = {
+    transform: "".concat(innerTranslate, " ").concat(innerScale, " ").concat(innerRotate)
+  };
+  var path = {
+    transform: "translate(".concat(iconWidth / 2 * -1, " -256)")
+  };
+  return {
+    outer: outer,
+    inner: inner,
+    path: path
+  };
+}
+function transformForCss(_ref2) {
+  var transform = _ref2.transform,
+    _ref2$width = _ref2.width,
+    width = _ref2$width === void 0 ? UNITS_IN_GRID : _ref2$width,
+    _ref2$height = _ref2.height,
+    height = _ref2$height === void 0 ? UNITS_IN_GRID : _ref2$height;
+  var val = '';
+  if (IS_IE) {
+    val += "translate(".concat(transform.x / d$2 - width / 2, "em, ").concat(transform.y / d$2 - height / 2, "em) ");
+  } else {
+    val += "translate(calc(-50% + ".concat(transform.x / d$2, "em), calc(-50% + ").concat(transform.y / d$2, "em)) ");
+  }
+  val += "scale(".concat(transform.size / d$2 * (transform.flipX ? -1 : 1), ", ").concat(transform.size / d$2 * (transform.flipY ? -1 : 1), ") ");
+  val += "rotate(".concat(transform.rotate, "deg) ");
+  return val;
+}
+
+var baseStyles = ":root, :host {\n  --fa-font-solid: normal 900 1em/1 'Font Awesome 7 Free';\n  --fa-font-regular: normal 400 1em/1 'Font Awesome 7 Free';\n  --fa-font-light: normal 300 1em/1 'Font Awesome 7 Pro';\n  --fa-font-thin: normal 100 1em/1 'Font Awesome 7 Pro';\n  --fa-font-duotone: normal 900 1em/1 'Font Awesome 7 Duotone';\n  --fa-font-duotone-regular: normal 400 1em/1 'Font Awesome 7 Duotone';\n  --fa-font-duotone-light: normal 300 1em/1 'Font Awesome 7 Duotone';\n  --fa-font-duotone-thin: normal 100 1em/1 'Font Awesome 7 Duotone';\n  --fa-font-brands: normal 400 1em/1 'Font Awesome 7 Brands';\n  --fa-font-sharp-solid: normal 900 1em/1 'Font Awesome 7 Sharp';\n  --fa-font-sharp-regular: normal 400 1em/1 'Font Awesome 7 Sharp';\n  --fa-font-sharp-light: normal 300 1em/1 'Font Awesome 7 Sharp';\n  --fa-font-sharp-thin: normal 100 1em/1 'Font Awesome 7 Sharp';\n  --fa-font-sharp-duotone-solid: normal 900 1em/1 'Font Awesome 7 Sharp Duotone';\n  --fa-font-sharp-duotone-regular: normal 400 1em/1 'Font Awesome 7 Sharp Duotone';\n  --fa-font-sharp-duotone-light: normal 300 1em/1 'Font Awesome 7 Sharp Duotone';\n  --fa-font-sharp-duotone-thin: normal 100 1em/1 'Font Awesome 7 Sharp Duotone';\n  --fa-font-slab-regular: normal 400 1em/1 'Font Awesome 7 Slab';\n  --fa-font-slab-press-regular: normal 400 1em/1 'Font Awesome 7 Slab Press';\n  --fa-font-slab-duo-regular: normal 400 1em/1 'Font Awesome 7 Slab Duo';\n  --fa-font-slab-press-duo-regular: normal 400 1em/1 'Font Awesome 7 Slab Press Duo';\n  --fa-font-pixel-regular: normal 400 1em/1 'Font Awesome 7 Pixel';\n  --fa-font-mosaic-solid: normal 900 1em/1 'Font Awesome 7 Mosaic';\n  --fa-font-vellum-solid: normal 900 1em/1 'Font Awesome 7 Vellum';\n  --fa-font-whiteboard-semibold: normal 600 1em/1 'Font Awesome 7 Whiteboard';\n  --fa-font-thumbprint-light: normal 300 1em/1 'Font Awesome 7 Thumbprint';\n  --fa-font-notdog-solid: normal 900 1em/1 'Font Awesome 7 Notdog';\n  --fa-font-notdog-duo-solid: normal 900 1em/1 'Font Awesome 7 Notdog Duo';\n  --fa-font-etch-solid: normal 900 1em/1 'Font Awesome 7 Etch';\n  --fa-font-graphite-thin: normal 100 1em/1 'Font Awesome 7 Graphite';\n  --fa-font-jelly-regular: normal 400 1em/1 'Font Awesome 7 Jelly';\n  --fa-font-jelly-fill-regular: normal 400 1em/1 'Font Awesome 7 Jelly Fill';\n  --fa-font-jelly-duo-regular: normal 400 1em/1 'Font Awesome 7 Jelly Duo';\n  --fa-font-chisel-regular: normal 400 1em/1 'Font Awesome 7 Chisel';\n  --fa-font-utility-semibold: normal 600 1em/1 'Font Awesome 7 Utility';\n  --fa-font-utility-duo-semibold: normal 600 1em/1 'Font Awesome 7 Utility Duo';\n  --fa-font-utility-fill-semibold: normal 600 1em/1 'Font Awesome 7 Utility Fill';\n}\n\n.svg-inline--fa {\n  box-sizing: content-box;\n  display: var(--fa-display, inline-block);\n  height: 1em;\n  overflow: visible;\n  vertical-align: -0.125em;\n  width: var(--fa-width, 1.25em);\n}\n.svg-inline--fa.fa-2xs {\n  vertical-align: 0.1em;\n}\n.svg-inline--fa.fa-xs {\n  vertical-align: 0em;\n}\n.svg-inline--fa.fa-sm {\n  vertical-align: -0.0714285714em;\n}\n.svg-inline--fa.fa-lg {\n  vertical-align: -0.2em;\n}\n.svg-inline--fa.fa-xl {\n  vertical-align: -0.25em;\n}\n.svg-inline--fa.fa-2xl {\n  vertical-align: -0.3125em;\n}\n.svg-inline--fa.fa-pull-left,\n.svg-inline--fa .fa-pull-start {\n  float: inline-start;\n  margin-inline-end: var(--fa-pull-margin, 0.3em);\n}\n.svg-inline--fa.fa-pull-right,\n.svg-inline--fa .fa-pull-end {\n  float: inline-end;\n  margin-inline-start: var(--fa-pull-margin, 0.3em);\n}\n.svg-inline--fa.fa-li {\n  width: var(--fa-li-width, 2em);\n  inset-inline-start: calc(-1 * var(--fa-li-width, 2em));\n  inset-block-start: 0.25em; /* syncing vertical alignment with Web Font rendering */\n}\n\n.fa-layers-counter, .fa-layers-text {\n  display: inline-block;\n  position: absolute;\n  text-align: center;\n}\n\n.fa-layers {\n  display: inline-block;\n  height: 1em;\n  position: relative;\n  text-align: center;\n  vertical-align: -0.125em;\n  width: var(--fa-width, 1.25em);\n}\n.fa-layers .svg-inline--fa {\n  inset: 0;\n  margin: auto;\n  position: absolute;\n  transform-origin: center center;\n}\n\n.fa-layers-text {\n  left: 50%;\n  top: 50%;\n  transform: translate(-50%, -50%);\n  transform-origin: center center;\n}\n\n.fa-layers-counter {\n  background-color: var(--fa-counter-background-color, #ff253a);\n  border-radius: var(--fa-counter-border-radius, 1em);\n  box-sizing: border-box;\n  color: var(--fa-inverse, #fff);\n  line-height: var(--fa-counter-line-height, 1);\n  max-width: var(--fa-counter-max-width, 5em);\n  min-width: var(--fa-counter-min-width, 1.5em);\n  overflow: hidden;\n  padding: var(--fa-counter-padding, 0.25em 0.5em);\n  right: var(--fa-right, 0);\n  text-overflow: ellipsis;\n  top: var(--fa-top, 0);\n  transform: scale(var(--fa-counter-scale, 0.25));\n  transform-origin: top right;\n}\n\n.fa-layers-bottom-right {\n  bottom: var(--fa-bottom, 0);\n  right: var(--fa-right, 0);\n  top: auto;\n  transform: scale(var(--fa-layers-scale, 0.25));\n  transform-origin: bottom right;\n}\n\n.fa-layers-bottom-left {\n  bottom: var(--fa-bottom, 0);\n  left: var(--fa-left, 0);\n  right: auto;\n  top: auto;\n  transform: scale(var(--fa-layers-scale, 0.25));\n  transform-origin: bottom left;\n}\n\n.fa-layers-top-right {\n  top: var(--fa-top, 0);\n  right: var(--fa-right, 0);\n  transform: scale(var(--fa-layers-scale, 0.25));\n  transform-origin: top right;\n}\n\n.fa-layers-top-left {\n  left: var(--fa-left, 0);\n  right: auto;\n  top: var(--fa-top, 0);\n  transform: scale(var(--fa-layers-scale, 0.25));\n  transform-origin: top left;\n}\n\n.fa-1x {\n  font-size: 1em;\n}\n\n.fa-2x {\n  font-size: 2em;\n}\n\n.fa-3x {\n  font-size: 3em;\n}\n\n.fa-4x {\n  font-size: 4em;\n}\n\n.fa-5x {\n  font-size: 5em;\n}\n\n.fa-6x {\n  font-size: 6em;\n}\n\n.fa-7x {\n  font-size: 7em;\n}\n\n.fa-8x {\n  font-size: 8em;\n}\n\n.fa-9x {\n  font-size: 9em;\n}\n\n.fa-10x {\n  font-size: 10em;\n}\n\n.fa-2xs {\n  font-size: calc(10 / 16 * 1em); /* converts a 10px size into an em-based value that's relative to the scale's 16px base */\n  line-height: calc(1 / 10 * 1em); /* sets the line-height of the icon back to that of it's parent */\n  vertical-align: calc((6 / 10 - 0.375) * 1em); /* vertically centers the icon taking into account the surrounding text's descender */\n}\n\n.fa-xs {\n  font-size: calc(12 / 16 * 1em); /* converts a 12px size into an em-based value that's relative to the scale's 16px base */\n  line-height: calc(1 / 12 * 1em); /* sets the line-height of the icon back to that of it's parent */\n  vertical-align: calc((6 / 12 - 0.375) * 1em); /* vertically centers the icon taking into account the surrounding text's descender */\n}\n\n.fa-sm {\n  font-size: calc(14 / 16 * 1em); /* converts a 14px size into an em-based value that's relative to the scale's 16px base */\n  line-height: calc(1 / 14 * 1em); /* sets the line-height of the icon back to that of it's parent */\n  vertical-align: calc((6 / 14 - 0.375) * 1em); /* vertically centers the icon taking into account the surrounding text's descender */\n}\n\n.fa-lg {\n  font-size: calc(20 / 16 * 1em); /* converts a 20px size into an em-based value that's relative to the scale's 16px base */\n  line-height: calc(1 / 20 * 1em); /* sets the line-height of the icon back to that of it's parent */\n  vertical-align: calc((6 / 20 - 0.375) * 1em); /* vertically centers the icon taking into account the surrounding text's descender */\n}\n\n.fa-xl {\n  font-size: calc(24 / 16 * 1em); /* converts a 24px size into an em-based value that's relative to the scale's 16px base */\n  line-height: calc(1 / 24 * 1em); /* sets the line-height of the icon back to that of it's parent */\n  vertical-align: calc((6 / 24 - 0.375) * 1em); /* vertically centers the icon taking into account the surrounding text's descender */\n}\n\n.fa-2xl {\n  font-size: calc(32 / 16 * 1em); /* converts a 32px size into an em-based value that's relative to the scale's 16px base */\n  line-height: calc(1 / 32 * 1em); /* sets the line-height of the icon back to that of it's parent */\n  vertical-align: calc((6 / 32 - 0.375) * 1em); /* vertically centers the icon taking into account the surrounding text's descender */\n}\n\n.fa-width-auto {\n  --fa-width: auto;\n}\n\n.fa-fw,\n.fa-width-fixed {\n  --fa-width: 1.25em;\n}\n\n.fa-canvas-square {\n  padding-block: 0.125em;\n  margin-block-end: -0.125em;\n}\n\n.fa-canvas-roomy {\n  padding-block: 0.25em;\n  padding-inline: 0.125em;\n  margin-block-end: -0.25em;\n  box-sizing: content-box;\n}\n\n.fa-ul {\n  list-style-type: none;\n  margin-inline-start: var(--fa-li-margin, 2.5em);\n  padding-inline-start: 0;\n}\n.fa-ul > li {\n  position: relative;\n}\n\n.fa-li {\n  inset-inline-start: calc(-1 * var(--fa-li-width, 2em));\n  position: absolute;\n  text-align: center;\n  width: var(--fa-li-width, 2em);\n  line-height: inherit;\n}\n\n/* Heads Up: Bordered Icons will not be supported in the future!\n  - This feature will be deprecated in the next major release of Font Awesome (v8)!\n  - You may continue to use it in this version *v7), but it will not be supported in Font Awesome v8.\n*/\n/* Notes:\n* --@{v.$css-prefix}-border-width = 1/16 by default (to render as ~1px based on a 16px default font-size)\n* --@{v.$css-prefix}-border-padding =\n  ** 3/16 for vertical padding (to give ~2px of vertical whitespace around an icon considering it's vertical alignment)\n  ** 4/16 for horizontal padding (to give ~4px of horizontal whitespace around an icon)\n*/\n.fa-border {\n  border-color: var(--fa-border-color, #eee);\n  border-radius: var(--fa-border-radius, 0.1em);\n  border-style: var(--fa-border-style, solid);\n  border-width: var(--fa-border-width, 0.0625em);\n  box-sizing: var(--fa-border-box-sizing, content-box);\n  padding: var(--fa-border-padding, 0.1875em 0.25em);\n}\n\n.fa-pull-left,\n.fa-pull-start {\n  float: inline-start;\n  margin-inline-end: var(--fa-pull-margin, 0.3em);\n}\n\n.fa-pull-right,\n.fa-pull-end {\n  float: inline-end;\n  margin-inline-start: var(--fa-pull-margin, 0.3em);\n}\n\n.fa-beat {\n  animation-name: fa-beat;\n  animation-delay: var(--fa-animation-delay, 0s);\n  animation-direction: var(--fa-animation-direction, normal);\n  animation-duration: var(--fa-animation-duration, 1s);\n  animation-iteration-count: var(--fa-animation-iteration-count, infinite);\n  animation-timing-function: var(--fa-animation-timing, ease-in-out);\n}\n\n.fa-bounce {\n  animation-name: fa-bounce;\n  animation-delay: var(--fa-animation-delay, 0s);\n  animation-direction: var(--fa-animation-direction, normal);\n  animation-duration: var(--fa-animation-duration, 1s);\n  animation-iteration-count: var(--fa-animation-iteration-count, infinite);\n  animation-timing-function: var(--fa-animation-timing, cubic-bezier(0.28, 0.84, 0.42, 1));\n}\n\n.fa-fade {\n  animation-name: fa-fade;\n  animation-delay: var(--fa-animation-delay, 0s);\n  animation-direction: var(--fa-animation-direction, normal);\n  animation-duration: var(--fa-animation-duration, 1s);\n  animation-iteration-count: var(--fa-animation-iteration-count, infinite);\n  animation-timing-function: var(--fa-animation-timing, ease-in-out);\n}\n\n.fa-beat-fade {\n  animation-name: fa-beat-fade;\n  animation-delay: var(--fa-animation-delay, 0s);\n  animation-direction: var(--fa-animation-direction, normal);\n  animation-duration: var(--fa-animation-duration, 1s);\n  animation-iteration-count: var(--fa-animation-iteration-count, infinite);\n  animation-timing-function: var(--fa-animation-timing, ease-in-out);\n}\n\n.fa-flip {\n  animation-name: fa-flip;\n  animation-delay: var(--fa-animation-delay, 0s);\n  animation-direction: var(--fa-animation-direction, normal);\n  animation-duration: var(--fa-animation-duration, 1.5s);\n  animation-iteration-count: var(--fa-animation-iteration-count, infinite);\n  animation-timing-function: var(--fa-animation-timing, ease-in-out);\n}\n\n.fa-flip-360 {\n  animation-name: fa-flip-360;\n  animation-delay: var(--fa-animation-delay, 0s);\n  animation-direction: var(--fa-animation-direction, normal);\n  animation-duration: var(--fa-animation-duration, 1s);\n  animation-iteration-count: var(--fa-animation-iteration-count, infinite);\n  animation-timing-function: var(--fa-animation-timing, ease-in-out);\n}\n\n.fa-shake {\n  animation-name: fa-shake;\n  animation-delay: var(--fa-animation-delay, 0s);\n  animation-direction: var(--fa-animation-direction, normal);\n  animation-duration: var(--fa-animation-duration, 0.75s);\n  animation-iteration-count: var(--fa-animation-iteration-count, infinite);\n  animation-timing-function: var(--fa-animation-timing, ease-in-out);\n}\n\n.fa-spin {\n  animation-name: fa-spin;\n  animation-delay: var(--fa-animation-delay, 0s);\n  animation-direction: var(--fa-animation-direction, normal);\n  animation-duration: var(--fa-animation-duration, 2s);\n  animation-iteration-count: var(--fa-animation-iteration-count, infinite);\n  animation-timing-function: var(--fa-animation-timing, linear);\n}\n\n.fa-spin-reverse {\n  --fa-animation-direction: reverse;\n}\n\n.fa-pulse,\n.fa-spin-pulse {\n  animation-name: fa-spin;\n  animation-direction: var(--fa-animation-direction, normal);\n  animation-duration: var(--fa-animation-duration, 1s);\n  animation-iteration-count: var(--fa-animation-iteration-count, infinite);\n  animation-timing-function: var(--fa-animation-timing, steps(8));\n}\n\n.fa-spin-snap {\n  animation-name: fa-spin-snap;\n  animation-delay: var(--fa-animation-delay, 0s);\n  animation-direction: var(--fa-animation-direction, normal);\n  animation-duration: var(--fa-animation-duration, 3s);\n  animation-iteration-count: var(--fa-animation-iteration-count, infinite);\n  animation-timing-function: var(--fa-animation-timing, linear);\n}\n\n.fa-spin-snap-4 {\n  animation-name: fa-spin-snap-4;\n  animation-delay: var(--fa-animation-delay, 0s);\n  animation-direction: var(--fa-animation-direction, normal);\n  animation-duration: var(--fa-animation-duration, 2.4s);\n  animation-iteration-count: var(--fa-animation-iteration-count, infinite);\n  animation-timing-function: var(--fa-animation-timing, linear);\n}\n\n.fa-spin-snap-8 {\n  animation-name: fa-spin-snap-8;\n  animation-delay: var(--fa-animation-delay, 0s);\n  animation-direction: var(--fa-animation-direction, normal);\n  animation-duration: var(--fa-animation-duration, 4s);\n  animation-iteration-count: var(--fa-animation-iteration-count, infinite);\n  animation-timing-function: var(--fa-animation-timing, linear);\n}\n\n.fa-buzz {\n  animation-name: fa-buzz;\n  animation-delay: var(--fa-animation-delay, 0s);\n  animation-direction: var(--fa-animation-direction, normal);\n  animation-duration: var(--fa-animation-duration, 0.6s);\n  animation-iteration-count: var(--fa-animation-iteration-count, infinite);\n  animation-timing-function: var(--fa-animation-timing, linear);\n}\n\n.fa-wag {\n  animation-name: fa-wag;\n  animation-delay: var(--fa-animation-delay, 0s);\n  animation-direction: var(--fa-animation-direction, normal);\n  animation-duration: var(--fa-animation-duration, 0.9s);\n  animation-iteration-count: var(--fa-animation-iteration-count, infinite);\n  animation-timing-function: var(--fa-animation-timing, ease-out);\n  transform-origin: bottom center;\n}\n\n.fa-float {\n  animation-name: fa-float;\n  animation-delay: var(--fa-animation-delay, 0s);\n  animation-direction: var(--fa-animation-direction, normal);\n  animation-duration: var(--fa-animation-duration, 3s);\n  animation-iteration-count: var(--fa-animation-iteration-count, infinite);\n  animation-timing-function: var(--fa-animation-timing, ease-in-out);\n  will-change: transform;\n}\n\n.fa-swing {\n  animation-name: fa-swing;\n  animation-delay: var(--fa-animation-delay, 0s);\n  animation-direction: var(--fa-animation-direction, normal);\n  animation-duration: var(--fa-animation-duration, 1.2s);\n  animation-iteration-count: var(--fa-animation-iteration-count, infinite);\n  animation-timing-function: var(--fa-animation-timing, ease-out);\n  transform-origin: top center;\n}\n\n.fa-jello {\n  animation-name: fa-jello;\n  animation-delay: var(--fa-animation-delay, 0s);\n  animation-direction: var(--fa-animation-direction, normal);\n  animation-duration: var(--fa-animation-duration, 0.9s);\n  animation-iteration-count: var(--fa-animation-iteration-count, infinite);\n  animation-timing-function: var(--fa-animation-timing, ease-out);\n}\n\n@media (prefers-reduced-motion: reduce) {\n  .fa-beat,\n  .fa-bounce,\n  .fa-fade,\n  .fa-beat-fade,\n  .fa-flip,\n  .fa-flip-360,\n  .fa-pulse,\n  .fa-shake,\n  .fa-spin,\n  .fa-spin-pulse,\n  .fa-buzz,\n  .fa-float,\n  .fa-jello,\n  .fa-spin-snap,\n  .fa-spin-snap-4,\n  .fa-spin-snap-8,\n  .fa-swing,\n  .fa-wag {\n    animation: none !important;\n    transition: none !important;\n  }\n}\n@keyframes fa-beat {\n  0% {\n    transform: scale(1);\n  }\n  25% {\n    transform: scale(calc(1.25 * var(--fa-beat-scale, 1.25)));\n  }\n  45% {\n    transform: scale(calc(1.22 * var(--fa-beat-scale, 1.22)));\n  }\n  65% {\n    transform: scale(calc(1.25 * var(--fa-beat-scale, 1.25)));\n  }\n  90% {\n    transform: scale(1);\n  }\n}\n@keyframes fa-bounce {\n  0% {\n    transform: scale(1, 1) translateY(0);\n    animation-timing-function: var(--fa-animation-timing);\n  }\n  14% {\n    transform: scale(var(--fa-bounce-start-scale-x, 1.06), var(--fa-bounce-start-scale-y, 0.94)) translateY(var(--fa-bounce-anticipation, 3px));\n    animation-timing-function: cubic-bezier(0.33, 0, 0.66, 0.33);\n  }\n  32% {\n    transform: scale(var(--fa-bounce-jump-scale-x, 0.94), var(--fa-bounce-jump-scale-y, 1.12)) translateY(calc(-1 * var(--fa-bounce-height, 0.5em)));\n    animation-timing-function: cubic-bezier(0.33, 0.66, 0.66, 1);\n  }\n  52% {\n    transform: scale(1, 1) translateY(calc(-1 * var(--fa-bounce-height, 0.5em) * 1.1));\n    animation-timing-function: cubic-bezier(0.5, 0, 1, 0.5);\n  }\n  70% {\n    transform: scale(var(--fa-bounce-land-scale-x, 1.06), var(--fa-bounce-land-scale-y, 0.92)) translateY(0);\n    animation-timing-function: cubic-bezier(0.33, 0.33, 0.66, 1);\n  }\n  85% {\n    transform: scale(0.98, 1.04) translateY(calc(-2px * var(--fa-bounce-rebound, 1)));\n    animation-timing-function: cubic-bezier(0.33, 0, 0.66, 1);\n  }\n  100% {\n    transform: scale(1, 1) translateY(0);\n  }\n}\n@keyframes fa-fade {\n  0% {\n    opacity: 1;\n    transform: scale(1);\n    animation-timing-function: cubic-bezier(0.2, 0, 0.4, 1);\n  }\n  40% {\n    opacity: var(--fa-fade-opacity, 0.4);\n    transform: scale(0.98);\n    animation-timing-function: cubic-bezier(0.4, 0, 0.6, 1);\n  }\n  100% {\n    opacity: 1;\n    transform: scale(1);\n  }\n}\n@keyframes fa-beat-fade {\n  0% {\n    opacity: var(--fa-beat-fade-opacity, 0.4);\n    transform: scale(1);\n    animation-timing-function: cubic-bezier(0.2, 0, 0.4, 1);\n  }\n  25% {\n    opacity: calc(var(--fa-beat-fade-opacity, 0.4) + 0.4);\n    transform: scale(var(--fa-beat-fade-scale, 1.28));\n    animation-timing-function: cubic-bezier(0.4, 0, 0.6, 1);\n  }\n  45% {\n    opacity: 1;\n    transform: scale(var(--fa-beat-fade-scale, 1.25));\n    animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);\n  }\n  65% {\n    opacity: calc(var(--fa-beat-fade-opacity, 0.4) + 0.4);\n    transform: scale(var(--fa-beat-fade-scale, 1.28));\n    animation-timing-function: cubic-bezier(0.4, 0, 0.6, 1);\n  }\n  100% {\n    opacity: var(--fa-beat-fade-opacity, 0.4);\n    transform: scale(1);\n  }\n}\n@keyframes fa-flip {\n  0% {\n    transform: perspective(2em) scale(1) rotate3d(var(--fa-flip-x, 0), var(--fa-flip-y, 1), var(--fa-flip-z, 0), 0deg);\n    animation-timing-function: cubic-bezier(0.2, 0, 0.4, 1);\n  }\n  8% {\n    transform: perspective(2em) scale(var(--fa-flip-anticipation-scale, 0.95)) rotate3d(var(--fa-flip-x, 0), var(--fa-flip-y, 1), var(--fa-flip-z, 0), 0deg);\n    animation-timing-function: cubic-bezier(0.33, 0, 0.66, 0.33);\n  }\n  35% {\n    transform: perspective(2em) scale(1) rotate3d(var(--fa-flip-x, 0), var(--fa-flip-y, 1), var(--fa-flip-z, 0), calc(var(--fa-flip-angle, -360deg) * 0.6));\n    animation-timing-function: linear;\n  }\n  65% {\n    transform: perspective(2em) scale(1) rotate3d(var(--fa-flip-x, 0), var(--fa-flip-y, 1), var(--fa-flip-z, 0), calc(var(--fa-flip-angle, -360deg) * 0.5));\n    animation-timing-function: cubic-bezier(0.33, 0.66, 0.66, 1);\n  }\n  92% {\n    transform: perspective(2em) scale(1) rotate3d(var(--fa-flip-x, 0), var(--fa-flip-y, 1), var(--fa-flip-z, 0), calc(var(--fa-flip-angle, -360deg) * var(--fa-flip-overshoot, 1.04)));\n    animation-timing-function: cubic-bezier(0.33, 0, 0.66, 1);\n  }\n  100% {\n    transform: perspective(2em) scale(1) rotate3d(var(--fa-flip-x, 0), var(--fa-flip-y, 1), var(--fa-flip-z, 0), var(--fa-flip-angle, -360deg));\n  }\n}\n@keyframes fa-flip-360 {\n  0% {\n    transform: perspective(2em) scale(1) rotate3d(var(--fa-flip-x, 0), var(--fa-flip-y, 1), var(--fa-flip-z, 0), 0deg);\n    animation-timing-function: cubic-bezier(0.2, 0, 0.4, 1);\n  }\n  8% {\n    transform: perspective(2em) scale(var(--fa-flip-anticipation-scale, 0.95)) rotate3d(var(--fa-flip-x, 0), var(--fa-flip-y, 1), var(--fa-flip-z, 0), 0deg);\n    animation-timing-function: cubic-bezier(0.33, 0, 0.66, 0.33);\n  }\n  50% {\n    transform: perspective(2em) scale(1) rotate3d(var(--fa-flip-x, 0), var(--fa-flip-y, 1), var(--fa-flip-z, 0), calc(var(--fa-flip-angle, -360deg) * 0.6));\n    animation-timing-function: cubic-bezier(0.33, 0.66, 0.66, 1);\n  }\n  80% {\n    transform: perspective(2em) scale(1) rotate3d(var(--fa-flip-x, 0), var(--fa-flip-y, 1), var(--fa-flip-z, 0), calc(var(--fa-flip-angle, -360deg) * var(--fa-flip-overshoot, 1.04)));\n    animation-timing-function: cubic-bezier(0.33, 0, 0.66, 1);\n  }\n  100% {\n    transform: perspective(2em) scale(1) rotate3d(var(--fa-flip-x, 0), var(--fa-flip-y, 1), var(--fa-flip-z, 0), var(--fa-flip-angle, -360deg));\n  }\n}\n@keyframes fa-shake {\n  0% {\n    transform: rotate(0deg);\n    animation-timing-function: cubic-bezier(0.2, 0, 0.8, 1);\n  }\n  8% {\n    transform: rotate(35deg) translateX(1px);\n    animation-timing-function: cubic-bezier(0.3, 0, 0.7, 1);\n  }\n  20% {\n    transform: rotate(-22deg) translateX(-1px);\n    animation-timing-function: cubic-bezier(0.3, 0, 0.7, 1);\n  }\n  35% {\n    transform: rotate(15deg) translateX(1px);\n    animation-timing-function: cubic-bezier(0.3, 0, 0.7, 1);\n  }\n  50% {\n    transform: rotate(-9deg);\n    animation-timing-function: cubic-bezier(0.4, 0, 0.6, 1);\n  }\n  65% {\n    transform: rotate(5deg);\n    animation-timing-function: cubic-bezier(0.4, 0, 0.6, 1);\n  }\n  78% {\n    transform: rotate(-3deg);\n    animation-timing-function: cubic-bezier(0.4, 0, 0.6, 1);\n  }\n  90% {\n    transform: rotate(1deg);\n    animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);\n  }\n  100% {\n    transform: rotate(0deg);\n  }\n}\n@keyframes fa-spin {\n  0% {\n    transform: rotate(0deg);\n  }\n  100% {\n    transform: rotate(360deg);\n  }\n}\n@keyframes fa-spin-snap {\n  0% {\n    transform: rotate(0deg);\n    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);\n  }\n  12% {\n    transform: rotate(60deg);\n    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);\n  }\n  16.67% {\n    transform: rotate(60deg);\n    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);\n  }\n  28.67% {\n    transform: rotate(120deg);\n    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);\n  }\n  33.33% {\n    transform: rotate(120deg);\n    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);\n  }\n  45.33% {\n    transform: rotate(180deg);\n    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);\n  }\n  50% {\n    transform: rotate(180deg);\n    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);\n  }\n  62% {\n    transform: rotate(240deg);\n    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);\n  }\n  66.67% {\n    transform: rotate(240deg);\n    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);\n  }\n  78.67% {\n    transform: rotate(300deg);\n    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);\n  }\n  83.33% {\n    transform: rotate(300deg);\n    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);\n  }\n  95.33% {\n    transform: rotate(360deg);\n    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);\n  }\n  100% {\n    transform: rotate(360deg);\n  }\n}\n@keyframes fa-spin-snap-4 {\n  0% {\n    transform: rotate(0deg);\n    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);\n  }\n  15% {\n    transform: rotate(90deg);\n    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);\n  }\n  25% {\n    transform: rotate(90deg);\n    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);\n  }\n  40% {\n    transform: rotate(180deg);\n    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);\n  }\n  50% {\n    transform: rotate(180deg);\n    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);\n  }\n  65% {\n    transform: rotate(270deg);\n    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);\n  }\n  75% {\n    transform: rotate(270deg);\n    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);\n  }\n  90% {\n    transform: rotate(360deg);\n    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);\n  }\n  100% {\n    transform: rotate(360deg);\n  }\n}\n@keyframes fa-spin-snap-8 {\n  0% {\n    transform: rotate(0deg);\n    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);\n  }\n  9% {\n    transform: rotate(45deg);\n    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);\n  }\n  12.5% {\n    transform: rotate(45deg);\n    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);\n  }\n  21.5% {\n    transform: rotate(90deg);\n    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);\n  }\n  25% {\n    transform: rotate(90deg);\n    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);\n  }\n  34% {\n    transform: rotate(135deg);\n    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);\n  }\n  37.5% {\n    transform: rotate(135deg);\n    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);\n  }\n  46.5% {\n    transform: rotate(180deg);\n    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);\n  }\n  50% {\n    transform: rotate(180deg);\n    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);\n  }\n  59% {\n    transform: rotate(225deg);\n    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);\n  }\n  62.5% {\n    transform: rotate(225deg);\n    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);\n  }\n  71.5% {\n    transform: rotate(270deg);\n    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);\n  }\n  75% {\n    transform: rotate(270deg);\n    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);\n  }\n  84% {\n    transform: rotate(315deg);\n    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);\n  }\n  87.5% {\n    transform: rotate(315deg);\n    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);\n  }\n  96.5% {\n    transform: rotate(360deg);\n    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);\n  }\n  100% {\n    transform: rotate(360deg);\n  }\n}\n@keyframes fa-buzz {\n  0% {\n    transform: translateX(0) rotate(0deg);\n    animation-timing-function: cubic-bezier(0.1, 0, 0.9, 1);\n  }\n  5% {\n    transform: translateX(var(--fa-buzz-distance, 4px)) rotate(0.5deg);\n  }\n  10% {\n    transform: translateX(calc(-1 * var(--fa-buzz-distance, 4px))) rotate(-0.5deg);\n  }\n  15% {\n    transform: translateX(var(--fa-buzz-distance, 4px)) rotate(0.3deg);\n  }\n  20% {\n    transform: translateX(calc(-1 * var(--fa-buzz-distance, 4px))) rotate(-0.3deg);\n  }\n  25% {\n    transform: translateX(calc(var(--fa-buzz-distance, 4px) * 0.7)) rotate(0.2deg);\n  }\n  30% {\n    transform: translateX(calc(-1 * var(--fa-buzz-distance, 4px) * 0.7)) rotate(-0.2deg);\n  }\n  35% {\n    transform: translateX(calc(var(--fa-buzz-distance, 4px) * 0.4)) rotate(0.1deg);\n  }\n  40% {\n    transform: translateX(0) rotate(0deg);\n  }\n  100% {\n    transform: translateX(0) rotate(0deg);\n  }\n}\n@keyframes fa-wag {\n  0% {\n    transform: rotate(0deg);\n    animation-timing-function: cubic-bezier(0.2, 0, 0.6, 1);\n  }\n  12% {\n    transform: rotate(var(--fa-wag-angle, 12deg));\n    animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);\n  }\n  24% {\n    transform: rotate(2deg);\n    animation-timing-function: cubic-bezier(0.2, 0, 0.6, 1);\n  }\n  36% {\n    transform: rotate(calc(var(--fa-wag-angle, 12deg) * 0.85));\n    animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);\n  }\n  48% {\n    transform: rotate(1deg);\n    animation-timing-function: cubic-bezier(0.2, 0, 0.6, 1);\n  }\n  58% {\n    transform: rotate(calc(var(--fa-wag-angle, 12deg) * 0.6));\n    animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);\n  }\n  68% {\n    transform: rotate(0deg);\n  }\n  100% {\n    transform: rotate(0deg);\n  }\n}\n@keyframes fa-float {\n  0% {\n    transform: translateY(0) translateX(0) rotate(0deg) scale(var(--fa-float-squash-x, 1.02), var(--fa-float-squash-y, 0.98));\n    animation-timing-function: cubic-bezier(0.33, 0, 0.66, 0.33);\n  }\n  15% {\n    transform: translateY(calc(-0.4 * var(--fa-float-height, 6px))) translateX(var(--fa-float-drift, 1px)) rotate(var(--fa-float-tilt, 1deg)) scale(1, 1);\n    animation-timing-function: cubic-bezier(0.33, 0.66, 0.66, 1);\n  }\n  35% {\n    transform: translateY(calc(-1 * var(--fa-float-height, 6px))) translateX(0) rotate(0deg) scale(var(--fa-float-stretch-x, 0.98), var(--fa-float-stretch-y, 1.03));\n    animation-timing-function: cubic-bezier(0.5, 0, 0.5, 0);\n  }\n  50% {\n    transform: translateY(calc(-0.92 * var(--fa-float-height, 6px))) translateX(calc(-0.5 * var(--fa-float-drift, 1px))) rotate(calc(-0.5 * var(--fa-float-tilt, 1deg))) scale(0.995, 1.01);\n    animation-timing-function: cubic-bezier(0.33, 0, 0.66, 0.33);\n  }\n  70% {\n    transform: translateY(calc(-0.3 * var(--fa-float-height, 6px))) translateX(calc(-1 * var(--fa-float-drift, 1px))) rotate(calc(-1 * var(--fa-float-tilt, 1deg))) scale(1, 1);\n    animation-timing-function: cubic-bezier(0.33, 0.66, 0.66, 1);\n  }\n  90% {\n    transform: translateY(calc(0.05 * var(--fa-float-height, 6px))) translateX(0) rotate(0deg) scale(var(--fa-float-squash-x, 1.02), var(--fa-float-squash-y, 0.98));\n    animation-timing-function: cubic-bezier(0.33, 0, 0.66, 1);\n  }\n  100% {\n    transform: translateY(0) translateX(0) rotate(0deg) scale(var(--fa-float-squash-x, 1.02), var(--fa-float-squash-y, 0.98));\n  }\n}\n@keyframes fa-swing {\n  0% {\n    transform: rotate(0deg);\n    animation-timing-function: cubic-bezier(0.2, 0, 0.8, 1);\n  }\n  8% {\n    transform: rotate(var(--fa-swing-angle, 22deg));\n    animation-timing-function: cubic-bezier(0.3, 0, 0.7, 1);\n  }\n  18% {\n    transform: rotate(calc(-1 * var(--fa-swing-angle, 22deg) * 0.85));\n    animation-timing-function: cubic-bezier(0.3, 0, 0.7, 1);\n  }\n  28% {\n    transform: rotate(calc(var(--fa-swing-angle, 22deg) * 0.65));\n    animation-timing-function: cubic-bezier(0.35, 0, 0.65, 1);\n  }\n  38% {\n    transform: rotate(calc(-1 * var(--fa-swing-angle, 22deg) * 0.45));\n    animation-timing-function: cubic-bezier(0.4, 0, 0.6, 1);\n  }\n  48% {\n    transform: rotate(calc(var(--fa-swing-angle, 22deg) * 0.25));\n    animation-timing-function: cubic-bezier(0.4, 0, 0.6, 1);\n  }\n  56% {\n    transform: rotate(calc(-1 * var(--fa-swing-angle, 22deg) * 0.1));\n    animation-timing-function: cubic-bezier(0.4, 0, 0.6, 1);\n  }\n  64% {\n    transform: rotate(0deg);\n  }\n  100% {\n    transform: rotate(0deg);\n  }\n}\n@keyframes fa-jello {\n  0% {\n    transform: scale(1, 1);\n    animation-timing-function: cubic-bezier(0.2, 0, 0.8, 1);\n  }\n  12% {\n    transform: scale(var(--fa-jello-scale-x, 1.15), calc(2 - var(--fa-jello-scale-x, 1.15)));\n    animation-timing-function: cubic-bezier(0.3, 0, 0.7, 1);\n  }\n  24% {\n    transform: scale(calc(2 - var(--fa-jello-scale-y, 1.12)), var(--fa-jello-scale-y, 1.12));\n    animation-timing-function: cubic-bezier(0.3, 0, 0.7, 1);\n  }\n  36% {\n    transform: scale(calc(1 + (var(--fa-jello-scale-x, 1.15) - 1) * 0.5), calc(2 - (1 + (var(--fa-jello-scale-x, 1.15) - 1) * 0.5)));\n    animation-timing-function: cubic-bezier(0.4, 0, 0.6, 1);\n  }\n  48% {\n    transform: scale(calc(2 - (1 + (var(--fa-jello-scale-y, 1.12) - 1) * 0.3)), calc(1 + (var(--fa-jello-scale-y, 1.12) - 1) * 0.3));\n    animation-timing-function: cubic-bezier(0.4, 0, 0.6, 1);\n  }\n  58% {\n    transform: scale(1.02, 0.98);\n    animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);\n  }\n  68% {\n    transform: scale(1, 1);\n  }\n  100% {\n    transform: scale(1, 1);\n  }\n}\n.fa-rotate-90 {\n  transform: rotate(90deg);\n}\n\n.fa-rotate-180 {\n  transform: rotate(180deg);\n}\n\n.fa-rotate-270 {\n  transform: rotate(270deg);\n}\n\n.fa-flip-horizontal {\n  transform: scale(-1, 1);\n}\n\n.fa-flip-vertical {\n  transform: scale(1, -1);\n}\n\n.fa-flip-both,\n.fa-flip-horizontal.fa-flip-vertical {\n  transform: scale(-1, -1);\n}\n\n.fa-rotate-by {\n  transform: rotate(var(--fa-rotate-angle, 0));\n}\n\n.svg-inline--fa .fa-primary {\n  fill: var(--fa-primary-color, currentColor);\n  opacity: var(--fa-primary-opacity, 1);\n}\n\n.svg-inline--fa .fa-secondary {\n  fill: var(--fa-secondary-color, currentColor);\n  opacity: var(--fa-secondary-opacity, 0.4);\n}\n\n.svg-inline--fa.fa-swap-opacity .fa-primary {\n  opacity: var(--fa-secondary-opacity, 0.4);\n}\n\n.svg-inline--fa.fa-swap-opacity .fa-secondary {\n  opacity: var(--fa-primary-opacity, 1);\n}\n\n.svg-inline--fa mask .fa-primary,\n.svg-inline--fa mask .fa-secondary {\n  fill: black;\n}\n\n.svg-inline--fa.fa-inverse {\n  fill: var(--fa-inverse, #fff);\n}\n\n.fa-stack {\n  display: inline-block;\n  height: 2em;\n  line-height: 2em;\n  position: relative;\n  vertical-align: middle;\n  width: 2.5em;\n}\n\n.fa-inverse {\n  color: var(--fa-inverse, #fff);\n}\n\n.svg-inline--fa.fa-stack-1x {\n  --fa-width: 1.25em;\n  height: 1em;\n  width: var(--fa-width);\n}\n.svg-inline--fa.fa-stack-2x {\n  --fa-width: 2.5em;\n  height: 2em;\n  width: var(--fa-width);\n}\n\n.fa-stack-1x,\n.fa-stack-2x {\n  inset: 0;\n  margin: auto;\n  position: absolute;\n  z-index: var(--fa-stack-z-index, auto);\n}";
+
+function css() {
+  var dcp = DEFAULT_CSS_PREFIX;
+  var drc = DEFAULT_REPLACEMENT_CLASS;
+  var fp = config.cssPrefix;
+  var rc = config.replacementClass;
+  var s = baseStyles;
+  if (fp !== dcp || rc !== drc) {
+    var dPatt = new RegExp("\\.".concat(dcp, "\\-"), 'g');
+    var customPropPatt = new RegExp("\\--".concat(dcp, "\\-"), 'g');
+    var rPatt = new RegExp("\\.".concat(drc), 'g');
+    s = s.replace(dPatt, ".".concat(fp, "-")).replace(customPropPatt, "--".concat(fp, "-")).replace(rPatt, ".".concat(rc));
+  }
+  return s;
+}
+var _cssInserted = false;
+function ensureCss() {
+  if (config.autoAddCss && !_cssInserted) {
+    insertCss(css());
+    _cssInserted = true;
+  }
+}
+var InjectCSS = {
+  mixout: function mixout() {
+    return {
+      dom: {
+        css: css,
+        insertCss: ensureCss
+      }
+    };
+  },
+  hooks: function hooks() {
+    return {
+      beforeDOMElementCreation: function beforeDOMElementCreation() {
+        ensureCss();
+      },
+      beforeI2svg: function beforeI2svg() {
+        ensureCss();
+      }
+    };
+  }
+};
+
+var w$2 = WINDOW || {};
+if (!w$2[NAMESPACE_IDENTIFIER]) w$2[NAMESPACE_IDENTIFIER] = {};
+if (!w$2[NAMESPACE_IDENTIFIER].styles) w$2[NAMESPACE_IDENTIFIER].styles = {};
+if (!w$2[NAMESPACE_IDENTIFIER].hooks) w$2[NAMESPACE_IDENTIFIER].hooks = {};
+if (!w$2[NAMESPACE_IDENTIFIER].shims) w$2[NAMESPACE_IDENTIFIER].shims = [];
+var namespace = w$2[NAMESPACE_IDENTIFIER];
+
+var functions = [];
+var _listener = function listener() {
+  DOCUMENT.removeEventListener('DOMContentLoaded', _listener);
+  loaded = 1;
+  functions.map(function (fn) {
+    return fn();
+  });
+};
+var loaded = false;
+if (IS_DOM) {
+  loaded = (DOCUMENT.documentElement.doScroll ? /^loaded|^c/ : /^loaded|^i|^c/).test(DOCUMENT.readyState);
+  if (!loaded) DOCUMENT.addEventListener('DOMContentLoaded', _listener);
+}
+function domready (fn) {
+  if (!IS_DOM) return;
+  loaded ? setTimeout(fn, 0) : functions.push(fn);
+}
+
+function toHtml(abstractNodes) {
+  var tag = abstractNodes.tag,
+    _abstractNodes$attrib = abstractNodes.attributes,
+    attributes = _abstractNodes$attrib === void 0 ? {} : _abstractNodes$attrib,
+    _abstractNodes$childr = abstractNodes.children,
+    children = _abstractNodes$childr === void 0 ? [] : _abstractNodes$childr;
+  if (typeof abstractNodes === 'string') {
+    return htmlEscape(abstractNodes);
+  } else {
+    return "<".concat(tag, " ").concat(joinAttributes(attributes), ">").concat(children.map(toHtml).join(''), "</").concat(tag, ">");
+  }
+}
+
+function iconFromMapping(mapping, prefix, iconName) {
+  if (mapping && mapping[prefix] && mapping[prefix][iconName]) {
+    return {
+      prefix: prefix,
+      iconName: iconName,
+      icon: mapping[prefix][iconName]
+    };
+  }
+}
+
+/**
+ * # Reduce
+ *
+ * A fast object `.reduce()` implementation.
+ *
+ * @param  {Object}   subject      The object to reduce over.
+ * @param  {Function} fn           The reducer function.
+ * @param  {mixed}    initialValue The initial value for the reducer, defaults to subject[0].
+ * @param  {Object}   thisContext  The context for the reducer.
+ * @return {mixed}                 The final result.
+ */
+var reduce = function fastReduceObject(subject, fn, initialValue, thisContext) {
+  var keys = Object.keys(subject),
+    length = keys.length,
+    iterator = fn,
+    i,
+    key,
+    result;
+  if (initialValue === undefined) {
+    i = 1;
+    result = subject[keys[0]];
+  } else {
+    i = 0;
+    result = initialValue;
+  }
+  for (; i < length; i++) {
+    key = keys[i];
+    result = iterator(result, subject[key], key, subject);
+  }
+  return result;
+};
+
+/**
+ * Return hexadecimal string for a unicode character
+ * Returns `null` when more than one character (not bytes!) are passed
+ * For example: 'K' → '7B'
+ */
+function toHex(unicode) {
+  if (_toConsumableArray$1(unicode).length !== 1) return null;
+  return unicode.codePointAt(0).toString(16);
+}
+
+function normalizeIcons(icons) {
+  return Object.keys(icons).reduce(function (acc, iconName) {
+    var icon = icons[iconName];
+    var expanded = !!icon.icon;
+    if (expanded) {
+      acc[icon.iconName] = icon.icon;
+    } else {
+      acc[iconName] = icon;
+    }
+    return acc;
+  }, {});
+}
+function defineIcons(prefix, icons) {
+  var params = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
+  var _params$skipHooks = params.skipHooks,
+    skipHooks = _params$skipHooks === void 0 ? false : _params$skipHooks;
+  var normalized = normalizeIcons(icons);
+  if (typeof namespace.hooks.addPack === 'function' && !skipHooks) {
+    namespace.hooks.addPack(prefix, normalizeIcons(icons));
+  } else {
+    namespace.styles[prefix] = _objectSpread2$1(_objectSpread2$1({}, namespace.styles[prefix] || {}), normalized);
+  }
+
+  /**
+   * Font Awesome 4 used the prefix of `fa` for all icons. With the introduction
+   * of new styles we needed to differentiate between them. Prefix `fa` is now an alias
+   * for `fas` so we'll ease the upgrade process for our users by automatically defining
+   * this as well.
+   */
+  if (prefix === 'fas') {
+    defineIcons('fa', icons);
+  }
+}
+
+var styles = namespace.styles,
+  shims = namespace.shims;
+var FAMILY_NAMES = Object.keys(PREFIX_TO_LONG_STYLE);
+var PREFIXES_FOR_FAMILY = FAMILY_NAMES.reduce(function (acc, familyId) {
+  acc[familyId] = Object.keys(PREFIX_TO_LONG_STYLE[familyId]);
+  return acc;
+}, {});
+var _defaultUsablePrefix = null;
+var _byUnicode = {};
+var _byLigature = {};
+var _byOldName = {};
+var _byOldUnicode = {};
+var _byAlias = {};
+function isReserved(name) {
+  return ~RESERVED_CLASSES.indexOf(name);
+}
+function getIconName(cssPrefix, cls) {
+  var parts = cls.split('-');
+  var prefix = parts[0];
+  var iconName = parts.slice(1).join('-');
+  if (prefix === cssPrefix && iconName !== '' && !isReserved(iconName)) {
+    return iconName;
+  } else {
+    return null;
+  }
+}
+var build = function build() {
+  var lookup = function lookup(reducer) {
+    return reduce(styles, function (o$$1, style, prefix) {
+      o$$1[prefix] = reduce(style, reducer, {});
+      return o$$1;
+    }, {});
+  };
+  _byUnicode = lookup(function (acc, icon, iconName) {
+    if (icon[3]) {
+      acc[icon[3]] = iconName;
+    }
+    if (icon[2]) {
+      var aliases = icon[2].filter(function (a$$1) {
+        return typeof a$$1 === 'number';
+      });
+      aliases.forEach(function (alias) {
+        acc[alias.toString(16)] = iconName;
+      });
+    }
+    return acc;
+  });
+  _byLigature = lookup(function (acc, icon, iconName) {
+    acc[iconName] = iconName;
+    if (icon[2]) {
+      var aliases = icon[2].filter(function (a$$1) {
+        return typeof a$$1 === 'string';
+      });
+      aliases.forEach(function (alias) {
+        acc[alias] = iconName;
+      });
+    }
+    return acc;
+  });
+  _byAlias = lookup(function (acc, icon, iconName) {
+    var aliases = icon[2];
+    acc[iconName] = iconName;
+    aliases.forEach(function (alias) {
+      acc[alias] = iconName;
+    });
+    return acc;
+  });
+
+  // If we have a Kit, we can't determine if regular is available since we
+  // could be auto-fetching it. We'll have to assume that it is available.
+  var hasRegular = 'far' in styles || config.autoFetchSvg;
+  var shimLookups = reduce(shims, function (acc, shim) {
+    var maybeNameMaybeUnicode = shim[0];
+    var prefix = shim[1];
+    var iconName = shim[2];
+    if (prefix === 'far' && !hasRegular) {
+      prefix = 'fas';
+    }
+    if (typeof maybeNameMaybeUnicode === 'string') {
+      acc.names[maybeNameMaybeUnicode] = {
+        prefix: prefix,
+        iconName: iconName
+      };
+    }
+    if (typeof maybeNameMaybeUnicode === 'number') {
+      acc.unicodes[maybeNameMaybeUnicode.toString(16)] = {
+        prefix: prefix,
+        iconName: iconName
+      };
+    }
+    return acc;
+  }, {
+    names: {},
+    unicodes: {}
+  });
+  _byOldName = shimLookups.names;
+  _byOldUnicode = shimLookups.unicodes;
+  _defaultUsablePrefix = getCanonicalPrefix(config.styleDefault, {
+    family: config.familyDefault
+  });
+};
+onChange(function (c$$1) {
+  _defaultUsablePrefix = getCanonicalPrefix(c$$1.styleDefault, {
+    family: config.familyDefault
+  });
+});
+build();
+function byUnicode(prefix, unicode) {
+  return (_byUnicode[prefix] || {})[unicode];
+}
+function byLigature(prefix, ligature) {
+  return (_byLigature[prefix] || {})[ligature];
+}
+function byAlias(prefix, alias) {
+  return (_byAlias[prefix] || {})[alias];
+}
+function byOldName(name) {
+  return _byOldName[name] || {
+    prefix: null,
+    iconName: null
+  };
+}
+function byOldUnicode(unicode) {
+  var oldUnicode = _byOldUnicode[unicode];
+  var newUnicode = byUnicode('fas', unicode);
+  return oldUnicode || (newUnicode ? {
+    prefix: 'fas',
+    iconName: newUnicode
+  } : null) || {
+    prefix: null,
+    iconName: null
+  };
+}
+function getDefaultUsablePrefix() {
+  return _defaultUsablePrefix;
+}
+var emptyCanonicalIcon = function emptyCanonicalIcon() {
+  return {
+    prefix: null,
+    iconName: null,
+    rest: []
+  };
+};
+function getFamilyId(values) {
+  var family = u;
+  var famProps = FAMILY_NAMES.reduce(function (acc, familyId) {
+    acc[familyId] = "".concat(config.cssPrefix, "-").concat(familyId);
+    return acc;
+  }, {});
+  xl.forEach(function (familyId) {
+    if (values.includes(famProps[familyId]) || values.some(function (v$$1) {
+      return PREFIXES_FOR_FAMILY[familyId].includes(v$$1);
+    })) {
+      family = familyId;
+    }
+  });
+  return family;
+}
+function getCanonicalPrefix(styleOrPrefix) {
+  var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+  var _params$family = params.family,
+    family = _params$family === void 0 ? u : _params$family;
+  var style = PREFIX_TO_STYLE[family][styleOrPrefix];
+
+  // handles the exception of passing in only a family of 'duotone' with no style
+  if (family === l && !styleOrPrefix) {
+    return 'fad';
+  }
+  var prefix = STYLE_TO_PREFIX[family][styleOrPrefix] || STYLE_TO_PREFIX[family][style];
+  var defined = styleOrPrefix in namespace.styles ? styleOrPrefix : null;
+  var result = prefix || defined || null;
+  return result;
+}
+function moveNonFaClassesToRest(classNames) {
+  var rest = [];
+  var iconName = null;
+  classNames.forEach(function (cls) {
+    var result = getIconName(config.cssPrefix, cls);
+    if (result) {
+      iconName = result;
+    } else if (cls) {
+      rest.push(cls);
+    }
+  });
+  return {
+    iconName: iconName,
+    rest: rest
+  };
+}
+function sortedUniqueValues(arr) {
+  return arr.sort().filter(function (value, index, arr) {
+    return arr.indexOf(value) === index;
+  });
+}
+var _faCombinedClasses = ha.concat(at);
+function getCanonicalIcon(values) {
+  var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+  var _params$skipLookups = params.skipLookups,
+    skipLookups = _params$skipLookups === void 0 ? false : _params$skipLookups;
+  var givenPrefix = null;
+  var faStyleOrFamilyClasses = sortedUniqueValues(values.filter(function (cls) {
+    return _faCombinedClasses.includes(cls);
+  }));
+  var nonStyleOrFamilyClasses = sortedUniqueValues(values.filter(function (cls) {
+    return !_faCombinedClasses.includes(cls);
+  }));
+  var faStyles = faStyleOrFamilyClasses.filter(function (cls) {
+    givenPrefix = cls;
+    return !dl.includes(cls);
+  });
+  var _faStyles = _slicedToArray$1(faStyles, 1),
+    _faStyles$ = _faStyles[0],
+    styleFromValues = _faStyles$ === void 0 ? null : _faStyles$;
+  var family = getFamilyId(faStyleOrFamilyClasses);
+  var canonical = _objectSpread2$1(_objectSpread2$1({}, moveNonFaClassesToRest(nonStyleOrFamilyClasses)), {}, {
+    prefix: getCanonicalPrefix(styleFromValues, {
+      family: family
+    })
+  });
+  return _objectSpread2$1(_objectSpread2$1(_objectSpread2$1({}, canonical), getDefaultCanonicalPrefix({
+    values: values,
+    family: family,
+    styles: styles,
+    config: config,
+    canonical: canonical,
+    givenPrefix: givenPrefix
+  })), applyShimAndAlias(skipLookups, givenPrefix, canonical));
+}
+function applyShimAndAlias(skipLookups, givenPrefix, canonical) {
+  var prefix = canonical.prefix,
+    iconName = canonical.iconName;
+  if (skipLookups || !prefix || !iconName) {
+    return {
+      prefix: prefix,
+      iconName: iconName
+    };
+  }
+  var shim = givenPrefix === 'fa' ? byOldName(iconName) : {};
+  var aliasIconName = byAlias(prefix, iconName);
+  iconName = shim.iconName || aliasIconName || iconName;
+  prefix = shim.prefix || prefix;
+  if (prefix === 'far' && !styles['far'] && styles['fas'] && !config.autoFetchSvg) {
+    // Allow a fallback from the regular style to solid if regular is not available
+    // but only if we aren't auto-fetching SVGs
+    prefix = 'fas';
+  }
+  return {
+    prefix: prefix,
+    iconName: iconName
+  };
+}
+var newCanonicalFamilies = xl.filter(function (familyId) {
+  return familyId !== u || familyId !== l;
+});
+var newCanonicalStyles = Object.keys(da).filter(function (key) {
+  return key !== u;
+}).map(function (key) {
+  return Object.keys(da[key]);
+}).flat();
+function getDefaultCanonicalPrefix(prefixOptions) {
+  var values = prefixOptions.values,
+    family = prefixOptions.family,
+    canonical = prefixOptions.canonical,
+    _prefixOptions$givenP = prefixOptions.givenPrefix,
+    givenPrefix = _prefixOptions$givenP === void 0 ? '' : _prefixOptions$givenP,
+    _prefixOptions$styles = prefixOptions.styles,
+    styles = _prefixOptions$styles === void 0 ? {} : _prefixOptions$styles,
+    _prefixOptions$config = prefixOptions.config,
+    config$$1 = _prefixOptions$config === void 0 ? {} : _prefixOptions$config;
+  var isDuotoneFamily = family === l;
+  var valuesHasDuotone = values.includes('fa-duotone') || values.includes('fad');
+  var defaultFamilyIsDuotone = config$$1.familyDefault === 'duotone';
+  var canonicalPrefixIsDuotone = canonical.prefix === 'fad' || canonical.prefix === 'fa-duotone';
+  if (!isDuotoneFamily && (valuesHasDuotone || defaultFamilyIsDuotone || canonicalPrefixIsDuotone)) {
+    canonical.prefix = 'fad';
+  }
+  if (values.includes('fa-brands') || values.includes('fab')) {
+    canonical.prefix = 'fab';
+  }
+  if (!canonical.prefix && newCanonicalFamilies.includes(family)) {
+    var validPrefix = Object.keys(styles).find(function (key) {
+      return newCanonicalStyles.includes(key);
+    });
+    if (validPrefix || config$$1.autoFetchSvg) {
+      var defaultPrefix = Ql.get(family).defaultShortPrefixId;
+      canonical.prefix = defaultPrefix;
+      canonical.iconName = byAlias(canonical.prefix, canonical.iconName) || canonical.iconName;
+    }
+  }
+  if (canonical.prefix === 'fa' || givenPrefix === 'fa') {
+    // The fa prefix is not canonical. So if it has made it through until this point
+    // we will shift it to the correct prefix.
+    canonical.prefix = getDefaultUsablePrefix() || 'fas';
+  }
+  return canonical;
+}
+
+var Library = /*#__PURE__*/function () {
+  function Library() {
+    _classCallCheck(this, Library);
+    this.definitions = {};
+  }
+  return _createClass(Library, [{
+    key: "add",
+    value: function add() {
+      var _this = this;
+      for (var _len = arguments.length, definitions = new Array(_len), _key = 0; _key < _len; _key++) {
+        definitions[_key] = arguments[_key];
+      }
+      var additions = definitions.reduce(this._pullDefinitions, {});
+      Object.keys(additions).forEach(function (key) {
+        _this.definitions[key] = _objectSpread2$1(_objectSpread2$1({}, _this.definitions[key] || {}), additions[key]);
+        defineIcons(key, additions[key]);
+
+        // To keep support for older Classic styles, also add longer prefixes
+        var longPrefix = PREFIX_TO_LONG_STYLE[u][key];
+        if (longPrefix) defineIcons(longPrefix, additions[key]);
+        build();
+      });
+    }
+  }, {
+    key: "reset",
+    value: function reset() {
+      this.definitions = {};
+    }
+  }, {
+    key: "_pullDefinitions",
+    value: function _pullDefinitions(additions, definition) {
+      var normalized = definition.prefix && definition.iconName && definition.icon ? {
+        0: definition
+      } : definition;
+      Object.keys(normalized).map(function (key) {
+        var _normalized$key = normalized[key],
+          prefix = _normalized$key.prefix,
+          iconName = _normalized$key.iconName,
+          icon = _normalized$key.icon;
+        var aliases = icon[2];
+        if (!additions[prefix]) additions[prefix] = {};
+        if (aliases.length > 0) {
+          aliases.forEach(function (alias) {
+            if (typeof alias === 'string') {
+              additions[prefix][alias] = icon;
+            }
+          });
+        }
+        additions[prefix][iconName] = icon;
+      });
+      return additions;
+    }
+  }]);
+}();
+
+var _plugins = [];
+var _hooks = {};
+var providers = {};
+var defaultProviderKeys = Object.keys(providers);
+function registerPlugins(nextPlugins, _ref) {
+  var obj = _ref.mixoutsTo;
+  _plugins = nextPlugins;
+  _hooks = {};
+  Object.keys(providers).forEach(function (k) {
+    if (defaultProviderKeys.indexOf(k) === -1) {
+      delete providers[k];
+    }
+  });
+  _plugins.forEach(function (plugin) {
+    var mixout = plugin.mixout ? plugin.mixout() : {};
+    Object.keys(mixout).forEach(function (tk) {
+      if (typeof mixout[tk] === 'function') {
+        obj[tk] = mixout[tk];
+      }
+      if (_typeof$1(mixout[tk]) === 'object') {
+        Object.keys(mixout[tk]).forEach(function (sk) {
+          if (!obj[tk]) {
+            obj[tk] = {};
+          }
+          obj[tk][sk] = mixout[tk][sk];
+        });
+      }
+    });
+    if (plugin.hooks) {
+      var hooks = plugin.hooks();
+      Object.keys(hooks).forEach(function (hook) {
+        if (!_hooks[hook]) {
+          _hooks[hook] = [];
+        }
+        _hooks[hook].push(hooks[hook]);
+      });
+    }
+    if (plugin.provides) {
+      plugin.provides(providers);
+    }
+  });
+  return obj;
+}
+function chainHooks(hook, accumulator) {
+  for (var _len = arguments.length, args = new Array(_len > 2 ? _len - 2 : 0), _key = 2; _key < _len; _key++) {
+    args[_key - 2] = arguments[_key];
+  }
+  var hookFns = _hooks[hook] || [];
+  hookFns.forEach(function (hookFn) {
+    accumulator = hookFn.apply(null, [accumulator].concat(args));
+  });
+  return accumulator;
+}
+function callHooks(hook) {
+  for (var _len2 = arguments.length, args = new Array(_len2 > 1 ? _len2 - 1 : 0), _key2 = 1; _key2 < _len2; _key2++) {
+    args[_key2 - 1] = arguments[_key2];
+  }
+  var hookFns = _hooks[hook] || [];
+  hookFns.forEach(function (hookFn) {
+    hookFn.apply(null, args);
+  });
+  return undefined;
+}
+function callProvided() {
+  var hook = arguments[0];
+  var args = Array.prototype.slice.call(arguments, 1);
+  return providers[hook] ? providers[hook].apply(null, args) : undefined;
+}
+
+function findIconDefinition(iconLookup) {
+  if (iconLookup.prefix === 'fa') {
+    iconLookup.prefix = 'fas';
+  }
+  var iconName = iconLookup.iconName;
+  var prefix = iconLookup.prefix || getDefaultUsablePrefix();
+  if (!iconName) return;
+  iconName = byAlias(prefix, iconName) || iconName;
+  return iconFromMapping(library.definitions, prefix, iconName) || iconFromMapping(namespace.styles, prefix, iconName);
+}
+var library = new Library();
+var noAuto = function noAuto() {
+  config.autoReplaceSvg = false;
+  config.observeMutations = false;
+  callHooks('noAuto');
+};
+var dom = {
+  i2svg: function i2svg() {
+    var params = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+    if (IS_DOM) {
+      callHooks('beforeI2svg', params);
+      callProvided('pseudoElements2svg', params);
+      return callProvided('i2svg', params);
+    } else {
+      return Promise.reject(new Error('Operation requires a DOM of some kind.'));
+    }
+  },
+  watch: function watch() {
+    var params = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+    var autoReplaceSvgRoot = params.autoReplaceSvgRoot;
+    if (config.autoReplaceSvg === false) {
+      config.autoReplaceSvg = true;
+    }
+    config.observeMutations = true;
+    domready(function () {
+      autoReplace({
+        autoReplaceSvgRoot: autoReplaceSvgRoot
+      });
+      callHooks('watch', params);
+    });
+  }
+};
+var parse = {
+  icon: function icon(_icon) {
+    if (_icon === null) {
+      return null;
+    }
+    if (_typeof$1(_icon) === 'object' && _icon.prefix && _icon.iconName) {
+      return {
+        prefix: _icon.prefix,
+        iconName: byAlias(_icon.prefix, _icon.iconName) || _icon.iconName
+      };
+    }
+    if (Array.isArray(_icon) && _icon.length === 2) {
+      var iconName = _icon[1].indexOf('fa-') === 0 ? _icon[1].slice(3) : _icon[1];
+      var prefix = getCanonicalPrefix(_icon[0]);
+      return {
+        prefix: prefix,
+        iconName: byAlias(prefix, iconName) || iconName
+      };
+    }
+    if (typeof _icon === 'string' && (_icon.indexOf("".concat(config.cssPrefix, "-")) > -1 || _icon.match(ICON_SELECTION_SYNTAX_PATTERN))) {
+      var canonicalIcon = getCanonicalIcon(_icon.split(' '), {
+        skipLookups: true
+      });
+      return {
+        prefix: canonicalIcon.prefix || getDefaultUsablePrefix(),
+        iconName: byAlias(canonicalIcon.prefix, canonicalIcon.iconName) || canonicalIcon.iconName
+      };
+    }
+    if (typeof _icon === 'string') {
+      var _prefix = getDefaultUsablePrefix();
+      return {
+        prefix: _prefix,
+        iconName: byAlias(_prefix, _icon) || _icon
+      };
+    }
+  }
+};
+var api = {
+  noAuto: noAuto,
+  config: config,
+  dom: dom,
+  parse: parse,
+  library: library,
+  findIconDefinition: findIconDefinition,
+  toHtml: toHtml
+};
+var autoReplace = function autoReplace() {
+  var params = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+  var _params$autoReplaceSv = params.autoReplaceSvgRoot,
+    autoReplaceSvgRoot = _params$autoReplaceSv === void 0 ? DOCUMENT : _params$autoReplaceSv;
+  if ((Object.keys(namespace.styles).length > 0 || config.autoFetchSvg) && IS_DOM && config.autoReplaceSvg) api.dom.i2svg({
+    node: autoReplaceSvgRoot
+  });
+};
+
+function domVariants(val, abstractCreator) {
+  Object.defineProperty(val, 'abstract', {
+    get: abstractCreator
+  });
+  Object.defineProperty(val, 'html', {
+    get: function get() {
+      return val.abstract.map(function (a) {
+        return toHtml(a);
+      });
+    }
+  });
+  Object.defineProperty(val, 'node', {
+    get: function get() {
+      if (!IS_DOM) return undefined;
+      var container = DOCUMENT.createElement('div');
+      container.innerHTML = val.html;
+      return container.children;
+    }
+  });
+  return val;
+}
+
+function asIcon (_ref) {
+  var children = _ref.children,
+    main = _ref.main,
+    mask = _ref.mask,
+    attributes = _ref.attributes,
+    styles = _ref.styles,
+    transform = _ref.transform;
+  if (transformIsMeaningful(transform) && main.found && !mask.found) {
+    var width = main.width,
+      height = main.height;
+    var offset = {
+      x: width / height / 2,
+      y: 0.5
+    };
+    attributes['style'] = joinStyles(_objectSpread2$1(_objectSpread2$1({}, styles), {}, {
+      'transform-origin': "".concat(offset.x + transform.x / 16, "em ").concat(offset.y + transform.y / 16, "em")
+    }));
+  }
+  return [{
+    tag: 'svg',
+    attributes: attributes,
+    children: children
+  }];
+}
+
+function asSymbol (_ref) {
+  var prefix = _ref.prefix,
+    iconName = _ref.iconName,
+    children = _ref.children,
+    attributes = _ref.attributes,
+    symbol = _ref.symbol;
+  var id = symbol === true ? "".concat(prefix, "-").concat(config.cssPrefix, "-").concat(iconName) : symbol;
+  return [{
+    tag: 'svg',
+    attributes: {
+      style: 'display: none;'
+    },
+    children: [{
+      tag: 'symbol',
+      attributes: _objectSpread2$1(_objectSpread2$1({}, attributes), {}, {
+        id: id
+      }),
+      children: children
+    }]
+  }];
+}
+
+// If any of these attributes are present, don't assume the icon is decorative
+function isLabeled(attributes) {
+  var labels = ['aria-label', 'aria-labelledby', 'title', 'role'];
+  return labels.some(function (label) {
+    return label in attributes;
+  });
+}
+function makeInlineSvgAbstract(params) {
+  var _params$icons = params.icons,
+    main = _params$icons.main,
+    mask = _params$icons.mask,
+    prefix = params.prefix,
+    iconName = params.iconName,
+    transform = params.transform,
+    symbol = params.symbol,
+    maskId = params.maskId,
+    extra = params.extra,
+    _params$watchable = params.watchable,
+    watchable = _params$watchable === void 0 ? false : _params$watchable;
+  var _ref = mask.found ? mask : main,
+    width = _ref.width,
+    height = _ref.height;
+  var attrClass = [config.replacementClass, iconName ? "".concat(config.cssPrefix, "-").concat(iconName) : ''].filter(function (c) {
+    return extra.classes.indexOf(c) === -1;
+  }).filter(function (c) {
+    return c !== '' || !!c;
+  }).concat(extra.classes).join(' ');
+  var content = {
+    children: [],
+    attributes: _objectSpread2$1(_objectSpread2$1({}, extra.attributes), {}, {
+      'data-prefix': prefix,
+      'data-icon': iconName,
+      'class': attrClass,
+      'role': extra.attributes.role || 'img',
+      'viewBox': "0 0 ".concat(width, " ").concat(height)
+    })
+  };
+  if (!isLabeled(extra.attributes) && !extra.attributes['aria-hidden']) {
+    content.attributes['aria-hidden'] = 'true';
+  }
+  if (watchable) {
+    content.attributes[DATA_FA_I2SVG] = '';
+  }
+  var args = _objectSpread2$1(_objectSpread2$1({}, content), {}, {
+    prefix: prefix,
+    iconName: iconName,
+    main: main,
+    mask: mask,
+    maskId: maskId,
+    transform: transform,
+    symbol: symbol,
+    styles: _objectSpread2$1({}, extra.styles)
+  });
+  var _ref2 = mask.found && main.found ? callProvided('generateAbstractMask', args) || {
+      children: [],
+      attributes: {}
+    } : callProvided('generateAbstractIcon', args) || {
+      children: [],
+      attributes: {}
+    },
+    children = _ref2.children,
+    attributes = _ref2.attributes;
+  args.children = children;
+  args.attributes = attributes;
+  if (symbol) {
+    return asSymbol(args);
+  } else {
+    return asIcon(args);
+  }
+}
+function makeLayersTextAbstract(params) {
+  var content = params.content,
+    width = params.width,
+    height = params.height,
+    transform = params.transform,
+    extra = params.extra,
+    _params$watchable2 = params.watchable,
+    watchable = _params$watchable2 === void 0 ? false : _params$watchable2;
+  var attributes = _objectSpread2$1(_objectSpread2$1({}, extra.attributes), {}, {
+    class: extra.classes.join(' ')
+  });
+  if (watchable) {
+    attributes[DATA_FA_I2SVG] = '';
+  }
+  var styles = _objectSpread2$1({}, extra.styles);
+  if (transformIsMeaningful(transform)) {
+    styles['transform'] = transformForCss({
+      transform: transform,
+      width: width,
+      height: height
+    });
+    styles['-webkit-transform'] = styles['transform'];
+  }
+  var styleString = joinStyles(styles);
+  if (styleString.length > 0) {
+    attributes['style'] = styleString;
+  }
+  var val = [];
+  val.push({
+    tag: 'span',
+    attributes: attributes,
+    children: [content]
+  });
+  return val;
+}
+function makeLayersCounterAbstract(params) {
+  var content = params.content,
+    extra = params.extra;
+  var attributes = _objectSpread2$1(_objectSpread2$1({}, extra.attributes), {}, {
+    class: extra.classes.join(' ')
+  });
+  var styleString = joinStyles(extra.styles);
+  if (styleString.length > 0) {
+    attributes['style'] = styleString;
+  }
+  var val = [];
+  val.push({
+    tag: 'span',
+    attributes: attributes,
+    children: [content]
+  });
+  return val;
+}
+
+var styles$1 = namespace.styles;
+function asFoundIcon(icon) {
+  var width = icon[0];
+  var height = icon[1];
+  var _icon$slice = icon.slice(4),
+    _icon$slice2 = _slicedToArray$1(_icon$slice, 1),
+    vectorData = _icon$slice2[0];
+  var element = null;
+  if (Array.isArray(vectorData)) {
+    element = {
+      tag: 'g',
+      attributes: {
+        class: "".concat(config.cssPrefix, "-").concat(DUOTONE_CLASSES.GROUP)
+      },
+      children: [{
+        tag: 'path',
+        attributes: {
+          class: "".concat(config.cssPrefix, "-").concat(DUOTONE_CLASSES.SECONDARY),
+          fill: 'currentColor',
+          d: vectorData[0]
+        }
+      }, {
+        tag: 'path',
+        attributes: {
+          class: "".concat(config.cssPrefix, "-").concat(DUOTONE_CLASSES.PRIMARY),
+          fill: 'currentColor',
+          d: vectorData[1]
+        }
+      }]
+    };
+  } else {
+    element = {
+      tag: 'path',
+      attributes: {
+        fill: 'currentColor',
+        d: vectorData
+      }
+    };
+  }
+  return {
+    found: true,
+    width: width,
+    height: height,
+    icon: element
+  };
+}
+var missingIconResolutionMixin = {
+  found: false,
+  width: 512,
+  height: 512
+};
+function maybeNotifyMissing(iconName, prefix) {
+  if (!PRODUCTION$1 && !config.showMissingIcons && iconName) {
+    console.error("Icon with name \"".concat(iconName, "\" and prefix \"").concat(prefix, "\" is missing."));
+  }
+}
+function findIcon(iconName, prefix) {
+  var givenPrefix = prefix;
+  if (prefix === 'fa' && config.styleDefault !== null) {
+    prefix = getDefaultUsablePrefix();
+  }
+  return new Promise(function (resolve, reject) {
+    if (givenPrefix === 'fa') {
+      var shim = byOldName(iconName) || {};
+      iconName = shim.iconName || iconName;
+      prefix = shim.prefix || prefix;
+    }
+    if (iconName && prefix && styles$1[prefix] && styles$1[prefix][iconName]) {
+      var icon = styles$1[prefix][iconName];
+      return resolve(asFoundIcon(icon));
+    }
+    maybeNotifyMissing(iconName, prefix);
+    resolve(_objectSpread2$1(_objectSpread2$1({}, missingIconResolutionMixin), {}, {
+      icon: config.showMissingIcons && iconName ? callProvided('missingIconAbstract') || {} : {}
+    }));
+  });
+}
+
+var noop$1 = function noop() {};
+var p$2 = config.measurePerformance && PERFORMANCE && PERFORMANCE.mark && PERFORMANCE.measure ? PERFORMANCE : {
+  mark: noop$1,
+  measure: noop$1
+};
+var preamble = "FA \"7.3.0\"";
+var begin = function begin(name) {
+  p$2.mark("".concat(preamble, " ").concat(name, " begins"));
+  return function () {
+    return end(name);
+  };
+};
+var end = function end(name) {
+  p$2.mark("".concat(preamble, " ").concat(name, " ends"));
+  p$2.measure("".concat(preamble, " ").concat(name), "".concat(preamble, " ").concat(name, " begins"), "".concat(preamble, " ").concat(name, " ends"));
+};
+var perf = {
+  begin: begin,
+  end: end
+};
+
+var noop$2 = function noop() {};
+function isWatched(node) {
+  var i2svg = node.getAttribute ? node.getAttribute(DATA_FA_I2SVG) : null;
+  return typeof i2svg === 'string';
+}
+function hasPrefixAndIcon(node) {
+  var prefix = node.getAttribute ? node.getAttribute(DATA_PREFIX) : null;
+  var icon = node.getAttribute ? node.getAttribute(DATA_ICON) : null;
+  return prefix && icon;
+}
+function hasBeenReplaced(node) {
+  return node && node.classList && node.classList.contains && node.classList.contains(config.replacementClass);
+}
+function getMutator() {
+  if (config.autoReplaceSvg === true) {
+    return mutators.replace;
+  }
+  var mutator = mutators[config.autoReplaceSvg];
+  return mutator || mutators.replace;
+}
+function createElementNS(tag) {
+  return DOCUMENT.createElementNS('http://www.w3.org/2000/svg', tag);
+}
+function createElement(tag) {
+  return DOCUMENT.createElement(tag);
+}
+function convertSVG(abstractObj) {
+  var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+  var _params$ceFn = params.ceFn,
+    ceFn = _params$ceFn === void 0 ? abstractObj.tag === 'svg' ? createElementNS : createElement : _params$ceFn;
+  if (typeof abstractObj === 'string') {
+    return DOCUMENT.createTextNode(abstractObj);
+  }
+  var tag = ceFn(abstractObj.tag);
+  Object.keys(abstractObj.attributes || []).forEach(function (key) {
+    tag.setAttribute(key, abstractObj.attributes[key]);
+  });
+  var children = abstractObj.children || [];
+  children.forEach(function (child) {
+    tag.appendChild(convertSVG(child, {
+      ceFn: ceFn
+    }));
+  });
+  return tag;
+}
+function nodeAsComment(node) {
+  var comment = " ".concat(node.outerHTML, " ");
+  /* BEGIN.ATTRIBUTION */
+  comment = "".concat(comment, "Font Awesome fontawesome.com ");
+  /* END.ATTRIBUTION */
+  return comment;
+}
+var mutators = {
+  replace: function replace(mutation) {
+    var node = mutation[0];
+    if (node.parentNode) {
+      mutation[1].forEach(function (abstract) {
+        node.parentNode.insertBefore(convertSVG(abstract), node);
+      });
+      if (node.getAttribute(DATA_FA_I2SVG) === null && config.keepOriginalSource) {
+        var comment = DOCUMENT.createComment(nodeAsComment(node));
+        node.parentNode.replaceChild(comment, node);
+      } else {
+        node.remove();
+      }
+    }
+  },
+  nest: function nest(mutation) {
+    var node = mutation[0];
+    var abstract = mutation[1];
+
+    // If we already have a replaced node we do not want to continue nesting within it.
+    // Short-circuit to the standard replacement
+    if (~classArray(node).indexOf(config.replacementClass)) {
+      return mutators.replace(mutation);
+    }
+    var forSvg = new RegExp("".concat(config.cssPrefix, "-.*"));
+    delete abstract[0].attributes.id;
+    if (abstract[0].attributes.class) {
+      var splitClasses = abstract[0].attributes.class.split(' ').reduce(function (acc, cls) {
+        if (cls === config.replacementClass || cls.match(forSvg)) {
+          acc.toSvg.push(cls);
+        } else {
+          acc.toNode.push(cls);
+        }
+        return acc;
+      }, {
+        toNode: [],
+        toSvg: []
+      });
+      abstract[0].attributes.class = splitClasses.toSvg.join(' ');
+      if (splitClasses.toNode.length === 0) {
+        node.removeAttribute('class');
+      } else {
+        node.setAttribute('class', splitClasses.toNode.join(' '));
+      }
+    }
+    var newInnerHTML = abstract.map(function (a) {
+      return toHtml(a);
+    }).join('\n');
+    node.setAttribute(DATA_FA_I2SVG, '');
+    node.innerHTML = newInnerHTML;
+  }
+};
+function performOperationSync(op) {
+  op();
+}
+function perform(mutations, callback) {
+  var callbackFunction = typeof callback === 'function' ? callback : noop$2;
+  if (mutations.length === 0) {
+    callbackFunction();
+  } else {
+    var frame = performOperationSync;
+    if (config.mutateApproach === MUTATION_APPROACH_ASYNC) {
+      frame = WINDOW.requestAnimationFrame || performOperationSync;
+    }
+    frame(function () {
+      var mutator = getMutator();
+      var mark = perf.begin('mutate');
+      mutations.map(mutator);
+      mark();
+      callbackFunction();
+    });
+  }
+}
+var disabled = false;
+function disableObservation() {
+  disabled = true;
+}
+function enableObservation() {
+  disabled = false;
+}
+var mo = null;
+function observe(options) {
+  if (!MUTATION_OBSERVER) {
+    return;
+  }
+  if (!config.observeMutations) {
+    return;
+  }
+  var _options$treeCallback = options.treeCallback,
+    treeCallback = _options$treeCallback === void 0 ? noop$2 : _options$treeCallback,
+    _options$nodeCallback = options.nodeCallback,
+    nodeCallback = _options$nodeCallback === void 0 ? noop$2 : _options$nodeCallback,
+    _options$pseudoElemen = options.pseudoElementsCallback,
+    pseudoElementsCallback = _options$pseudoElemen === void 0 ? noop$2 : _options$pseudoElemen,
+    _options$observeMutat = options.observeMutationsRoot,
+    observeMutationsRoot = _options$observeMutat === void 0 ? DOCUMENT : _options$observeMutat;
+  mo = new MUTATION_OBSERVER(function (objects) {
+    if (disabled) return;
+    var defaultPrefix = getDefaultUsablePrefix();
+    toArray(objects).forEach(function (mutationRecord) {
+      if (mutationRecord.type === 'childList' && mutationRecord.addedNodes.length > 0 && !isWatched(mutationRecord.addedNodes[0])) {
+        if (config.searchPseudoElements) {
+          pseudoElementsCallback(mutationRecord.target);
+        }
+        treeCallback(mutationRecord.target);
+      }
+      if (mutationRecord.type === 'attributes' && mutationRecord.target.parentNode && config.searchPseudoElements) {
+        pseudoElementsCallback([mutationRecord.target], true);
+      }
+      if (mutationRecord.type === 'attributes' && isWatched(mutationRecord.target) && ~ATTRIBUTES_WATCHED_FOR_MUTATION.indexOf(mutationRecord.attributeName)) {
+        if (mutationRecord.attributeName === 'class' && hasPrefixAndIcon(mutationRecord.target)) {
+          var _getCanonicalIcon = getCanonicalIcon(classArray(mutationRecord.target)),
+            prefix = _getCanonicalIcon.prefix,
+            iconName = _getCanonicalIcon.iconName;
+          mutationRecord.target.setAttribute(DATA_PREFIX, prefix || defaultPrefix);
+          if (iconName) mutationRecord.target.setAttribute(DATA_ICON, iconName);
+        } else if (hasBeenReplaced(mutationRecord.target)) {
+          nodeCallback(mutationRecord.target);
+        }
+      }
+    });
+  });
+  if (!IS_DOM) return;
+  mo.observe(observeMutationsRoot, {
+    childList: true,
+    attributes: true,
+    characterData: true,
+    subtree: true
+  });
+}
+function disconnect() {
+  if (!mo) return;
+  mo.disconnect();
+}
+
+function styleParser (node) {
+  var style = node.getAttribute('style');
+  var val = [];
+  if (style) {
+    val = style.split(';').reduce(function (acc, style) {
+      var styles = style.split(':');
+      var prop = styles[0];
+      var value = styles.slice(1);
+      if (prop && value.length > 0) {
+        acc[prop] = value.join(':').trim();
+      }
+      return acc;
+    }, {});
+  }
+  return val;
+}
+
+function classParser (node) {
+  var existingPrefix = node.getAttribute('data-prefix');
+  var existingIconName = node.getAttribute('data-icon');
+  var innerText = node.innerText !== undefined ? node.innerText.trim() : '';
+  var val = getCanonicalIcon(classArray(node));
+  if (!val.prefix) {
+    val.prefix = getDefaultUsablePrefix();
+  }
+  if (existingPrefix && existingIconName) {
+    val.prefix = existingPrefix;
+    val.iconName = existingIconName;
+  }
+  if (val.iconName && val.prefix) {
+    return val;
+  }
+  if (val.prefix && innerText.length > 0) {
+    val.iconName = byLigature(val.prefix, node.innerText) || byUnicode(val.prefix, toHex(node.innerText));
+  }
+  if (!val.iconName && config.autoFetchSvg && node.firstChild && node.firstChild.nodeType === Node.TEXT_NODE) {
+    val.iconName = node.firstChild.data;
+  }
+  return val;
+}
+
+function attributesParser (node) {
+  var extraAttributes = toArray(node.attributes).reduce(function (acc, attr) {
+    if (acc.name !== 'class' && acc.name !== 'style') {
+      acc[attr.name] = attr.value;
+    }
+    return acc;
+  }, {});
+  return extraAttributes;
+}
+
+function blankMeta() {
+  return {
+    iconName: null,
+    prefix: null,
+    transform: meaninglessTransform,
+    symbol: false,
+    mask: {
+      iconName: null,
+      prefix: null,
+      rest: []
+    },
+    maskId: null,
+    extra: {
+      classes: [],
+      styles: {},
+      attributes: {}
+    }
+  };
+}
+function parseMeta(node) {
+  var parser = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {
+    styleParser: true
+  };
+  var _classParser = classParser(node),
+    iconName = _classParser.iconName,
+    prefix = _classParser.prefix,
+    extraClasses = _classParser.rest;
+  var extraAttributes = attributesParser(node);
+  var pluginMeta = chainHooks('parseNodeAttributes', {}, node);
+  var extraStyles = parser.styleParser ? styleParser(node) : [];
+  return _objectSpread2$1({
+    iconName: iconName,
+    prefix: prefix,
+    transform: meaninglessTransform,
+    mask: {
+      iconName: null,
+      prefix: null,
+      rest: []
+    },
+    maskId: null,
+    symbol: false,
+    extra: {
+      classes: extraClasses,
+      styles: extraStyles,
+      attributes: extraAttributes
+    }
+  }, pluginMeta);
+}
+
+var styles$2 = namespace.styles;
+function generateMutation(node) {
+  var nodeMeta = config.autoReplaceSvg === 'nest' ? parseMeta(node, {
+    styleParser: false
+  }) : parseMeta(node);
+  if (~nodeMeta.extra.classes.indexOf(LAYERS_TEXT_CLASSNAME)) {
+    return callProvided('generateLayersText', node, nodeMeta);
+  } else {
+    return callProvided('generateSvgReplacementMutation', node, nodeMeta);
+  }
+}
+function getKnownPrefixes() {
+  return [].concat(_toConsumableArray$1(at), _toConsumableArray$1(ha));
+}
+function onTree(root) {
+  var callback = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
+  if (!IS_DOM) return Promise.resolve();
+  var htmlClassList = DOCUMENT.documentElement.classList;
+  var hclAdd = function hclAdd(suffix) {
+    return htmlClassList.add("".concat(HTML_CLASS_I2SVG_BASE_CLASS, "-").concat(suffix));
+  };
+  var hclRemove = function hclRemove(suffix) {
+    return htmlClassList.remove("".concat(HTML_CLASS_I2SVG_BASE_CLASS, "-").concat(suffix));
+  };
+  var prefixes = config.autoFetchSvg ? getKnownPrefixes() : dl.concat(Object.keys(styles$2));
+  if (!prefixes.includes('fa')) {
+    prefixes.push('fa');
+  }
+  var prefixesDomQuery = [".".concat(LAYERS_TEXT_CLASSNAME, ":not([").concat(DATA_FA_I2SVG, "])")].concat(prefixes.map(function (p$$1) {
+    return ".".concat(p$$1, ":not([").concat(DATA_FA_I2SVG, "])");
+  })).join(', ');
+  if (prefixesDomQuery.length === 0) {
+    return Promise.resolve();
+  }
+  var candidates = [];
+  try {
+    candidates = toArray(root.querySelectorAll(prefixesDomQuery));
+  } catch (e$$1) {
+    // noop
+  }
+  if (candidates.length > 0) {
+    hclAdd('pending');
+    hclRemove('complete');
+  } else {
+    return Promise.resolve();
+  }
+  var mark = perf.begin('onTree');
+  var mutations = candidates.reduce(function (acc, node) {
+    try {
+      var mutation = generateMutation(node);
+      if (mutation) {
+        acc.push(mutation);
+      }
+    } catch (e$$1) {
+      if (!PRODUCTION$1) {
+        if (e$$1.name === 'MissingIcon') {
+          console.error(e$$1);
+        }
+      }
+    }
+    return acc;
+  }, []);
+  return new Promise(function (resolve, reject) {
+    Promise.all(mutations).then(function (resolvedMutations) {
+      perform(resolvedMutations, function () {
+        hclAdd('active');
+        hclAdd('complete');
+        hclRemove('pending');
+        if (typeof callback === 'function') callback();
+        mark();
+        resolve();
+      });
+    }).catch(function (e$$1) {
+      mark();
+      reject(e$$1);
+    });
+  });
+}
+function onNode(node) {
+  var callback = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
+  generateMutation(node).then(function (mutation) {
+    if (mutation) {
+      perform([mutation], callback);
+    }
+  });
+}
+function resolveIcons(next) {
+  return function (maybeIconDefinition) {
+    var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+    var iconDefinition = (maybeIconDefinition || {}).icon ? maybeIconDefinition : findIconDefinition(maybeIconDefinition || {});
+    var mask = params.mask;
+    if (mask) {
+      mask = (mask || {}).icon ? mask : findIconDefinition(mask || {});
+    }
+    return next(iconDefinition, _objectSpread2$1(_objectSpread2$1({}, params), {}, {
+      mask: mask
+    }));
+  };
+}
+var render = function render(iconDefinition) {
+  var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+  var _params$transform = params.transform,
+    transform = _params$transform === void 0 ? meaninglessTransform : _params$transform,
+    _params$symbol = params.symbol,
+    symbol = _params$symbol === void 0 ? false : _params$symbol,
+    _params$mask = params.mask,
+    mask = _params$mask === void 0 ? null : _params$mask,
+    _params$maskId = params.maskId,
+    maskId = _params$maskId === void 0 ? null : _params$maskId,
+    _params$classes = params.classes,
+    classes = _params$classes === void 0 ? [] : _params$classes,
+    _params$attributes = params.attributes,
+    attributes = _params$attributes === void 0 ? {} : _params$attributes,
+    _params$styles = params.styles,
+    styles = _params$styles === void 0 ? {} : _params$styles;
+  if (!iconDefinition) return;
+  var prefix = iconDefinition.prefix,
+    iconName = iconDefinition.iconName,
+    icon = iconDefinition.icon;
+  return domVariants(_objectSpread2$1({
+    type: 'icon'
+  }, iconDefinition), function () {
+    callHooks('beforeDOMElementCreation', {
+      iconDefinition: iconDefinition,
+      params: params
+    });
+    return makeInlineSvgAbstract({
+      icons: {
+        main: asFoundIcon(icon),
+        mask: mask ? asFoundIcon(mask.icon) : {
+          found: false,
+          width: null,
+          height: null,
+          icon: {}
+        }
+      },
+      prefix: prefix,
+      iconName: iconName,
+      transform: _objectSpread2$1(_objectSpread2$1({}, meaninglessTransform), transform),
+      symbol: symbol,
+      maskId: maskId,
+      extra: {
+        attributes: attributes,
+        styles: styles,
+        classes: classes
+      }
+    });
+  });
+};
+var ReplaceElements = {
+  mixout: function mixout() {
+    return {
+      icon: resolveIcons(render)
+    };
+  },
+  hooks: function hooks() {
+    return {
+      mutationObserverCallbacks: function mutationObserverCallbacks(accumulator) {
+        accumulator.treeCallback = onTree;
+        accumulator.nodeCallback = onNode;
+        return accumulator;
+      }
+    };
+  },
+  provides: function provides(providers$$1) {
+    providers$$1.i2svg = function (params) {
+      var _params$node = params.node,
+        node = _params$node === void 0 ? DOCUMENT : _params$node,
+        _params$callback = params.callback,
+        callback = _params$callback === void 0 ? function () {} : _params$callback;
+      return onTree(node, callback);
+    };
+    providers$$1.generateSvgReplacementMutation = function (node, nodeMeta) {
+      var iconName = nodeMeta.iconName,
+        prefix = nodeMeta.prefix,
+        transform = nodeMeta.transform,
+        symbol = nodeMeta.symbol,
+        mask = nodeMeta.mask,
+        maskId = nodeMeta.maskId,
+        extra = nodeMeta.extra;
+      return new Promise(function (resolve, reject) {
+        Promise.all([findIcon(iconName, prefix), mask.iconName ? findIcon(mask.iconName, mask.prefix) : Promise.resolve({
+          found: false,
+          width: 512,
+          height: 512,
+          icon: {}
+        })]).then(function (_ref) {
+          var _ref2 = _slicedToArray$1(_ref, 2),
+            main = _ref2[0],
+            mask = _ref2[1];
+          resolve([node, makeInlineSvgAbstract({
+            icons: {
+              main: main,
+              mask: mask
+            },
+            prefix: prefix,
+            iconName: iconName,
+            transform: transform,
+            symbol: symbol,
+            maskId: maskId,
+            extra: extra,
+            watchable: true
+          })]);
+        }).catch(reject);
+      });
+    };
+    providers$$1.generateAbstractIcon = function (_ref3) {
+      var children = _ref3.children,
+        attributes = _ref3.attributes,
+        main = _ref3.main,
+        transform = _ref3.transform,
+        styles = _ref3.styles;
+      var styleString = joinStyles(styles);
+      if (styleString.length > 0) {
+        attributes['style'] = styleString;
+      }
+      var nextChild;
+      if (transformIsMeaningful(transform)) {
+        nextChild = callProvided('generateAbstractTransformGrouping', {
+          main: main,
+          transform: transform,
+          containerWidth: main.width,
+          iconWidth: main.width
+        });
+      }
+      children.push(nextChild || main.icon);
+      return {
+        children: children,
+        attributes: attributes
+      };
+    };
+  }
+};
+
+var Layers = {
+  mixout: function mixout() {
+    return {
+      layer: function layer(assembler) {
+        var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+        var _params$classes = params.classes,
+          classes = _params$classes === void 0 ? [] : _params$classes;
+        return domVariants({
+          type: 'layer'
+        }, function () {
+          callHooks('beforeDOMElementCreation', {
+            assembler: assembler,
+            params: params
+          });
+          var children = [];
+          assembler(function (args) {
+            Array.isArray(args) ? args.map(function (a) {
+              children = children.concat(a.abstract);
+            }) : children = children.concat(args.abstract);
+          });
+          return [{
+            tag: 'span',
+            attributes: {
+              class: ["".concat(config.cssPrefix, "-layers")].concat(_toConsumableArray$1(classes)).join(' ')
+            },
+            children: children
+          }];
+        });
+      }
+    };
+  }
+};
+
+var LayersCounter = {
+  mixout: function mixout() {
+    return {
+      counter: function counter(content) {
+        var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+        params.title;
+          var _params$classes = params.classes,
+          classes = _params$classes === void 0 ? [] : _params$classes,
+          _params$attributes = params.attributes,
+          attributes = _params$attributes === void 0 ? {} : _params$attributes,
+          _params$styles = params.styles,
+          styles = _params$styles === void 0 ? {} : _params$styles;
+        return domVariants({
+          type: 'counter',
+          content: content
+        }, function () {
+          callHooks('beforeDOMElementCreation', {
+            content: content,
+            params: params
+          });
+          return makeLayersCounterAbstract({
+            content: content.toString(),
+            extra: {
+              attributes: attributes,
+              styles: styles,
+              classes: ["".concat(config.cssPrefix, "-layers-counter")].concat(_toConsumableArray$1(classes))
+            }
+          });
+        });
+      }
+    };
+  }
+};
+
+var LayersText = {
+  mixout: function mixout() {
+    return {
+      text: function text(content) {
+        var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+        var _params$transform = params.transform,
+          transform = _params$transform === void 0 ? meaninglessTransform : _params$transform,
+          _params$classes = params.classes,
+          classes = _params$classes === void 0 ? [] : _params$classes,
+          _params$attributes = params.attributes,
+          attributes = _params$attributes === void 0 ? {} : _params$attributes,
+          _params$styles = params.styles,
+          styles = _params$styles === void 0 ? {} : _params$styles;
+        return domVariants({
+          type: 'text',
+          content: content
+        }, function () {
+          callHooks('beforeDOMElementCreation', {
+            content: content,
+            params: params
+          });
+          return makeLayersTextAbstract({
+            content: content,
+            transform: _objectSpread2$1(_objectSpread2$1({}, meaninglessTransform), transform),
+            extra: {
+              attributes: attributes,
+              styles: styles,
+              classes: ["".concat(config.cssPrefix, "-layers-text")].concat(_toConsumableArray$1(classes))
+            }
+          });
+        });
+      }
+    };
+  },
+  provides: function provides(providers$$1) {
+    providers$$1.generateLayersText = function (node, nodeMeta) {
+      var transform = nodeMeta.transform,
+        extra = nodeMeta.extra;
+      var width = null;
+      var height = null;
+      if (IS_IE) {
+        var computedFontSize = parseInt(getComputedStyle(node).fontSize, 10);
+        var boundingClientRect = node.getBoundingClientRect();
+        width = boundingClientRect.width / computedFontSize;
+        height = boundingClientRect.height / computedFontSize;
+      }
+      return Promise.resolve([node, makeLayersTextAbstract({
+        content: node.innerHTML,
+        width: width,
+        height: height,
+        transform: transform,
+        extra: extra,
+        watchable: true
+      })]);
+    };
+  }
+};
+
+var CLEAN_CONTENT_PATTERN = new RegExp("\"", 'ug');
+var SECONDARY_UNICODE_RANGE = [1105920, 1112319];
+var _FONT_FAMILY_WEIGHT_TO_PREFIX = _objectSpread2$1(_objectSpread2$1(_objectSpread2$1(_objectSpread2$1({}, {
+  FontAwesome: {
+    normal: 'fas',
+    400: 'fas'
+  }
+}), zl), wa), ct);
+var FONT_FAMILY_WEIGHT_TO_PREFIX = Object.keys(_FONT_FAMILY_WEIGHT_TO_PREFIX).reduce(function (acc, key) {
+  acc[key.toLowerCase()] = _FONT_FAMILY_WEIGHT_TO_PREFIX[key];
+  return acc;
+}, {});
+var FONT_FAMILY_WEIGHT_FALLBACK = Object.keys(FONT_FAMILY_WEIGHT_TO_PREFIX).reduce(function (acc, fontFamily) {
+  var weights = FONT_FAMILY_WEIGHT_TO_PREFIX[fontFamily];
+  acc[fontFamily] = weights[900] || _toConsumableArray$1(Object.entries(weights))[0][1];
+  return acc;
+}, {});
+
+// Return hex value of *first* character in `content`
+function hexValueFromContent(content) {
+  var cleaned = content.replace(CLEAN_CONTENT_PATTERN, '');
+  return toHex(_toConsumableArray$1(cleaned)[0] || '');
+}
+
+// Check if it's a secondary Duotone layer, by checking if:
+// - Unicode value in `content` is repeated
+// - Unicode value in `content` is above 0x10000
+// - The "ss01" font feature is enabled on the `content`
+function isSecondaryLayer(styles) {
+  var hasStylisticSet = styles.getPropertyValue('font-feature-settings').includes('ss01');
+  var content = styles.getPropertyValue('content');
+  var cleaned = content.replace(CLEAN_CONTENT_PATTERN, '');
+  var codePoint = cleaned.codePointAt(0);
+  var isPrependTen = codePoint >= SECONDARY_UNICODE_RANGE[0] && codePoint <= SECONDARY_UNICODE_RANGE[1];
+  var isDoubled = cleaned.length === 2 ? cleaned[0] === cleaned[1] : false;
+  return isPrependTen || isDoubled || hasStylisticSet;
+}
+function getPrefix(fontFamily, fontWeight) {
+  var fontFamilySanitized = fontFamily.replace(/^['"]|['"]$/g, '').toLowerCase();
+  var fontWeightInteger = parseInt(fontWeight);
+  var fontWeightSanitized = isNaN(fontWeightInteger) ? 'normal' : fontWeightInteger;
+  return (FONT_FAMILY_WEIGHT_TO_PREFIX[fontFamilySanitized] || {})[fontWeightSanitized] || FONT_FAMILY_WEIGHT_FALLBACK[fontFamilySanitized];
+}
+function replaceForPosition(node, position) {
+  var pendingAttribute = "".concat(DATA_FA_PSEUDO_ELEMENT_PENDING).concat(position.replace(':', '-'));
+  return new Promise(function (resolve, reject) {
+    if (node.getAttribute(pendingAttribute) !== null) {
+      // This node is already being processed
+      return resolve();
+    }
+    var children = toArray(node.children);
+    var alreadyProcessedPseudoElement = children.filter(function (c$$1) {
+      return c$$1.getAttribute(DATA_FA_PSEUDO_ELEMENT) === position;
+    })[0];
+    var styles = WINDOW.getComputedStyle(node, position);
+    var fontFamily = styles.getPropertyValue('font-family');
+    var fontFamilyMatch = fontFamily.match(FONT_FAMILY_PATTERN);
+    var fontWeight = styles.getPropertyValue('font-weight');
+    var content = styles.getPropertyValue('content');
+    if (alreadyProcessedPseudoElement && !fontFamilyMatch) {
+      // If we've already processed it but the current computed style does not result in a font-family,
+      // that probably means that a class name that was previously present to make the icon has been
+      // removed. So we now should delete the icon.
+      node.removeChild(alreadyProcessedPseudoElement);
+      return resolve();
+    } else if (fontFamilyMatch && content !== 'none' && content !== '') {
+      var _content = styles.getPropertyValue('content');
+      var prefix = getPrefix(fontFamily, fontWeight);
+      var hexValue = hexValueFromContent(_content);
+      var isV4 = fontFamilyMatch[0].startsWith('FontAwesome');
+      var isSecondary = isSecondaryLayer(styles);
+      var iconName = byUnicode(prefix, hexValue);
+      var iconIdentifier = iconName;
+      if (isV4) {
+        var iconName4 = byOldUnicode(hexValue);
+        if (iconName4.iconName && iconName4.prefix) {
+          iconName = iconName4.iconName;
+          prefix = iconName4.prefix;
+        }
+      }
+
+      // Only convert the pseudo element in this ::before/::after position into an icon if we haven't
+      // already done so with the same prefix and iconName
+      if (iconName && !isSecondary && (!alreadyProcessedPseudoElement || alreadyProcessedPseudoElement.getAttribute(DATA_PREFIX) !== prefix || alreadyProcessedPseudoElement.getAttribute(DATA_ICON) !== iconIdentifier)) {
+        node.setAttribute(pendingAttribute, iconIdentifier);
+        if (alreadyProcessedPseudoElement) {
+          // Delete the old one, since we're replacing it with a new one
+          node.removeChild(alreadyProcessedPseudoElement);
+        }
+        var meta = blankMeta();
+        var extra = meta.extra;
+        extra.attributes[DATA_FA_PSEUDO_ELEMENT] = position;
+        findIcon(iconName, prefix).then(function (main) {
+          var abstract = makeInlineSvgAbstract(_objectSpread2$1(_objectSpread2$1({}, meta), {}, {
+            icons: {
+              main: main,
+              mask: emptyCanonicalIcon()
+            },
+            prefix: prefix,
+            iconName: iconIdentifier,
+            extra: extra,
+            watchable: true
+          }));
+          var element = DOCUMENT.createElementNS('http://www.w3.org/2000/svg', 'svg');
+          if (position === '::before') {
+            node.insertBefore(element, node.firstChild);
+          } else {
+            node.appendChild(element);
+          }
+          element.outerHTML = abstract.map(function (a$$1) {
+            return toHtml(a$$1);
+          }).join('\n');
+          node.removeAttribute(pendingAttribute);
+          resolve();
+        }).catch(reject);
+      } else {
+        resolve();
+      }
+    } else {
+      resolve();
+    }
+  });
+}
+function replace(node) {
+  return Promise.all([replaceForPosition(node, '::before'), replaceForPosition(node, '::after')]);
+}
+function processable(node) {
+  return node.parentNode !== document.head && !~TAGNAMES_TO_SKIP_FOR_PSEUDOELEMENTS.indexOf(node.tagName.toUpperCase()) && !node.getAttribute(DATA_FA_PSEUDO_ELEMENT) && (!node.parentNode || node.parentNode.tagName !== 'svg');
+}
+var hasPseudoElement = function hasPseudoElement(selector) {
+  return !!selector && PSEUDO_ELEMENTS.some(function (pseudoSelector) {
+    return selector.includes(pseudoSelector);
+  });
+};
+
+// Return selectors from all available stylesheets that have
+// pseudo-elements defined.
+var parseCSSRuleForPseudos = function parseCSSRuleForPseudos(selectorText) {
+  if (!selectorText) return [];
+  var selectorSet = new Set();
+  var selectors = selectorText.split(/,(?![^()]*\))/).map(function (s$$1) {
+    return s$$1.trim();
+  });
+  selectors = selectors.flatMap(function (selector) {
+    return selector.includes('(') ? selector : selector.split(',').map(function (s$$1) {
+      return s$$1.trim();
+    });
+  });
+  var _iterator = _createForOfIteratorHelper(selectors),
+    _step;
+  try {
+    for (_iterator.s(); !(_step = _iterator.n()).done;) {
+      var selector = _step.value;
+      if (hasPseudoElement(selector)) {
+        // Remove pseudo-elements from the selector
+        var selectorWithoutPseudo = PSEUDO_ELEMENTS.reduce(function (acc, pseudoSelector) {
+          return acc.replace(pseudoSelector, '');
+        }, selector);
+        if (selectorWithoutPseudo !== '' && selectorWithoutPseudo !== '*') {
+          selectorSet.add(selectorWithoutPseudo);
+        }
+      }
+    }
+  } catch (err) {
+    _iterator.e(err);
+  } finally {
+    _iterator.f();
+  }
+  return selectorSet;
+};
+function searchPseudoElements(root) {
+  var useAsNodeList = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
+  if (!IS_DOM) return;
+  var nodeList;
+  if (useAsNodeList) {
+    nodeList = root;
+  } else if (config.searchPseudoElementsFullScan) {
+    nodeList = root.querySelectorAll('*');
+  } else {
+    // Get elements that have pseudo elements defined in the CSS
+    var selectorSet = new Set();
+    var _iterator2 = _createForOfIteratorHelper(document.styleSheets),
+      _step2;
+    try {
+      for (_iterator2.s(); !(_step2 = _iterator2.n()).done;) {
+        var stylesheet = _step2.value;
+        try {
+          var _iterator3 = _createForOfIteratorHelper(stylesheet.cssRules),
+            _step3;
+          try {
+            for (_iterator3.s(); !(_step3 = _iterator3.n()).done;) {
+              var rule = _step3.value;
+              var parsedSelectors = parseCSSRuleForPseudos(rule.selectorText);
+              var _iterator4 = _createForOfIteratorHelper(parsedSelectors),
+                _step4;
+              try {
+                for (_iterator4.s(); !(_step4 = _iterator4.n()).done;) {
+                  var selector = _step4.value;
+                  selectorSet.add(selector);
+                }
+              } catch (err) {
+                _iterator4.e(err);
+              } finally {
+                _iterator4.f();
+              }
+            }
+          } catch (err) {
+            _iterator3.e(err);
+          } finally {
+            _iterator3.f();
+          }
+        } catch (e$$1) {
+          if (config.searchPseudoElementsWarnings) {
+            console.warn("Font Awesome: cannot parse stylesheet: ".concat(stylesheet.href, " (").concat(e$$1.message, ")\nIf it declares any Font Awesome CSS pseudo-elements, they will not be rendered as SVG icons. Add crossorigin=\"anonymous\" to the <link>, enable searchPseudoElementsFullScan for slower but more thorough DOM parsing, or suppress this warning by setting searchPseudoElementsWarnings to false."));
+          }
+        }
+      }
+    } catch (err) {
+      _iterator2.e(err);
+    } finally {
+      _iterator2.f();
+    }
+    if (!selectorSet.size) return;
+    var cleanSelectors = Array.from(selectorSet).join(', ');
+    try {
+      nodeList = root.querySelectorAll(cleanSelectors);
+    } catch (_unused) {} // eslint-disable-line no-empty
+  }
+  return new Promise(function (resolve, reject) {
+    var operations = toArray(nodeList).filter(processable).map(replace);
+    var end = perf.begin('searchPseudoElements');
+    disableObservation();
+    Promise.all(operations).then(function () {
+      end();
+      enableObservation();
+      resolve();
+    }).catch(function () {
+      end();
+      enableObservation();
+      reject();
+    });
+  });
+}
+var PseudoElements = {
+  hooks: function hooks() {
+    return {
+      mutationObserverCallbacks: function mutationObserverCallbacks(accumulator) {
+        accumulator.pseudoElementsCallback = searchPseudoElements;
+        return accumulator;
+      }
+    };
+  },
+  provides: function provides(providers) {
+    providers.pseudoElements2svg = function (params) {
+      var _params$node = params.node,
+        node = _params$node === void 0 ? DOCUMENT : _params$node;
+      if (config.searchPseudoElements) {
+        searchPseudoElements(node);
+      }
+    };
+  }
+};
+
+var _unwatched = false;
+var MutationObserver$1 = {
+  mixout: function mixout() {
+    return {
+      dom: {
+        unwatch: function unwatch() {
+          disableObservation();
+          _unwatched = true;
+        }
+      }
+    };
+  },
+  hooks: function hooks() {
+    return {
+      bootstrap: function bootstrap() {
+        observe(chainHooks('mutationObserverCallbacks', {}));
+      },
+      noAuto: function noAuto() {
+        disconnect();
+      },
+      watch: function watch(params) {
+        var observeMutationsRoot = params.observeMutationsRoot;
+        if (_unwatched) {
+          enableObservation();
+        } else {
+          observe(chainHooks('mutationObserverCallbacks', {
+            observeMutationsRoot: observeMutationsRoot
+          }));
+        }
+      }
+    };
+  }
+};
+
+var parseTransformString = function parseTransformString(transformString) {
+  var transform = {
+    size: 16,
+    x: 0,
+    y: 0,
+    flipX: false,
+    flipY: false,
+    rotate: 0
+  };
+  return transformString.toLowerCase().split(' ').reduce(function (acc, n) {
+    var parts = n.toLowerCase().split('-');
+    var first = parts[0];
+    var rest = parts.slice(1).join('-');
+    if (first && rest === 'h') {
+      acc.flipX = true;
+      return acc;
+    }
+    if (first && rest === 'v') {
+      acc.flipY = true;
+      return acc;
+    }
+    rest = parseFloat(rest);
+    if (isNaN(rest)) {
+      return acc;
+    }
+    switch (first) {
+      case 'grow':
+        acc.size = acc.size + rest;
+        break;
+      case 'shrink':
+        acc.size = acc.size - rest;
+        break;
+      case 'left':
+        acc.x = acc.x - rest;
+        break;
+      case 'right':
+        acc.x = acc.x + rest;
+        break;
+      case 'up':
+        acc.y = acc.y - rest;
+        break;
+      case 'down':
+        acc.y = acc.y + rest;
+        break;
+      case 'rotate':
+        acc.rotate = acc.rotate + rest;
+        break;
+    }
+    return acc;
+  }, transform);
+};
+var PowerTransforms = {
+  mixout: function mixout() {
+    return {
+      parse: {
+        transform: function transform(transformString) {
+          return parseTransformString(transformString);
+        }
+      }
+    };
+  },
+  hooks: function hooks() {
+    return {
+      parseNodeAttributes: function parseNodeAttributes(accumulator, node) {
+        var transformString = node.getAttribute('data-fa-transform');
+        if (transformString) {
+          accumulator.transform = parseTransformString(transformString);
+        }
+        return accumulator;
+      }
+    };
+  },
+  provides: function provides(providers) {
+    providers.generateAbstractTransformGrouping = function (_ref) {
+      var main = _ref.main,
+        transform = _ref.transform,
+        containerWidth = _ref.containerWidth,
+        iconWidth = _ref.iconWidth;
+      var outer = {
+        transform: "translate(".concat(containerWidth / 2, " 256)")
+      };
+      var innerTranslate = "translate(".concat(transform.x * 32, ", ").concat(transform.y * 32, ") ");
+      var innerScale = "scale(".concat(transform.size / 16 * (transform.flipX ? -1 : 1), ", ").concat(transform.size / 16 * (transform.flipY ? -1 : 1), ") ");
+      var innerRotate = "rotate(".concat(transform.rotate, " 0 0)");
+      var inner = {
+        transform: "".concat(innerTranslate, " ").concat(innerScale, " ").concat(innerRotate)
+      };
+      var path = {
+        transform: "translate(".concat(iconWidth / 2 * -1, " -256)")
+      };
+      var operations = {
+        outer: outer,
+        inner: inner,
+        path: path
+      };
+      return {
+        tag: 'g',
+        attributes: _objectSpread2$1({}, operations.outer),
+        children: [{
+          tag: 'g',
+          attributes: _objectSpread2$1({}, operations.inner),
+          children: [{
+            tag: main.icon.tag,
+            children: main.icon.children,
+            attributes: _objectSpread2$1(_objectSpread2$1({}, main.icon.attributes), operations.path)
+          }]
+        }]
+      };
+    };
+  }
+};
+
+var ALL_SPACE = {
+  x: 0,
+  y: 0,
+  width: '100%',
+  height: '100%'
+};
+function fillBlack(abstract) {
+  var force = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : true;
+  if (abstract.attributes && (abstract.attributes.fill || force)) {
+    abstract.attributes.fill = 'black';
+  }
+  return abstract;
+}
+function deGroup(abstract) {
+  if (abstract.tag === 'g') {
+    return abstract.children;
+  } else {
+    return [abstract];
+  }
+}
+var Masks = {
+  hooks: function hooks() {
+    return {
+      parseNodeAttributes: function parseNodeAttributes(accumulator, node) {
+        var maskData = node.getAttribute('data-fa-mask');
+        var mask = !maskData ? emptyCanonicalIcon() : getCanonicalIcon(maskData.split(' ').map(function (i) {
+          return i.trim();
+        }));
+        if (!mask.prefix) {
+          mask.prefix = getDefaultUsablePrefix();
+        }
+        accumulator.mask = mask;
+        accumulator.maskId = node.getAttribute('data-fa-mask-id');
+        return accumulator;
+      }
+    };
+  },
+  provides: function provides(providers) {
+    providers.generateAbstractMask = function (_ref) {
+      var children = _ref.children,
+        attributes = _ref.attributes,
+        main = _ref.main,
+        mask = _ref.mask,
+        explicitMaskId = _ref.maskId,
+        transform = _ref.transform;
+      var mainWidth = main.width,
+        mainPath = main.icon;
+      var maskWidth = mask.width,
+        maskPath = mask.icon;
+      var trans = transformForSvg({
+        transform: transform,
+        containerWidth: maskWidth,
+        iconWidth: mainWidth
+      });
+      var maskRect = {
+        tag: 'rect',
+        attributes: _objectSpread2$1(_objectSpread2$1({}, ALL_SPACE), {}, {
+          fill: 'white'
+        })
+      };
+      var maskInnerGroupChildrenMixin = mainPath.children ? {
+        children: mainPath.children.map(fillBlack)
+      } : {};
+      var maskInnerGroup = {
+        tag: 'g',
+        attributes: _objectSpread2$1({}, trans.inner),
+        children: [fillBlack(_objectSpread2$1({
+          tag: mainPath.tag,
+          attributes: _objectSpread2$1(_objectSpread2$1({}, mainPath.attributes), trans.path)
+        }, maskInnerGroupChildrenMixin))]
+      };
+      var maskOuterGroup = {
+        tag: 'g',
+        attributes: _objectSpread2$1({}, trans.outer),
+        children: [maskInnerGroup]
+      };
+      var maskId = "mask-".concat(explicitMaskId || nextUniqueId());
+      var clipId = "clip-".concat(explicitMaskId || nextUniqueId());
+      var maskTag = {
+        tag: 'mask',
+        attributes: _objectSpread2$1(_objectSpread2$1({}, ALL_SPACE), {}, {
+          id: maskId,
+          maskUnits: 'userSpaceOnUse',
+          maskContentUnits: 'userSpaceOnUse'
+        }),
+        children: [maskRect, maskOuterGroup]
+      };
+      var defs = {
+        tag: 'defs',
+        children: [{
+          tag: 'clipPath',
+          attributes: {
+            id: clipId
+          },
+          children: deGroup(maskPath)
+        }, maskTag]
+      };
+      children.push(defs, {
+        tag: 'rect',
+        attributes: _objectSpread2$1({
+          'fill': 'currentColor',
+          'clip-path': "url(#".concat(clipId, ")"),
+          'mask': "url(#".concat(maskId, ")")
+        }, ALL_SPACE)
+      });
+      return {
+        children: children,
+        attributes: attributes
+      };
+    };
+  }
+};
+
+var MissingIconIndicator = {
+  provides: function provides(providers) {
+    var reduceMotion = false;
+    if (WINDOW.matchMedia) {
+      reduceMotion = WINDOW.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    }
+    providers.missingIconAbstract = function () {
+      var gChildren = [];
+      var FILL = {
+        fill: 'currentColor'
+      };
+      var ANIMATION_BASE = {
+        attributeType: 'XML',
+        repeatCount: 'indefinite',
+        dur: '2s'
+      };
+
+      // Ring
+      gChildren.push({
+        tag: 'path',
+        attributes: _objectSpread2$1(_objectSpread2$1({}, FILL), {}, {
+          d: 'M156.5,447.7l-12.6,29.5c-18.7-9.5-35.9-21.2-51.5-34.9l22.7-22.7C127.6,430.5,141.5,440,156.5,447.7z M40.6,272H8.5 c1.4,21.2,5.4,41.7,11.7,61.1L50,321.2C45.1,305.5,41.8,289,40.6,272z M40.6,240c1.4-18.8,5.2-37,11.1-54.1l-29.5-12.6 C14.7,194.3,10,216.7,8.5,240H40.6z M64.3,156.5c7.8-14.9,17.2-28.8,28.1-41.5L69.7,92.3c-13.7,15.6-25.5,32.8-34.9,51.5 L64.3,156.5z M397,419.6c-13.9,12-29.4,22.3-46.1,30.4l11.9,29.8c20.7-9.9,39.8-22.6,56.9-37.6L397,419.6z M115,92.4 c13.9-12,29.4-22.3,46.1-30.4l-11.9-29.8c-20.7,9.9-39.8,22.6-56.8,37.6L115,92.4z M447.7,355.5c-7.8,14.9-17.2,28.8-28.1,41.5 l22.7,22.7c13.7-15.6,25.5-32.9,34.9-51.5L447.7,355.5z M471.4,272c-1.4,18.8-5.2,37-11.1,54.1l29.5,12.6 c7.5-21.1,12.2-43.5,13.6-66.8H471.4z M321.2,462c-15.7,5-32.2,8.2-49.2,9.4v32.1c21.2-1.4,41.7-5.4,61.1-11.7L321.2,462z M240,471.4c-18.8-1.4-37-5.2-54.1-11.1l-12.6,29.5c21.1,7.5,43.5,12.2,66.8,13.6V471.4z M462,190.8c5,15.7,8.2,32.2,9.4,49.2h32.1 c-1.4-21.2-5.4-41.7-11.7-61.1L462,190.8z M92.4,397c-12-13.9-22.3-29.4-30.4-46.1l-29.8,11.9c9.9,20.7,22.6,39.8,37.6,56.9 L92.4,397z M272,40.6c18.8,1.4,36.9,5.2,54.1,11.1l12.6-29.5C317.7,14.7,295.3,10,272,8.5V40.6z M190.8,50 c15.7-5,32.2-8.2,49.2-9.4V8.5c-21.2,1.4-41.7,5.4-61.1,11.7L190.8,50z M442.3,92.3L419.6,115c12,13.9,22.3,29.4,30.5,46.1 l29.8-11.9C470,128.5,457.3,109.4,442.3,92.3z M397,92.4l22.7-22.7c-15.6-13.7-32.8-25.5-51.5-34.9l-12.6,29.5 C370.4,72.1,384.4,81.5,397,92.4z'
+        })
+      });
+      var OPACITY_ANIMATE = _objectSpread2$1(_objectSpread2$1({}, ANIMATION_BASE), {}, {
+        attributeName: 'opacity'
+      });
+      var dot = {
+        tag: 'circle',
+        attributes: _objectSpread2$1(_objectSpread2$1({}, FILL), {}, {
+          cx: '256',
+          cy: '364',
+          r: '28'
+        }),
+        children: []
+      };
+      if (!reduceMotion) {
+        dot.children.push({
+          tag: 'animate',
+          attributes: _objectSpread2$1(_objectSpread2$1({}, ANIMATION_BASE), {}, {
+            attributeName: 'r',
+            values: '28;14;28;28;14;28;'
+          })
+        }, {
+          tag: 'animate',
+          attributes: _objectSpread2$1(_objectSpread2$1({}, OPACITY_ANIMATE), {}, {
+            values: '1;0;1;1;0;1;'
+          })
+        });
+      }
+      gChildren.push(dot);
+      gChildren.push({
+        tag: 'path',
+        attributes: _objectSpread2$1(_objectSpread2$1({}, FILL), {}, {
+          opacity: '1',
+          d: 'M263.7,312h-16c-6.6,0-12-5.4-12-12c0-71,77.4-63.9,77.4-107.8c0-20-17.8-40.2-57.4-40.2c-29.1,0-44.3,9.6-59.2,28.7 c-3.9,5-11.1,6-16.2,2.4l-13.1-9.2c-5.6-3.9-6.9-11.8-2.6-17.2c21.2-27.2,46.4-44.7,91.2-44.7c52.3,0,97.4,29.8,97.4,80.2 c0,67.6-77.4,63.5-77.4,107.8C275.7,306.6,270.3,312,263.7,312z'
+        }),
+        children: reduceMotion ? [] : [{
+          tag: 'animate',
+          attributes: _objectSpread2$1(_objectSpread2$1({}, OPACITY_ANIMATE), {}, {
+            values: '1;0;0;0;0;1;'
+          })
+        }]
+      });
+      if (!reduceMotion) {
+        // Exclamation
+        gChildren.push({
+          tag: 'path',
+          attributes: _objectSpread2$1(_objectSpread2$1({}, FILL), {}, {
+            opacity: '0',
+            d: 'M232.5,134.5l7,168c0.3,6.4,5.6,11.5,12,11.5h9c6.4,0,11.7-5.1,12-11.5l7-168c0.3-6.8-5.2-12.5-12-12.5h-23 C237.7,122,232.2,127.7,232.5,134.5z'
+          }),
+          children: [{
+            tag: 'animate',
+            attributes: _objectSpread2$1(_objectSpread2$1({}, OPACITY_ANIMATE), {}, {
+              values: '0;0;1;1;0;0;'
+            })
+          }]
+        });
+      }
+      return {
+        tag: 'g',
+        attributes: {
+          class: 'missing'
+        },
+        children: gChildren
+      };
+    };
+  }
+};
+
+var SvgSymbols = {
+  hooks: function hooks() {
+    return {
+      parseNodeAttributes: function parseNodeAttributes(accumulator, node) {
+        var symbolData = node.getAttribute('data-fa-symbol');
+        var symbol = symbolData === null ? false : symbolData === '' ? true : symbolData;
+        accumulator['symbol'] = symbol;
+        return accumulator;
+      }
+    };
+  }
+};
+
+var plugins = [InjectCSS, ReplaceElements, Layers, LayersCounter, LayersText, PseudoElements, MutationObserver$1, PowerTransforms, Masks, MissingIconIndicator, SvgSymbols];
+
+registerPlugins(plugins, {
+  mixoutsTo: api
+});
+api.noAuto;
+api.config;
+api.library;
+api.dom;
+var parse$1 = api.parse;
+api.findIconDefinition;
+api.toHtml;
+var icon = api.icon;
+api.layer;
+api.text;
+api.counter;
+
+var propTypes = {exports: {}};
+
+var reactIs = {exports: {}};
+
+var reactIs_production_min = {};
+
+/** @license React v16.13.1
+ * react-is.production.min.js
+ *
+ * Copyright (c) Facebook, Inc. and its affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
+var hasRequiredReactIs_production_min;
+
+function requireReactIs_production_min () {
+	if (hasRequiredReactIs_production_min) return reactIs_production_min;
+	hasRequiredReactIs_production_min = 1;
+
+	var b = "function" === typeof Symbol && Symbol.for,
+	  c = b ? Symbol.for("react.element") : 60103,
+	  d = b ? Symbol.for("react.portal") : 60106,
+	  e = b ? Symbol.for("react.fragment") : 60107,
+	  f = b ? Symbol.for("react.strict_mode") : 60108,
+	  g = b ? Symbol.for("react.profiler") : 60114,
+	  h = b ? Symbol.for("react.provider") : 60109,
+	  k = b ? Symbol.for("react.context") : 60110,
+	  l = b ? Symbol.for("react.async_mode") : 60111,
+	  m = b ? Symbol.for("react.concurrent_mode") : 60111,
+	  n = b ? Symbol.for("react.forward_ref") : 60112,
+	  p = b ? Symbol.for("react.suspense") : 60113,
+	  q = b ? Symbol.for("react.suspense_list") : 60120,
+	  r = b ? Symbol.for("react.memo") : 60115,
+	  t = b ? Symbol.for("react.lazy") : 60116,
+	  v = b ? Symbol.for("react.block") : 60121,
+	  w = b ? Symbol.for("react.fundamental") : 60117,
+	  x = b ? Symbol.for("react.responder") : 60118,
+	  y = b ? Symbol.for("react.scope") : 60119;
+	function z(a) {
+	  if ("object" === typeof a && null !== a) {
+	    var u = a.$$typeof;
+	    switch (u) {
+	      case c:
+	        switch (a = a.type, a) {
+	          case l:
+	          case m:
+	          case e:
+	          case g:
+	          case f:
+	          case p:
+	            return a;
+	          default:
+	            switch (a = a && a.$$typeof, a) {
+	              case k:
+	              case n:
+	              case t:
+	              case r:
+	              case h:
+	                return a;
+	              default:
+	                return u;
+	            }
+	        }
+	      case d:
+	        return u;
+	    }
+	  }
+	}
+	function A(a) {
+	  return z(a) === m;
+	}
+	reactIs_production_min.AsyncMode = l;
+	reactIs_production_min.ConcurrentMode = m;
+	reactIs_production_min.ContextConsumer = k;
+	reactIs_production_min.ContextProvider = h;
+	reactIs_production_min.Element = c;
+	reactIs_production_min.ForwardRef = n;
+	reactIs_production_min.Fragment = e;
+	reactIs_production_min.Lazy = t;
+	reactIs_production_min.Memo = r;
+	reactIs_production_min.Portal = d;
+	reactIs_production_min.Profiler = g;
+	reactIs_production_min.StrictMode = f;
+	reactIs_production_min.Suspense = p;
+	reactIs_production_min.isAsyncMode = function (a) {
+	  return A(a) || z(a) === l;
+	};
+	reactIs_production_min.isConcurrentMode = A;
+	reactIs_production_min.isContextConsumer = function (a) {
+	  return z(a) === k;
+	};
+	reactIs_production_min.isContextProvider = function (a) {
+	  return z(a) === h;
+	};
+	reactIs_production_min.isElement = function (a) {
+	  return "object" === typeof a && null !== a && a.$$typeof === c;
+	};
+	reactIs_production_min.isForwardRef = function (a) {
+	  return z(a) === n;
+	};
+	reactIs_production_min.isFragment = function (a) {
+	  return z(a) === e;
+	};
+	reactIs_production_min.isLazy = function (a) {
+	  return z(a) === t;
+	};
+	reactIs_production_min.isMemo = function (a) {
+	  return z(a) === r;
+	};
+	reactIs_production_min.isPortal = function (a) {
+	  return z(a) === d;
+	};
+	reactIs_production_min.isProfiler = function (a) {
+	  return z(a) === g;
+	};
+	reactIs_production_min.isStrictMode = function (a) {
+	  return z(a) === f;
+	};
+	reactIs_production_min.isSuspense = function (a) {
+	  return z(a) === p;
+	};
+	reactIs_production_min.isValidElementType = function (a) {
+	  return "string" === typeof a || "function" === typeof a || a === e || a === m || a === g || a === f || a === p || a === q || "object" === typeof a && null !== a && (a.$$typeof === t || a.$$typeof === r || a.$$typeof === h || a.$$typeof === k || a.$$typeof === n || a.$$typeof === w || a.$$typeof === x || a.$$typeof === y || a.$$typeof === v);
+	};
+	reactIs_production_min.typeOf = z;
+	return reactIs_production_min;
+}
+
+var reactIs_development = {};
+
+/** @license React v16.13.1
+ * react-is.development.js
+ *
+ * Copyright (c) Facebook, Inc. and its affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
+var hasRequiredReactIs_development;
+
+function requireReactIs_development () {
+	if (hasRequiredReactIs_development) return reactIs_development;
+	hasRequiredReactIs_development = 1;
+
+	if (process.env.NODE_ENV !== "production") {
+	  (function () {
+
+	    // The Symbol used to tag the ReactElement-like types. If there is no native Symbol
+	    // nor polyfill, then a plain number is used for performance.
+	    var hasSymbol = typeof Symbol === 'function' && Symbol.for;
+	    var REACT_ELEMENT_TYPE = hasSymbol ? Symbol.for('react.element') : 0xeac7;
+	    var REACT_PORTAL_TYPE = hasSymbol ? Symbol.for('react.portal') : 0xeaca;
+	    var REACT_FRAGMENT_TYPE = hasSymbol ? Symbol.for('react.fragment') : 0xeacb;
+	    var REACT_STRICT_MODE_TYPE = hasSymbol ? Symbol.for('react.strict_mode') : 0xeacc;
+	    var REACT_PROFILER_TYPE = hasSymbol ? Symbol.for('react.profiler') : 0xead2;
+	    var REACT_PROVIDER_TYPE = hasSymbol ? Symbol.for('react.provider') : 0xeacd;
+	    var REACT_CONTEXT_TYPE = hasSymbol ? Symbol.for('react.context') : 0xeace; // TODO: We don't use AsyncMode or ConcurrentMode anymore. They were temporary
+	    // (unstable) APIs that have been removed. Can we remove the symbols?
+
+	    var REACT_ASYNC_MODE_TYPE = hasSymbol ? Symbol.for('react.async_mode') : 0xeacf;
+	    var REACT_CONCURRENT_MODE_TYPE = hasSymbol ? Symbol.for('react.concurrent_mode') : 0xeacf;
+	    var REACT_FORWARD_REF_TYPE = hasSymbol ? Symbol.for('react.forward_ref') : 0xead0;
+	    var REACT_SUSPENSE_TYPE = hasSymbol ? Symbol.for('react.suspense') : 0xead1;
+	    var REACT_SUSPENSE_LIST_TYPE = hasSymbol ? Symbol.for('react.suspense_list') : 0xead8;
+	    var REACT_MEMO_TYPE = hasSymbol ? Symbol.for('react.memo') : 0xead3;
+	    var REACT_LAZY_TYPE = hasSymbol ? Symbol.for('react.lazy') : 0xead4;
+	    var REACT_BLOCK_TYPE = hasSymbol ? Symbol.for('react.block') : 0xead9;
+	    var REACT_FUNDAMENTAL_TYPE = hasSymbol ? Symbol.for('react.fundamental') : 0xead5;
+	    var REACT_RESPONDER_TYPE = hasSymbol ? Symbol.for('react.responder') : 0xead6;
+	    var REACT_SCOPE_TYPE = hasSymbol ? Symbol.for('react.scope') : 0xead7;
+	    function isValidElementType(type) {
+	      return typeof type === 'string' || typeof type === 'function' ||
+	      // Note: its typeof might be other than 'symbol' or 'number' if it's a polyfill.
+	      type === REACT_FRAGMENT_TYPE || type === REACT_CONCURRENT_MODE_TYPE || type === REACT_PROFILER_TYPE || type === REACT_STRICT_MODE_TYPE || type === REACT_SUSPENSE_TYPE || type === REACT_SUSPENSE_LIST_TYPE || typeof type === 'object' && type !== null && (type.$$typeof === REACT_LAZY_TYPE || type.$$typeof === REACT_MEMO_TYPE || type.$$typeof === REACT_PROVIDER_TYPE || type.$$typeof === REACT_CONTEXT_TYPE || type.$$typeof === REACT_FORWARD_REF_TYPE || type.$$typeof === REACT_FUNDAMENTAL_TYPE || type.$$typeof === REACT_RESPONDER_TYPE || type.$$typeof === REACT_SCOPE_TYPE || type.$$typeof === REACT_BLOCK_TYPE);
+	    }
+	    function typeOf(object) {
+	      if (typeof object === 'object' && object !== null) {
+	        var $$typeof = object.$$typeof;
+	        switch ($$typeof) {
+	          case REACT_ELEMENT_TYPE:
+	            var type = object.type;
+	            switch (type) {
+	              case REACT_ASYNC_MODE_TYPE:
+	              case REACT_CONCURRENT_MODE_TYPE:
+	              case REACT_FRAGMENT_TYPE:
+	              case REACT_PROFILER_TYPE:
+	              case REACT_STRICT_MODE_TYPE:
+	              case REACT_SUSPENSE_TYPE:
+	                return type;
+	              default:
+	                var $$typeofType = type && type.$$typeof;
+	                switch ($$typeofType) {
+	                  case REACT_CONTEXT_TYPE:
+	                  case REACT_FORWARD_REF_TYPE:
+	                  case REACT_LAZY_TYPE:
+	                  case REACT_MEMO_TYPE:
+	                  case REACT_PROVIDER_TYPE:
+	                    return $$typeofType;
+	                  default:
+	                    return $$typeof;
+	                }
+	            }
+	          case REACT_PORTAL_TYPE:
+	            return $$typeof;
+	        }
+	      }
+	      return undefined;
+	    } // AsyncMode is deprecated along with isAsyncMode
+
+	    var AsyncMode = REACT_ASYNC_MODE_TYPE;
+	    var ConcurrentMode = REACT_CONCURRENT_MODE_TYPE;
+	    var ContextConsumer = REACT_CONTEXT_TYPE;
+	    var ContextProvider = REACT_PROVIDER_TYPE;
+	    var Element = REACT_ELEMENT_TYPE;
+	    var ForwardRef = REACT_FORWARD_REF_TYPE;
+	    var Fragment = REACT_FRAGMENT_TYPE;
+	    var Lazy = REACT_LAZY_TYPE;
+	    var Memo = REACT_MEMO_TYPE;
+	    var Portal = REACT_PORTAL_TYPE;
+	    var Profiler = REACT_PROFILER_TYPE;
+	    var StrictMode = REACT_STRICT_MODE_TYPE;
+	    var Suspense = REACT_SUSPENSE_TYPE;
+	    var hasWarnedAboutDeprecatedIsAsyncMode = false; // AsyncMode should be deprecated
+
+	    function isAsyncMode(object) {
+	      {
+	        if (!hasWarnedAboutDeprecatedIsAsyncMode) {
+	          hasWarnedAboutDeprecatedIsAsyncMode = true; // Using console['warn'] to evade Babel and ESLint
+
+	          console['warn']('The ReactIs.isAsyncMode() alias has been deprecated, ' + 'and will be removed in React 17+. Update your code to use ' + 'ReactIs.isConcurrentMode() instead. It has the exact same API.');
+	        }
+	      }
+	      return isConcurrentMode(object) || typeOf(object) === REACT_ASYNC_MODE_TYPE;
+	    }
+	    function isConcurrentMode(object) {
+	      return typeOf(object) === REACT_CONCURRENT_MODE_TYPE;
+	    }
+	    function isContextConsumer(object) {
+	      return typeOf(object) === REACT_CONTEXT_TYPE;
+	    }
+	    function isContextProvider(object) {
+	      return typeOf(object) === REACT_PROVIDER_TYPE;
+	    }
+	    function isElement(object) {
+	      return typeof object === 'object' && object !== null && object.$$typeof === REACT_ELEMENT_TYPE;
+	    }
+	    function isForwardRef(object) {
+	      return typeOf(object) === REACT_FORWARD_REF_TYPE;
+	    }
+	    function isFragment(object) {
+	      return typeOf(object) === REACT_FRAGMENT_TYPE;
+	    }
+	    function isLazy(object) {
+	      return typeOf(object) === REACT_LAZY_TYPE;
+	    }
+	    function isMemo(object) {
+	      return typeOf(object) === REACT_MEMO_TYPE;
+	    }
+	    function isPortal(object) {
+	      return typeOf(object) === REACT_PORTAL_TYPE;
+	    }
+	    function isProfiler(object) {
+	      return typeOf(object) === REACT_PROFILER_TYPE;
+	    }
+	    function isStrictMode(object) {
+	      return typeOf(object) === REACT_STRICT_MODE_TYPE;
+	    }
+	    function isSuspense(object) {
+	      return typeOf(object) === REACT_SUSPENSE_TYPE;
+	    }
+	    reactIs_development.AsyncMode = AsyncMode;
+	    reactIs_development.ConcurrentMode = ConcurrentMode;
+	    reactIs_development.ContextConsumer = ContextConsumer;
+	    reactIs_development.ContextProvider = ContextProvider;
+	    reactIs_development.Element = Element;
+	    reactIs_development.ForwardRef = ForwardRef;
+	    reactIs_development.Fragment = Fragment;
+	    reactIs_development.Lazy = Lazy;
+	    reactIs_development.Memo = Memo;
+	    reactIs_development.Portal = Portal;
+	    reactIs_development.Profiler = Profiler;
+	    reactIs_development.StrictMode = StrictMode;
+	    reactIs_development.Suspense = Suspense;
+	    reactIs_development.isAsyncMode = isAsyncMode;
+	    reactIs_development.isConcurrentMode = isConcurrentMode;
+	    reactIs_development.isContextConsumer = isContextConsumer;
+	    reactIs_development.isContextProvider = isContextProvider;
+	    reactIs_development.isElement = isElement;
+	    reactIs_development.isForwardRef = isForwardRef;
+	    reactIs_development.isFragment = isFragment;
+	    reactIs_development.isLazy = isLazy;
+	    reactIs_development.isMemo = isMemo;
+	    reactIs_development.isPortal = isPortal;
+	    reactIs_development.isProfiler = isProfiler;
+	    reactIs_development.isStrictMode = isStrictMode;
+	    reactIs_development.isSuspense = isSuspense;
+	    reactIs_development.isValidElementType = isValidElementType;
+	    reactIs_development.typeOf = typeOf;
+	  })();
+	}
+	return reactIs_development;
+}
+
+var hasRequiredReactIs;
+
+function requireReactIs () {
+	if (hasRequiredReactIs) return reactIs.exports;
+	hasRequiredReactIs = 1;
+
+	if (process.env.NODE_ENV === 'production') {
+	  reactIs.exports = requireReactIs_production_min();
+	} else {
+	  reactIs.exports = requireReactIs_development();
+	}
+	return reactIs.exports;
+}
+
+/*
+object-assign
+(c) Sindre Sorhus
+@license MIT
+*/
+
+var objectAssign;
+var hasRequiredObjectAssign;
+
+function requireObjectAssign () {
+	if (hasRequiredObjectAssign) return objectAssign;
+	hasRequiredObjectAssign = 1;
+
+	/* eslint-disable no-unused-vars */
+	var getOwnPropertySymbols = Object.getOwnPropertySymbols;
+	var hasOwnProperty = Object.prototype.hasOwnProperty;
+	var propIsEnumerable = Object.prototype.propertyIsEnumerable;
+	function toObject(val) {
+	  if (val === null || val === undefined) {
+	    throw new TypeError('Object.assign cannot be called with null or undefined');
+	  }
+	  return Object(val);
+	}
+	function shouldUseNative() {
+	  try {
+	    if (!Object.assign) {
+	      return false;
+	    }
+
+	    // Detect buggy property enumeration order in older V8 versions.
+
+	    // https://bugs.chromium.org/p/v8/issues/detail?id=4118
+	    var test1 = new String('abc'); // eslint-disable-line no-new-wrappers
+	    test1[5] = 'de';
+	    if (Object.getOwnPropertyNames(test1)[0] === '5') {
+	      return false;
+	    }
+
+	    // https://bugs.chromium.org/p/v8/issues/detail?id=3056
+	    var test2 = {};
+	    for (var i = 0; i < 10; i++) {
+	      test2['_' + String.fromCharCode(i)] = i;
+	    }
+	    var order2 = Object.getOwnPropertyNames(test2).map(function (n) {
+	      return test2[n];
+	    });
+	    if (order2.join('') !== '0123456789') {
+	      return false;
+	    }
+
+	    // https://bugs.chromium.org/p/v8/issues/detail?id=3056
+	    var test3 = {};
+	    'abcdefghijklmnopqrst'.split('').forEach(function (letter) {
+	      test3[letter] = letter;
+	    });
+	    if (Object.keys(Object.assign({}, test3)).join('') !== 'abcdefghijklmnopqrst') {
+	      return false;
+	    }
+	    return true;
+	  } catch (err) {
+	    // We don't expect any of the above to throw, but better to be safe.
+	    return false;
+	  }
+	}
+	objectAssign = shouldUseNative() ? Object.assign : function (target, source) {
+	  var from;
+	  var to = toObject(target);
+	  var symbols;
+	  for (var s = 1; s < arguments.length; s++) {
+	    from = Object(arguments[s]);
+	    for (var key in from) {
+	      if (hasOwnProperty.call(from, key)) {
+	        to[key] = from[key];
+	      }
+	    }
+	    if (getOwnPropertySymbols) {
+	      symbols = getOwnPropertySymbols(from);
+	      for (var i = 0; i < symbols.length; i++) {
+	        if (propIsEnumerable.call(from, symbols[i])) {
+	          to[symbols[i]] = from[symbols[i]];
+	        }
+	      }
+	    }
+	  }
+	  return to;
+	};
+	return objectAssign;
+}
+
+/**
+ * Copyright (c) 2013-present, Facebook, Inc.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
+var ReactPropTypesSecret_1;
+var hasRequiredReactPropTypesSecret;
+
+function requireReactPropTypesSecret () {
+	if (hasRequiredReactPropTypesSecret) return ReactPropTypesSecret_1;
+	hasRequiredReactPropTypesSecret = 1;
+
+	var ReactPropTypesSecret = 'SECRET_DO_NOT_PASS_THIS_OR_YOU_WILL_BE_FIRED';
+	ReactPropTypesSecret_1 = ReactPropTypesSecret;
+	return ReactPropTypesSecret_1;
+}
+
+var has;
+var hasRequiredHas;
+
+function requireHas () {
+	if (hasRequiredHas) return has;
+	hasRequiredHas = 1;
+	has = Function.call.bind(Object.prototype.hasOwnProperty);
+	return has;
+}
+
+/**
+ * Copyright (c) 2013-present, Facebook, Inc.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
+var checkPropTypes_1;
+var hasRequiredCheckPropTypes;
+
+function requireCheckPropTypes () {
+	if (hasRequiredCheckPropTypes) return checkPropTypes_1;
+	hasRequiredCheckPropTypes = 1;
+
+	var printWarning = function printWarning() {};
+	if (process.env.NODE_ENV !== 'production') {
+	  var ReactPropTypesSecret = /*@__PURE__*/ requireReactPropTypesSecret();
+	  var loggedTypeFailures = {};
+	  var has = /*@__PURE__*/ requireHas();
+	  printWarning = function printWarning(text) {
+	    var message = 'Warning: ' + text;
+	    if (typeof console !== 'undefined') {
+	      console.error(message);
+	    }
+	    try {
+	      // --- Welcome to debugging React ---
+	      // This error was thrown as a convenience so that you can use this stack
+	      // to find the callsite that caused this warning to fire.
+	      throw new Error(message);
+	    } catch (x) {/**/}
+	  };
+	}
+
+	/**
+	 * Assert that the values match with the type specs.
+	 * Error messages are memorized and will only be shown once.
+	 *
+	 * @param {object} typeSpecs Map of name to a ReactPropType
+	 * @param {object} values Runtime values that need to be type-checked
+	 * @param {string} location e.g. "prop", "context", "child context"
+	 * @param {string} componentName Name of the component for error messages.
+	 * @param {?Function} getStack Returns the component stack.
+	 * @private
+	 */
+	function checkPropTypes(typeSpecs, values, location, componentName, getStack) {
+	  if (process.env.NODE_ENV !== 'production') {
+	    for (var typeSpecName in typeSpecs) {
+	      if (has(typeSpecs, typeSpecName)) {
+	        var error;
+	        // Prop type validation may throw. In case they do, we don't want to
+	        // fail the render phase where it didn't fail before. So we log it.
+	        // After these have been cleaned up, we'll let them throw.
+	        try {
+	          // This is intentionally an invariant that gets caught. It's the same
+	          // behavior as without this statement except with a better message.
+	          if (typeof typeSpecs[typeSpecName] !== 'function') {
+	            var err = Error((componentName || 'React class') + ': ' + location + ' type `' + typeSpecName + '` is invalid; ' + 'it must be a function, usually from the `prop-types` package, but received `' + typeof typeSpecs[typeSpecName] + '`.' + 'This often happens because of typos such as `PropTypes.function` instead of `PropTypes.func`.');
+	            err.name = 'Invariant Violation';
+	            throw err;
+	          }
+	          error = typeSpecs[typeSpecName](values, typeSpecName, componentName, location, null, ReactPropTypesSecret);
+	        } catch (ex) {
+	          error = ex;
+	        }
+	        if (error && !(error instanceof Error)) {
+	          printWarning((componentName || 'React class') + ': type specification of ' + location + ' `' + typeSpecName + '` is invalid; the type checker ' + 'function must return `null` or an `Error` but returned a ' + typeof error + '. ' + 'You may have forgotten to pass an argument to the type checker ' + 'creator (arrayOf, instanceOf, objectOf, oneOf, oneOfType, and ' + 'shape all require an argument).');
+	        }
+	        if (error instanceof Error && !(error.message in loggedTypeFailures)) {
+	          // Only monitor this failure once because there tends to be a lot of the
+	          // same error.
+	          loggedTypeFailures[error.message] = true;
+	          var stack = getStack ? getStack() : '';
+	          printWarning('Failed ' + location + ' type: ' + error.message + (stack != null ? stack : ''));
+	        }
+	      }
+	    }
+	  }
+	}
+
+	/**
+	 * Resets warning cache when testing.
+	 *
+	 * @private
+	 */
+	checkPropTypes.resetWarningCache = function () {
+	  if (process.env.NODE_ENV !== 'production') {
+	    loggedTypeFailures = {};
+	  }
+	};
+	checkPropTypes_1 = checkPropTypes;
+	return checkPropTypes_1;
+}
+
+/**
+ * Copyright (c) 2013-present, Facebook, Inc.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
+var factoryWithTypeCheckers;
+var hasRequiredFactoryWithTypeCheckers;
+
+function requireFactoryWithTypeCheckers () {
+	if (hasRequiredFactoryWithTypeCheckers) return factoryWithTypeCheckers;
+	hasRequiredFactoryWithTypeCheckers = 1;
+
+	var ReactIs = requireReactIs();
+	var assign = requireObjectAssign();
+	var ReactPropTypesSecret = /*@__PURE__*/ requireReactPropTypesSecret();
+	var has = /*@__PURE__*/ requireHas();
+	var checkPropTypes = /*@__PURE__*/ requireCheckPropTypes();
+	var printWarning = function printWarning() {};
+	if (process.env.NODE_ENV !== 'production') {
+	  printWarning = function printWarning(text) {
+	    var message = 'Warning: ' + text;
+	    if (typeof console !== 'undefined') {
+	      console.error(message);
+	    }
+	    try {
+	      // --- Welcome to debugging React ---
+	      // This error was thrown as a convenience so that you can use this stack
+	      // to find the callsite that caused this warning to fire.
+	      throw new Error(message);
+	    } catch (x) {}
+	  };
+	}
+	function emptyFunctionThatReturnsNull() {
+	  return null;
+	}
+	factoryWithTypeCheckers = function (isValidElement, throwOnDirectAccess) {
+	  /* global Symbol */
+	  var ITERATOR_SYMBOL = typeof Symbol === 'function' && Symbol.iterator;
+	  var FAUX_ITERATOR_SYMBOL = '@@iterator'; // Before Symbol spec.
+
+	  /**
+	   * Returns the iterator method function contained on the iterable object.
+	   *
+	   * Be sure to invoke the function with the iterable as context:
+	   *
+	   *     var iteratorFn = getIteratorFn(myIterable);
+	   *     if (iteratorFn) {
+	   *       var iterator = iteratorFn.call(myIterable);
+	   *       ...
+	   *     }
+	   *
+	   * @param {?object} maybeIterable
+	   * @return {?function}
+	   */
+	  function getIteratorFn(maybeIterable) {
+	    var iteratorFn = maybeIterable && (ITERATOR_SYMBOL && maybeIterable[ITERATOR_SYMBOL] || maybeIterable[FAUX_ITERATOR_SYMBOL]);
+	    if (typeof iteratorFn === 'function') {
+	      return iteratorFn;
+	    }
+	  }
+
+	  /**
+	   * Collection of methods that allow declaration and validation of props that are
+	   * supplied to React components. Example usage:
+	   *
+	   *   var Props = require('ReactPropTypes');
+	   *   var MyArticle = React.createClass({
+	   *     propTypes: {
+	   *       // An optional string prop named "description".
+	   *       description: Props.string,
+	   *
+	   *       // A required enum prop named "category".
+	   *       category: Props.oneOf(['News','Photos']).isRequired,
+	   *
+	   *       // A prop named "dialog" that requires an instance of Dialog.
+	   *       dialog: Props.instanceOf(Dialog).isRequired
+	   *     },
+	   *     render: function() { ... }
+	   *   });
+	   *
+	   * A more formal specification of how these methods are used:
+	   *
+	   *   type := array|bool|func|object|number|string|oneOf([...])|instanceOf(...)
+	   *   decl := ReactPropTypes.{type}(.isRequired)?
+	   *
+	   * Each and every declaration produces a function with the same signature. This
+	   * allows the creation of custom validation functions. For example:
+	   *
+	   *  var MyLink = React.createClass({
+	   *    propTypes: {
+	   *      // An optional string or URI prop named "href".
+	   *      href: function(props, propName, componentName) {
+	   *        var propValue = props[propName];
+	   *        if (propValue != null && typeof propValue !== 'string' &&
+	   *            !(propValue instanceof URI)) {
+	   *          return new Error(
+	   *            'Expected a string or an URI for ' + propName + ' in ' +
+	   *            componentName
+	   *          );
+	   *        }
+	   *      }
+	   *    },
+	   *    render: function() {...}
+	   *  });
+	   *
+	   * @internal
+	   */
+
+	  var ANONYMOUS = '<<anonymous>>';
+
+	  // Important!
+	  // Keep this list in sync with production version in `./factoryWithThrowingShims.js`.
+	  var ReactPropTypes = {
+	    array: createPrimitiveTypeChecker('array'),
+	    bigint: createPrimitiveTypeChecker('bigint'),
+	    bool: createPrimitiveTypeChecker('boolean'),
+	    func: createPrimitiveTypeChecker('function'),
+	    number: createPrimitiveTypeChecker('number'),
+	    object: createPrimitiveTypeChecker('object'),
+	    string: createPrimitiveTypeChecker('string'),
+	    symbol: createPrimitiveTypeChecker('symbol'),
+	    any: createAnyTypeChecker(),
+	    arrayOf: createArrayOfTypeChecker,
+	    element: createElementTypeChecker(),
+	    elementType: createElementTypeTypeChecker(),
+	    instanceOf: createInstanceTypeChecker,
+	    node: createNodeChecker(),
+	    objectOf: createObjectOfTypeChecker,
+	    oneOf: createEnumTypeChecker,
+	    oneOfType: createUnionTypeChecker,
+	    shape: createShapeTypeChecker,
+	    exact: createStrictShapeTypeChecker
+	  };
+
+	  /**
+	   * inlined Object.is polyfill to avoid requiring consumers ship their own
+	   * https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/is
+	   */
+	  /*eslint-disable no-self-compare*/
+	  function is(x, y) {
+	    // SameValue algorithm
+	    if (x === y) {
+	      // Steps 1-5, 7-10
+	      // Steps 6.b-6.e: +0 != -0
+	      return x !== 0 || 1 / x === 1 / y;
+	    } else {
+	      // Step 6.a: NaN == NaN
+	      return x !== x && y !== y;
+	    }
+	  }
+	  /*eslint-enable no-self-compare*/
+
+	  /**
+	   * We use an Error-like object for backward compatibility as people may call
+	   * PropTypes directly and inspect their output. However, we don't use real
+	   * Errors anymore. We don't inspect their stack anyway, and creating them
+	   * is prohibitively expensive if they are created too often, such as what
+	   * happens in oneOfType() for any type before the one that matched.
+	   */
+	  function PropTypeError(message, data) {
+	    this.message = message;
+	    this.data = data && typeof data === 'object' ? data : {};
+	    this.stack = '';
+	  }
+	  // Make `instanceof Error` still work for returned errors.
+	  PropTypeError.prototype = Error.prototype;
+	  function createChainableTypeChecker(validate) {
+	    if (process.env.NODE_ENV !== 'production') {
+	      var manualPropTypeCallCache = {};
+	      var manualPropTypeWarningCount = 0;
+	    }
+	    function checkType(isRequired, props, propName, componentName, location, propFullName, secret) {
+	      componentName = componentName || ANONYMOUS;
+	      propFullName = propFullName || propName;
+	      if (secret !== ReactPropTypesSecret) {
+	        if (throwOnDirectAccess) {
+	          // New behavior only for users of `prop-types` package
+	          var err = new Error('Calling PropTypes validators directly is not supported by the `prop-types` package. ' + 'Use `PropTypes.checkPropTypes()` to call them. ' + 'Read more at http://fb.me/use-check-prop-types');
+	          err.name = 'Invariant Violation';
+	          throw err;
+	        } else if (process.env.NODE_ENV !== 'production' && typeof console !== 'undefined') {
+	          // Old behavior for people using React.PropTypes
+	          var cacheKey = componentName + ':' + propName;
+	          if (!manualPropTypeCallCache[cacheKey] &&
+	          // Avoid spamming the console because they are often not actionable except for lib authors
+	          manualPropTypeWarningCount < 3) {
+	            printWarning('You are manually calling a React.PropTypes validation ' + 'function for the `' + propFullName + '` prop on `' + componentName + '`. This is deprecated ' + 'and will throw in the standalone `prop-types` package. ' + 'You may be seeing this warning due to a third-party PropTypes ' + 'library. See https://fb.me/react-warning-dont-call-proptypes ' + 'for details.');
+	            manualPropTypeCallCache[cacheKey] = true;
+	            manualPropTypeWarningCount++;
+	          }
+	        }
+	      }
+	      if (props[propName] == null) {
+	        if (isRequired) {
+	          if (props[propName] === null) {
+	            return new PropTypeError('The ' + location + ' `' + propFullName + '` is marked as required ' + ('in `' + componentName + '`, but its value is `null`.'));
+	          }
+	          return new PropTypeError('The ' + location + ' `' + propFullName + '` is marked as required in ' + ('`' + componentName + '`, but its value is `undefined`.'));
+	        }
+	        return null;
+	      } else {
+	        return validate(props, propName, componentName, location, propFullName);
+	      }
+	    }
+	    var chainedCheckType = checkType.bind(null, false);
+	    chainedCheckType.isRequired = checkType.bind(null, true);
+	    return chainedCheckType;
+	  }
+	  function createPrimitiveTypeChecker(expectedType) {
+	    function validate(props, propName, componentName, location, propFullName, secret) {
+	      var propValue = props[propName];
+	      var propType = getPropType(propValue);
+	      if (propType !== expectedType) {
+	        // `propValue` being instance of, say, date/regexp, pass the 'object'
+	        // check, but we can offer a more precise error message here rather than
+	        // 'of type `object`'.
+	        var preciseType = getPreciseType(propValue);
+	        return new PropTypeError('Invalid ' + location + ' `' + propFullName + '` of type ' + ('`' + preciseType + '` supplied to `' + componentName + '`, expected ') + ('`' + expectedType + '`.'), {
+	          expectedType: expectedType
+	        });
+	      }
+	      return null;
+	    }
+	    return createChainableTypeChecker(validate);
+	  }
+	  function createAnyTypeChecker() {
+	    return createChainableTypeChecker(emptyFunctionThatReturnsNull);
+	  }
+	  function createArrayOfTypeChecker(typeChecker) {
+	    function validate(props, propName, componentName, location, propFullName) {
+	      if (typeof typeChecker !== 'function') {
+	        return new PropTypeError('Property `' + propFullName + '` of component `' + componentName + '` has invalid PropType notation inside arrayOf.');
+	      }
+	      var propValue = props[propName];
+	      if (!Array.isArray(propValue)) {
+	        var propType = getPropType(propValue);
+	        return new PropTypeError('Invalid ' + location + ' `' + propFullName + '` of type ' + ('`' + propType + '` supplied to `' + componentName + '`, expected an array.'));
+	      }
+	      for (var i = 0; i < propValue.length; i++) {
+	        var error = typeChecker(propValue, i, componentName, location, propFullName + '[' + i + ']', ReactPropTypesSecret);
+	        if (error instanceof Error) {
+	          return error;
+	        }
+	      }
+	      return null;
+	    }
+	    return createChainableTypeChecker(validate);
+	  }
+	  function createElementTypeChecker() {
+	    function validate(props, propName, componentName, location, propFullName) {
+	      var propValue = props[propName];
+	      if (!isValidElement(propValue)) {
+	        var propType = getPropType(propValue);
+	        return new PropTypeError('Invalid ' + location + ' `' + propFullName + '` of type ' + ('`' + propType + '` supplied to `' + componentName + '`, expected a single ReactElement.'));
+	      }
+	      return null;
+	    }
+	    return createChainableTypeChecker(validate);
+	  }
+	  function createElementTypeTypeChecker() {
+	    function validate(props, propName, componentName, location, propFullName) {
+	      var propValue = props[propName];
+	      if (!ReactIs.isValidElementType(propValue)) {
+	        var propType = getPropType(propValue);
+	        return new PropTypeError('Invalid ' + location + ' `' + propFullName + '` of type ' + ('`' + propType + '` supplied to `' + componentName + '`, expected a single ReactElement type.'));
+	      }
+	      return null;
+	    }
+	    return createChainableTypeChecker(validate);
+	  }
+	  function createInstanceTypeChecker(expectedClass) {
+	    function validate(props, propName, componentName, location, propFullName) {
+	      if (!(props[propName] instanceof expectedClass)) {
+	        var expectedClassName = expectedClass.name || ANONYMOUS;
+	        var actualClassName = getClassName(props[propName]);
+	        return new PropTypeError('Invalid ' + location + ' `' + propFullName + '` of type ' + ('`' + actualClassName + '` supplied to `' + componentName + '`, expected ') + ('instance of `' + expectedClassName + '`.'));
+	      }
+	      return null;
+	    }
+	    return createChainableTypeChecker(validate);
+	  }
+	  function createEnumTypeChecker(expectedValues) {
+	    if (!Array.isArray(expectedValues)) {
+	      if (process.env.NODE_ENV !== 'production') {
+	        if (arguments.length > 1) {
+	          printWarning('Invalid arguments supplied to oneOf, expected an array, got ' + arguments.length + ' arguments. ' + 'A common mistake is to write oneOf(x, y, z) instead of oneOf([x, y, z]).');
+	        } else {
+	          printWarning('Invalid argument supplied to oneOf, expected an array.');
+	        }
+	      }
+	      return emptyFunctionThatReturnsNull;
+	    }
+	    function validate(props, propName, componentName, location, propFullName) {
+	      var propValue = props[propName];
+	      for (var i = 0; i < expectedValues.length; i++) {
+	        if (is(propValue, expectedValues[i])) {
+	          return null;
+	        }
+	      }
+	      var valuesString = JSON.stringify(expectedValues, function replacer(key, value) {
+	        var type = getPreciseType(value);
+	        if (type === 'symbol') {
+	          return String(value);
+	        }
+	        return value;
+	      });
+	      return new PropTypeError('Invalid ' + location + ' `' + propFullName + '` of value `' + String(propValue) + '` ' + ('supplied to `' + componentName + '`, expected one of ' + valuesString + '.'));
+	    }
+	    return createChainableTypeChecker(validate);
+	  }
+	  function createObjectOfTypeChecker(typeChecker) {
+	    function validate(props, propName, componentName, location, propFullName) {
+	      if (typeof typeChecker !== 'function') {
+	        return new PropTypeError('Property `' + propFullName + '` of component `' + componentName + '` has invalid PropType notation inside objectOf.');
+	      }
+	      var propValue = props[propName];
+	      var propType = getPropType(propValue);
+	      if (propType !== 'object') {
+	        return new PropTypeError('Invalid ' + location + ' `' + propFullName + '` of type ' + ('`' + propType + '` supplied to `' + componentName + '`, expected an object.'));
+	      }
+	      for (var key in propValue) {
+	        if (has(propValue, key)) {
+	          var error = typeChecker(propValue, key, componentName, location, propFullName + '.' + key, ReactPropTypesSecret);
+	          if (error instanceof Error) {
+	            return error;
+	          }
+	        }
+	      }
+	      return null;
+	    }
+	    return createChainableTypeChecker(validate);
+	  }
+	  function createUnionTypeChecker(arrayOfTypeCheckers) {
+	    if (!Array.isArray(arrayOfTypeCheckers)) {
+	      process.env.NODE_ENV !== 'production' ? printWarning('Invalid argument supplied to oneOfType, expected an instance of array.') : void 0;
+	      return emptyFunctionThatReturnsNull;
+	    }
+	    for (var i = 0; i < arrayOfTypeCheckers.length; i++) {
+	      var checker = arrayOfTypeCheckers[i];
+	      if (typeof checker !== 'function') {
+	        printWarning('Invalid argument supplied to oneOfType. Expected an array of check functions, but ' + 'received ' + getPostfixForTypeWarning(checker) + ' at index ' + i + '.');
+	        return emptyFunctionThatReturnsNull;
+	      }
+	    }
+	    function validate(props, propName, componentName, location, propFullName) {
+	      var expectedTypes = [];
+	      for (var i = 0; i < arrayOfTypeCheckers.length; i++) {
+	        var checker = arrayOfTypeCheckers[i];
+	        var checkerResult = checker(props, propName, componentName, location, propFullName, ReactPropTypesSecret);
+	        if (checkerResult == null) {
+	          return null;
+	        }
+	        if (checkerResult.data && has(checkerResult.data, 'expectedType')) {
+	          expectedTypes.push(checkerResult.data.expectedType);
+	        }
+	      }
+	      var expectedTypesMessage = expectedTypes.length > 0 ? ', expected one of type [' + expectedTypes.join(', ') + ']' : '';
+	      return new PropTypeError('Invalid ' + location + ' `' + propFullName + '` supplied to ' + ('`' + componentName + '`' + expectedTypesMessage + '.'));
+	    }
+	    return createChainableTypeChecker(validate);
+	  }
+	  function createNodeChecker() {
+	    function validate(props, propName, componentName, location, propFullName) {
+	      if (!isNode(props[propName])) {
+	        return new PropTypeError('Invalid ' + location + ' `' + propFullName + '` supplied to ' + ('`' + componentName + '`, expected a ReactNode.'));
+	      }
+	      return null;
+	    }
+	    return createChainableTypeChecker(validate);
+	  }
+	  function invalidValidatorError(componentName, location, propFullName, key, type) {
+	    return new PropTypeError((componentName || 'React class') + ': ' + location + ' type `' + propFullName + '.' + key + '` is invalid; ' + 'it must be a function, usually from the `prop-types` package, but received `' + type + '`.');
+	  }
+	  function createShapeTypeChecker(shapeTypes) {
+	    function validate(props, propName, componentName, location, propFullName) {
+	      var propValue = props[propName];
+	      var propType = getPropType(propValue);
+	      if (propType !== 'object') {
+	        return new PropTypeError('Invalid ' + location + ' `' + propFullName + '` of type `' + propType + '` ' + ('supplied to `' + componentName + '`, expected `object`.'));
+	      }
+	      for (var key in shapeTypes) {
+	        var checker = shapeTypes[key];
+	        if (typeof checker !== 'function') {
+	          return invalidValidatorError(componentName, location, propFullName, key, getPreciseType(checker));
+	        }
+	        var error = checker(propValue, key, componentName, location, propFullName + '.' + key, ReactPropTypesSecret);
+	        if (error) {
+	          return error;
+	        }
+	      }
+	      return null;
+	    }
+	    return createChainableTypeChecker(validate);
+	  }
+	  function createStrictShapeTypeChecker(shapeTypes) {
+	    function validate(props, propName, componentName, location, propFullName) {
+	      var propValue = props[propName];
+	      var propType = getPropType(propValue);
+	      if (propType !== 'object') {
+	        return new PropTypeError('Invalid ' + location + ' `' + propFullName + '` of type `' + propType + '` ' + ('supplied to `' + componentName + '`, expected `object`.'));
+	      }
+	      // We need to check all keys in case some are required but missing from props.
+	      var allKeys = assign({}, props[propName], shapeTypes);
+	      for (var key in allKeys) {
+	        var checker = shapeTypes[key];
+	        if (has(shapeTypes, key) && typeof checker !== 'function') {
+	          return invalidValidatorError(componentName, location, propFullName, key, getPreciseType(checker));
+	        }
+	        if (!checker) {
+	          return new PropTypeError('Invalid ' + location + ' `' + propFullName + '` key `' + key + '` supplied to `' + componentName + '`.' + '\nBad object: ' + JSON.stringify(props[propName], null, '  ') + '\nValid keys: ' + JSON.stringify(Object.keys(shapeTypes), null, '  '));
+	        }
+	        var error = checker(propValue, key, componentName, location, propFullName + '.' + key, ReactPropTypesSecret);
+	        if (error) {
+	          return error;
+	        }
+	      }
+	      return null;
+	    }
+	    return createChainableTypeChecker(validate);
+	  }
+	  function isNode(propValue) {
+	    switch (typeof propValue) {
+	      case 'number':
+	      case 'string':
+	      case 'undefined':
+	        return true;
+	      case 'boolean':
+	        return !propValue;
+	      case 'object':
+	        if (Array.isArray(propValue)) {
+	          return propValue.every(isNode);
+	        }
+	        if (propValue === null || isValidElement(propValue)) {
+	          return true;
+	        }
+	        var iteratorFn = getIteratorFn(propValue);
+	        if (iteratorFn) {
+	          var iterator = iteratorFn.call(propValue);
+	          var step;
+	          if (iteratorFn !== propValue.entries) {
+	            while (!(step = iterator.next()).done) {
+	              if (!isNode(step.value)) {
+	                return false;
+	              }
+	            }
+	          } else {
+	            // Iterator will provide entry [k,v] tuples rather than values.
+	            while (!(step = iterator.next()).done) {
+	              var entry = step.value;
+	              if (entry) {
+	                if (!isNode(entry[1])) {
+	                  return false;
+	                }
+	              }
+	            }
+	          }
+	        } else {
+	          return false;
+	        }
+	        return true;
+	      default:
+	        return false;
+	    }
+	  }
+	  function isSymbol(propType, propValue) {
+	    // Native Symbol.
+	    if (propType === 'symbol') {
+	      return true;
+	    }
+
+	    // falsy value can't be a Symbol
+	    if (!propValue) {
+	      return false;
+	    }
+
+	    // 19.4.3.5 Symbol.prototype[@@toStringTag] === 'Symbol'
+	    if (propValue['@@toStringTag'] === 'Symbol') {
+	      return true;
+	    }
+
+	    // Fallback for non-spec compliant Symbols which are polyfilled.
+	    if (typeof Symbol === 'function' && propValue instanceof Symbol) {
+	      return true;
+	    }
+	    return false;
+	  }
+
+	  // Equivalent of `typeof` but with special handling for array and regexp.
+	  function getPropType(propValue) {
+	    var propType = typeof propValue;
+	    if (Array.isArray(propValue)) {
+	      return 'array';
+	    }
+	    if (propValue instanceof RegExp) {
+	      // Old webkits (at least until Android 4.0) return 'function' rather than
+	      // 'object' for typeof a RegExp. We'll normalize this here so that /bla/
+	      // passes PropTypes.object.
+	      return 'object';
+	    }
+	    if (isSymbol(propType, propValue)) {
+	      return 'symbol';
+	    }
+	    return propType;
+	  }
+
+	  // This handles more types than `getPropType`. Only used for error messages.
+	  // See `createPrimitiveTypeChecker`.
+	  function getPreciseType(propValue) {
+	    if (typeof propValue === 'undefined' || propValue === null) {
+	      return '' + propValue;
+	    }
+	    var propType = getPropType(propValue);
+	    if (propType === 'object') {
+	      if (propValue instanceof Date) {
+	        return 'date';
+	      } else if (propValue instanceof RegExp) {
+	        return 'regexp';
+	      }
+	    }
+	    return propType;
+	  }
+
+	  // Returns a string that is postfixed to a warning about an invalid type.
+	  // For example, "undefined" or "of type array"
+	  function getPostfixForTypeWarning(value) {
+	    var type = getPreciseType(value);
+	    switch (type) {
+	      case 'array':
+	      case 'object':
+	        return 'an ' + type;
+	      case 'boolean':
+	      case 'date':
+	      case 'regexp':
+	        return 'a ' + type;
+	      default:
+	        return type;
+	    }
+	  }
+
+	  // Returns class name of the object, if any.
+	  function getClassName(propValue) {
+	    if (!propValue.constructor || !propValue.constructor.name) {
+	      return ANONYMOUS;
+	    }
+	    return propValue.constructor.name;
+	  }
+	  ReactPropTypes.checkPropTypes = checkPropTypes;
+	  ReactPropTypes.resetWarningCache = checkPropTypes.resetWarningCache;
+	  ReactPropTypes.PropTypes = ReactPropTypes;
+	  return ReactPropTypes;
+	};
+	return factoryWithTypeCheckers;
+}
+
+/**
+ * Copyright (c) 2013-present, Facebook, Inc.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
+var factoryWithThrowingShims;
+var hasRequiredFactoryWithThrowingShims;
+
+function requireFactoryWithThrowingShims () {
+	if (hasRequiredFactoryWithThrowingShims) return factoryWithThrowingShims;
+	hasRequiredFactoryWithThrowingShims = 1;
+
+	var ReactPropTypesSecret = /*@__PURE__*/ requireReactPropTypesSecret();
+	function emptyFunction() {}
+	function emptyFunctionWithReset() {}
+	emptyFunctionWithReset.resetWarningCache = emptyFunction;
+	factoryWithThrowingShims = function () {
+	  function shim(props, propName, componentName, location, propFullName, secret) {
+	    if (secret === ReactPropTypesSecret) {
+	      // It is still safe when called from React.
+	      return;
+	    }
+	    var err = new Error('Calling PropTypes validators directly is not supported by the `prop-types` package. ' + 'Use PropTypes.checkPropTypes() to call them. ' + 'Read more at http://fb.me/use-check-prop-types');
+	    err.name = 'Invariant Violation';
+	    throw err;
+	  }
+	  shim.isRequired = shim;
+	  function getShim() {
+	    return shim;
+	  }
+	  // Important!
+	  // Keep this list in sync with production version in `./factoryWithTypeCheckers.js`.
+	  var ReactPropTypes = {
+	    array: shim,
+	    bigint: shim,
+	    bool: shim,
+	    func: shim,
+	    number: shim,
+	    object: shim,
+	    string: shim,
+	    symbol: shim,
+	    any: shim,
+	    arrayOf: getShim,
+	    element: shim,
+	    elementType: shim,
+	    instanceOf: getShim,
+	    node: shim,
+	    objectOf: getShim,
+	    oneOf: getShim,
+	    oneOfType: getShim,
+	    shape: getShim,
+	    exact: getShim,
+	    checkPropTypes: emptyFunctionWithReset,
+	    resetWarningCache: emptyFunction
+	  };
+	  ReactPropTypes.PropTypes = ReactPropTypes;
+	  return ReactPropTypes;
+	};
+	return factoryWithThrowingShims;
+}
+
+/**
+ * Copyright (c) 2013-present, Facebook, Inc.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
+var hasRequiredPropTypes;
+
+function requirePropTypes () {
+	if (hasRequiredPropTypes) return propTypes.exports;
+	hasRequiredPropTypes = 1;
+	if (process.env.NODE_ENV !== 'production') {
+	  var ReactIs = requireReactIs();
+
+	  // By explicitly using `prop-types` you are opting into new development behavior.
+	  // http://fb.me/prop-types-in-prod
+	  var throwOnDirectAccess = true;
+	  propTypes.exports = /*@__PURE__*/ requireFactoryWithTypeCheckers()(ReactIs.isElement, throwOnDirectAccess);
+	} else {
+	  // By explicitly using `prop-types` you are opting into new production behavior.
+	  // http://fb.me/prop-types-in-prod
+	  propTypes.exports = /*@__PURE__*/ requireFactoryWithThrowingShims()();
+	}
+	return propTypes.exports;
+}
+
+var propTypesExports = /*@__PURE__*/ requirePropTypes();
+var PropTypes = /*@__PURE__*/getDefaultExportFromCjs(propTypesExports);
+
+function _arrayLikeToArray(r, a) {
+  (null == a || a > r.length) && (a = r.length);
+  for (var e = 0, n = Array(a); e < a; e++) n[e] = r[e];
+  return n;
+}
+function _arrayWithHoles(r) {
+  if (Array.isArray(r)) return r;
+}
+function _arrayWithoutHoles(r) {
+  if (Array.isArray(r)) return _arrayLikeToArray(r);
+}
+function _defineProperty(e, r, t) {
+  return (r = _toPropertyKey(r)) in e ? Object.defineProperty(e, r, {
+    value: t,
+    enumerable: true,
+    configurable: true,
+    writable: true
+  }) : e[r] = t, e;
+}
+function _iterableToArray(r) {
+  if ("undefined" != typeof Symbol && null != r[Symbol.iterator] || null != r["@@iterator"]) return Array.from(r);
+}
+function _iterableToArrayLimit(r, l) {
+  var t = null == r ? null : "undefined" != typeof Symbol && r[Symbol.iterator] || r["@@iterator"];
+  if (null != t) {
+    var e,
+      n,
+      i,
+      u,
+      a = [],
+      f = true,
+      o = false;
+    try {
+      if (i = (t = t.call(r)).next, 0 === l) ; else for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== l); f = !0);
+    } catch (r) {
+      o = true, n = r;
+    } finally {
+      try {
+        if (!f && null != t.return && (u = t.return(), Object(u) !== u)) return;
+      } finally {
+        if (o) throw n;
+      }
+    }
+    return a;
+  }
+}
+function _nonIterableRest() {
+  throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function _nonIterableSpread() {
+  throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function ownKeys(e, r) {
+  var t = Object.keys(e);
+  if (Object.getOwnPropertySymbols) {
+    var o = Object.getOwnPropertySymbols(e);
+    r && (o = o.filter(function (r) {
+      return Object.getOwnPropertyDescriptor(e, r).enumerable;
+    })), t.push.apply(t, o);
+  }
+  return t;
+}
+function _objectSpread2(e) {
+  for (var r = 1; r < arguments.length; r++) {
+    var t = null != arguments[r] ? arguments[r] : {};
+    r % 2 ? ownKeys(Object(t), true).forEach(function (r) {
+      _defineProperty(e, r, t[r]);
+    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys(Object(t)).forEach(function (r) {
+      Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r));
+    });
+  }
+  return e;
+}
+function _objectWithoutProperties(e, t) {
+  if (null == e) return {};
+  var o,
+    r,
+    i = _objectWithoutPropertiesLoose(e, t);
+  if (Object.getOwnPropertySymbols) {
+    var n = Object.getOwnPropertySymbols(e);
+    for (r = 0; r < n.length; r++) o = n[r], -1 === t.indexOf(o) && {}.propertyIsEnumerable.call(e, o) && (i[o] = e[o]);
+  }
+  return i;
+}
+function _objectWithoutPropertiesLoose(r, e) {
+  if (null == r) return {};
+  var t = {};
+  for (var n in r) if ({}.hasOwnProperty.call(r, n)) {
+    if (-1 !== e.indexOf(n)) continue;
+    t[n] = r[n];
+  }
+  return t;
+}
+function _slicedToArray(r, e) {
+  return _arrayWithHoles(r) || _iterableToArrayLimit(r, e) || _unsupportedIterableToArray(r, e) || _nonIterableRest();
+}
+function _toConsumableArray(r) {
+  return _arrayWithoutHoles(r) || _iterableToArray(r) || _unsupportedIterableToArray(r) || _nonIterableSpread();
+}
+function _toPrimitive(t, r) {
+  if ("object" != typeof t || !t) return t;
+  var e = t[Symbol.toPrimitive];
+  if (void 0 !== e) {
+    var i = e.call(t, r);
+    if ("object" != typeof i) return i;
+    throw new TypeError("@@toPrimitive must return a primitive value.");
+  }
+  return ("string" === r ? String : Number)(t);
+}
+function _toPropertyKey(t) {
+  var i = _toPrimitive(t, "string");
+  return "symbol" == typeof i ? i : i + "";
+}
+function _typeof(o) {
+  "@babel/helpers - typeof";
+
+  return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (o) {
+    return typeof o;
+  } : function (o) {
+    return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o;
+  }, _typeof(o);
+}
+function _unsupportedIterableToArray(r, a) {
+  if (r) {
+    if ("string" == typeof r) return _arrayLikeToArray(r, a);
+    var t = {}.toString.call(r).slice(8, -1);
+    return "Object" === t && r.constructor && (t = r.constructor.name), "Map" === t || "Set" === t ? Array.from(r) : "Arguments" === t || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t) ? _arrayLikeToArray(r, a) : void 0;
+  }
+}
+var ICON_PACKS_STARTING_VERSION = '7.0.0';
+
+// Try to get version from installed package first, fallback to env var, then default
+var SVG_CORE_VERSION;
+try {
+  var svgCorePackageJson = require('@fortawesome/fontawesome-svg-core/package.json');
+  SVG_CORE_VERSION = svgCorePackageJson.version;
+} catch (e) {
+  // If package.json can't be loaded, try environment variable
+  SVG_CORE_VERSION = typeof process !== 'undefined' && process.env.FA_VERSION || '7.0.0';
+}
+
+// Get CSS class list from a props object
+function classList(props) {
+  var beat = props.beat,
+    fade = props.fade,
+    beatFade = props.beatFade,
+    bounce = props.bounce,
+    shake = props.shake,
+    flash = props.flash,
+    spin = props.spin,
+    spinPulse = props.spinPulse,
+    spinReverse = props.spinReverse,
+    pulse = props.pulse,
+    fixedWidth = props.fixedWidth,
+    inverse = props.inverse,
+    border = props.border,
+    listItem = props.listItem,
+    flip = props.flip,
+    size = props.size,
+    rotation = props.rotation,
+    pull = props.pull,
+    swapOpacity = props.swapOpacity,
+    rotateBy = props.rotateBy,
+    widthAuto = props.widthAuto;
+
+  // Check if we're using version 7 or later
+  var isVersion7OrLater = versionCheckGte(SVG_CORE_VERSION, ICON_PACKS_STARTING_VERSION);
+
+  // map of CSS class names to properties
+  var classes = _defineProperty(_defineProperty(_defineProperty(_defineProperty(_defineProperty(_defineProperty({
+    'fa-beat': beat,
+    'fa-fade': fade,
+    'fa-beat-fade': beatFade,
+    'fa-bounce': bounce,
+    'fa-shake': shake,
+    'fa-flash': flash,
+    'fa-spin': spin,
+    'fa-spin-reverse': spinReverse,
+    'fa-spin-pulse': spinPulse,
+    'fa-pulse': pulse,
+    'fa-fw': fixedWidth,
+    'fa-inverse': inverse,
+    'fa-border': border,
+    'fa-li': listItem,
+    'fa-flip': flip === true,
+    'fa-flip-horizontal': flip === 'horizontal' || flip === 'both',
+    'fa-flip-vertical': flip === 'vertical' || flip === 'both'
+  }, "fa-".concat(size), typeof size !== 'undefined' && size !== null), "fa-rotate-".concat(rotation), typeof rotation !== 'undefined' && rotation !== null && rotation !== 0), "fa-pull-".concat(pull), typeof pull !== 'undefined' && pull !== null), 'fa-swap-opacity', swapOpacity), 'fa-rotate-by', isVersion7OrLater && rotateBy), 'fa-width-auto', isVersion7OrLater && widthAuto);
+
+  // map over all the keys in the classes object
+  // return an array of the keys where the value for the key is not null
+  return Object.keys(classes).map(function (key) {
+    return classes[key] ? key : null;
+  }).filter(function (key) {
+    return key;
+  });
+}
+
+// check if verion1 is greater than or equal to version2
+function versionCheckGte(version1, version2) {
+  var _version1$split = version1.split('-'),
+    _version1$split2 = _slicedToArray(_version1$split, 2),
+    v1Base = _version1$split2[0],
+    v1PreRelease = _version1$split2[1];
+  var _version2$split = version2.split('-'),
+    _version2$split2 = _slicedToArray(_version2$split, 2),
+    v2Base = _version2$split2[0],
+    v2PreRelease = _version2$split2[1];
+  var v1Parts = v1Base.split('.');
+  var v2Parts = v2Base.split('.');
+
+  // Compare version numbers first
+  for (var i = 0; i < Math.max(v1Parts.length, v2Parts.length); i++) {
+    var v1Part = v1Parts[i] || '0';
+    var v2Part = v2Parts[i] || '0';
+
+    // Compare numeric values
+    var v1Num = parseInt(v1Part, 10);
+    var v2Num = parseInt(v2Part, 10);
+    if (v1Num !== v2Num) {
+      return v1Num > v2Num;
+    }
+  }
+
+  // If numeric values are equal, look for any remaining parts
+  // that would make one version greater than the other
+  for (var _i = 0; _i < Math.max(v1Parts.length, v2Parts.length); _i++) {
+    var _v1Part = v1Parts[_i] || '0';
+    var _v2Part = v2Parts[_i] || '0';
+    if (_v1Part !== _v2Part) {
+      // When numeric values are equal but strings differ,
+      // the one without leading zeros is greater
+      if (_v1Part.length !== _v2Part.length) {
+        return _v1Part.length < _v2Part.length;
+      }
+    }
+  }
+
+  // If version numbers are equal, compare pre-release identifiers
+  // A version with a pre-release identifier is less than one without
+  if (v1PreRelease && !v2PreRelease) return false;
+  if (!v1PreRelease && v2PreRelease) return true;
+  return true;
+}
+
+// Camelize taken from humps
+// humps is copyright © 2012+ Dom Christie
+// Released under the MIT license.
+
+// Performant way to determine if object coerces to a number
+function _isNumerical(obj) {
+  obj = obj - 0;
+
+  // eslint-disable-next-line no-self-compare
+  return obj === obj;
+}
+function camelize(string) {
+  if (_isNumerical(string)) {
+    return string;
+  }
+
+  // eslint-disable-next-line no-useless-escape
+  string = string.replace(/[\-_\s]+(.)?/g, function (match, chr) {
+    return chr ? chr.toUpperCase() : '';
+  });
+
+  // Ensure 1st char is always lowercase
+  return string.substr(0, 1).toLowerCase() + string.substr(1);
+}
+var _excluded = ["style"];
+function capitalize(val) {
+  return val.charAt(0).toUpperCase() + val.slice(1);
+}
+function styleToObject(style) {
+  return style.split(';').map(function (s) {
+    return s.trim();
+  }).filter(function (s) {
+    return s;
+  }).reduce(function (acc, pair) {
+    var i = pair.indexOf(':');
+    var prop = camelize(pair.slice(0, i));
+    var value = pair.slice(i + 1).trim();
+    prop.startsWith('webkit') ? acc[capitalize(prop)] = value : acc[prop] = value;
+    return acc;
+  }, {});
+}
+function convert(createElement, element) {
+  var extraProps = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
+  if (typeof element === 'string') {
+    return element;
+  }
+  var children = (element.children || []).map(function (child) {
+    return convert(createElement, child);
+  });
+
+  /* eslint-disable dot-notation */
+  var mixins = Object.keys(element.attributes || {}).reduce(function (acc, key) {
+    var val = element.attributes[key];
+    switch (key) {
+      case 'class':
+        acc.attrs['className'] = val;
+        delete element.attributes['class'];
+        break;
+      case 'style':
+        acc.attrs['style'] = styleToObject(val);
+        break;
+      default:
+        if (key.indexOf('aria-') === 0 || key.indexOf('data-') === 0) {
+          acc.attrs[key.toLowerCase()] = val;
+        } else {
+          acc.attrs[camelize(key)] = val;
+        }
+    }
+    return acc;
+  }, {
+    attrs: {}
+  });
+  var _extraProps$style = extraProps.style,
+    existingStyle = _extraProps$style === void 0 ? {} : _extraProps$style,
+    remaining = _objectWithoutProperties(extraProps, _excluded);
+  mixins.attrs['style'] = _objectSpread2(_objectSpread2({}, mixins.attrs['style']), existingStyle);
+  /* eslint-enable */
+
+  return createElement.apply(void 0, [element.tag, _objectSpread2(_objectSpread2({}, mixins.attrs), remaining)].concat(_toConsumableArray(children)));
+}
+var PRODUCTION = false;
+try {
+  PRODUCTION = process.env.NODE_ENV === 'production';
+} catch (e) {}
+function log() {
+  if (!PRODUCTION && console && typeof console.error === 'function') {
+    var _console;
+    (_console = console).error.apply(_console, arguments);
+  }
+}
+
+// Normalize icon arguments
+function normalizeIconArgs(icon) {
+  // this has everything that it needs to be rendered which means it was probably imported
+  // directly from an icon svg package
+  if (icon && _typeof(icon) === 'object' && icon.prefix && icon.iconName && icon.icon) {
+    return icon;
+  }
+  if (parse$1.icon) {
+    return parse$1.icon(icon);
+  }
+
+  // if the icon is null, there's nothing to do
+  if (icon === null) {
+    return null;
+  }
+
+  // if the icon is an object and has a prefix and an icon name, return it
+  if (icon && _typeof(icon) === 'object' && icon.prefix && icon.iconName) {
+    return icon;
+  }
+
+  // if it's an array with length of two
+  if (Array.isArray(icon) && icon.length === 2) {
+    // use the first item as prefix, second as icon name
+    return {
+      prefix: icon[0],
+      iconName: icon[1]
+    };
+  }
+
+  // if it's a string, use it as the icon name
+  if (typeof icon === 'string') {
+    return {
+      prefix: 'fas',
+      iconName: icon
+    };
+  }
+}
+
+// creates an object with a key of key
+// and a value of value
+// if certain conditions are met
+function objectWithKey(key, value) {
+  // if the value is a non-empty array
+  // or it's not an array but it is truthy
+  // then create the object with the key and the value
+  // if not, return an empty array
+  return Array.isArray(value) && value.length > 0 || !Array.isArray(value) && value ? _defineProperty({}, key, value) : {};
+}
+var defaultProps = {
+  border: false,
+  className: '',
+  mask: null,
+  maskId: null,
+  // the fixedWidth property has been deprecated as of version 7
+  fixedWidth: false,
+  inverse: false,
+  flip: false,
+  icon: null,
+  listItem: false,
+  pull: null,
+  pulse: false,
+  rotation: null,
+  rotateBy: false,
+  size: null,
+  spin: false,
+  spinPulse: false,
+  spinReverse: false,
+  beat: false,
+  fade: false,
+  beatFade: false,
+  bounce: false,
+  shake: false,
+  symbol: false,
+  title: '',
+  titleId: null,
+  transform: null,
+  swapOpacity: false,
+  widthAuto: false
+};
+var FontAwesomeIcon = /*#__PURE__*/React.forwardRef(function (props, ref) {
+  var allProps = _objectSpread2(_objectSpread2({}, defaultProps), props);
+  var iconArgs = allProps.icon,
+    maskArgs = allProps.mask,
+    symbol = allProps.symbol,
+    className = allProps.className,
+    title = allProps.title,
+    titleId = allProps.titleId,
+    maskId = allProps.maskId;
+  var iconLookup = normalizeIconArgs(iconArgs);
+  var classes = objectWithKey('classes', [].concat(_toConsumableArray(classList(allProps)), _toConsumableArray((className || '').split(' '))));
+  var transform = objectWithKey('transform', typeof allProps.transform === 'string' ? parse$1.transform(allProps.transform) : allProps.transform);
+  var mask = objectWithKey('mask', normalizeIconArgs(maskArgs));
+  var renderedIcon = icon(iconLookup, _objectSpread2(_objectSpread2(_objectSpread2(_objectSpread2({}, classes), transform), mask), {}, {
+    symbol: symbol,
+    title: title,
+    titleId: titleId,
+    maskId: maskId
+  }));
+  if (!renderedIcon) {
+    log('Could not find icon', iconLookup);
+    return null;
+  }
+  var abstract = renderedIcon.abstract;
+  var extraProps = {
+    ref: ref
+  };
+  Object.keys(allProps).forEach(function (key) {
+    // eslint-disable-next-line no-prototype-builtins
+    if (!defaultProps.hasOwnProperty(key)) {
+      extraProps[key] = allProps[key];
+    }
+  });
+  return convertCurry(abstract[0], extraProps);
+});
+FontAwesomeIcon.displayName = 'FontAwesomeIcon';
+FontAwesomeIcon.propTypes = {
+  beat: PropTypes.bool,
+  border: PropTypes.bool,
+  beatFade: PropTypes.bool,
+  bounce: PropTypes.bool,
+  className: PropTypes.string,
+  fade: PropTypes.bool,
+  flash: PropTypes.bool,
+  mask: PropTypes.oneOfType([PropTypes.object, PropTypes.array, PropTypes.string]),
+  maskId: PropTypes.string,
+  // the fixedWidth property has been deprecated as of version 7
+  fixedWidth: PropTypes.bool,
+  inverse: PropTypes.bool,
+  flip: PropTypes.oneOf([true, false, 'horizontal', 'vertical', 'both']),
+  icon: PropTypes.oneOfType([PropTypes.object, PropTypes.array, PropTypes.string]),
+  listItem: PropTypes.bool,
+  pull: PropTypes.oneOf(['right', 'left']),
+  pulse: PropTypes.bool,
+  rotation: PropTypes.oneOf([0, 90, 180, 270]),
+  rotateBy: PropTypes.bool,
+  shake: PropTypes.bool,
+  size: PropTypes.oneOf(['2xs', 'xs', 'sm', 'lg', 'xl', '2xl', '1x', '2x', '3x', '4x', '5x', '6x', '7x', '8x', '9x', '10x']),
+  spin: PropTypes.bool,
+  spinPulse: PropTypes.bool,
+  spinReverse: PropTypes.bool,
+  symbol: PropTypes.oneOfType([PropTypes.bool, PropTypes.string]),
+  title: PropTypes.string,
+  titleId: PropTypes.string,
+  transform: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
+  swapOpacity: PropTypes.bool,
+  widthAuto: PropTypes.bool
+};
+var convertCurry = convert.bind(null, React.createElement);
+
+/*!
+ * Font Awesome Free 7.3.0 by @fontawesome - https://fontawesome.com
+ * License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License)
+ * Copyright 2026 Fonticons, Inc.
+ */
+var faBookOpen = {
+  prefix: 'fas',
+  iconName: 'book-open',
+  icon: [512, 512, [128214, 128366], "f518", "M256 141.3l0 309.3 .5-.2C311.1 427.7 369.7 416 428.8 416l19.2 0 0-320-19.2 0c-42.2 0-84.1 8.4-123.1 24.6-16.8 7-33.4 13.9-49.7 20.7zM230.9 61.5L256 72 281.1 61.5C327.9 42 378.1 32 428.8 32L464 32c26.5 0 48 21.5 48 48l0 352c0 26.5-21.5 48-48 48l-35.2 0c-50.7 0-100.9 10-147.7 29.5l-12.8 5.3c-7.9 3.3-16.7 3.3-24.6 0l-12.8-5.3C184.1 490 133.9 480 83.2 480L48 480c-26.5 0-48-21.5-48-48L0 80C0 53.5 21.5 32 48 32l35.2 0c50.7 0 100.9 10 147.7 29.5z"]
 };
 
 var LoginIssuerModal = _ref => {
@@ -7653,8 +13499,9 @@ var HeaderBar = _ref => {
     className: "header-title"
   }, /*#__PURE__*/React.createElement("a", {
     href: process.env.PUBLIC_URL + '/'
-  }, /*#__PURE__*/React.createElement("i", {
-    className: "fa-solid fa-book-open header-icon",
+  }, /*#__PURE__*/React.createElement(FontAwesomeIcon, {
+    icon: faBookOpen,
+    className: "header-icon",
     "aria-hidden": "true"
   }), /*#__PURE__*/React.createElement("span", null, "Semantic ", /*#__PURE__*/React.createElement("span", {
     className: "highlight"
@@ -7694,7 +13541,7 @@ var HeaderBar = _ref => {
   }));
 };
 
-var appVersion = "0.8.45";
+var appVersion = "0.8.48";
 
 var FooterBar = () => {
   return /*#__PURE__*/React.createElement("footer", {
@@ -7712,141 +13559,6 @@ var FooterBar = () => {
   })), /*#__PURE__*/React.createElement("div", {
     className: "footer-version"
   }, "Semantic Data Catalog ", appVersion));
-};
-
-var providers = [{
-  label: 'TMDT Solid',
-  url: 'https://solid-community-server.tmdt.info',
-  note: 'Recommended'
-}, {
-  label: 'Solid Community',
-  url: 'https://solidcommunity.net',
-  note: 'Public community server'
-}];
-var LoginScreen = _ref => {
-  var {
-    onLogin,
-    defaultIssuer
-  } = _ref;
-  var [selected, setSelected] = React.useState(defaultIssuer || providers[0].url);
-  var [customIssuer, setCustomIssuer] = React.useState('');
-  var useCustom = customIssuer.trim().length > 0;
-  var issuerToLogin = useCustom ? customIssuer.trim() : selected;
-  return /*#__PURE__*/React.createElement("div", {
-    className: "login-wrap"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "login-hero"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "login-hero-left"
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    className: "login-hero-title"
-  }, /*#__PURE__*/React.createElement("i", {
-    className: "fa-solid fa-book-open",
-    "aria-hidden": "true"
-  }), "Semantic Data Catalog"), /*#__PURE__*/React.createElement("div", {
-    className: "login-hero-sub"
-  }, "Choose your Solid Pod provider")))), /*#__PURE__*/React.createElement("div", {
-    className: "login-card"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "login-section"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "provider-guide"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "provider-guide-head"
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "guide-title"
-  }, "No Solid Pod yet?"), /*#__PURE__*/React.createElement("span", {
-    className: "guide-sub"
-  }, "Example using the ", /*#__PURE__*/React.createElement("strong", null, "TMDT Solid Server"))), /*#__PURE__*/React.createElement("div", {
-    className: "guide-steps"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "guide-step"
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "step-num"
-  }, "1"), /*#__PURE__*/React.createElement("p", null, "Visit", ' ', /*#__PURE__*/React.createElement("a", {
-    href: "https://solid-community-server.tmdt.info",
-    target: "_blank",
-    rel: "noreferrer"
-  }, "solid-community-server.tmdt.info"), ' ', "or any other Solid Pod Provider.")), /*#__PURE__*/React.createElement("div", {
-    className: "guide-step"
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "step-num"
-  }, "2"), /*#__PURE__*/React.createElement("p", null, "Click ", /*#__PURE__*/React.createElement("strong", null, "Register"), " to create your account.")), /*#__PURE__*/React.createElement("div", {
-    className: "guide-step"
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "step-num"
-  }, "3"), /*#__PURE__*/React.createElement("p", null, "Log in and choose a name to create your Pod.")), /*#__PURE__*/React.createElement("div", {
-    className: "guide-step"
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "step-num"
-  }, "4"), /*#__PURE__*/React.createElement("p", null, "Come back here, pick the provider and sign in with your new Pod."))))), /*#__PURE__*/React.createElement("div", {
-    className: "login-section"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "section-head"
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "section-title"
-  }, "Suggested providers"), /*#__PURE__*/React.createElement("span", {
-    className: "section-hint"
-  }, "Pick a card or use \"Custom issuer\" below")), /*#__PURE__*/React.createElement("div", {
-    className: "provider-grid"
-  }, providers.map(provider => {
-    var isActive = selected === provider.url && !useCustom;
-    return /*#__PURE__*/React.createElement("button", {
-      key: provider.url,
-      type: "button",
-      className: "prov-card".concat(isActive ? ' active' : ''),
-      onClick: () => {
-        setSelected(provider.url);
-        setCustomIssuer('');
-      },
-      title: provider.url
-    }, /*#__PURE__*/React.createElement("span", {
-      className: "radio".concat(isActive ? ' on' : ''),
-      "aria-hidden": "true"
-    }), /*#__PURE__*/React.createElement("div", {
-      className: "prov-text"
-    }, /*#__PURE__*/React.createElement("div", {
-      className: "prov-label"
-    }, provider.label), /*#__PURE__*/React.createElement("div", {
-      className: "prov-url"
-    }, provider.url), /*#__PURE__*/React.createElement("div", {
-      className: "prov-note"
-    }, provider.note)));
-  }))), /*#__PURE__*/React.createElement("div", {
-    className: "login-section"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "section-head"
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "section-title"
-  }, "Custom issuer"), /*#__PURE__*/React.createElement("span", {
-    className: "section-hint"
-  }, "OIDC issuer URL of your Pod provider")), /*#__PURE__*/React.createElement("div", {
-    className: "custom-row"
-  }, /*#__PURE__*/React.createElement("input", {
-    className: "custom-input",
-    placeholder: "https://your-pod-provider.example",
-    value: customIssuer,
-    onChange: event => setCustomIssuer(event.target.value)
-  }), useCustom && /*#__PURE__*/React.createElement("button", {
-    type: "button",
-    className: "clear-btn",
-    onClick: () => setCustomIssuer(''),
-    title: "Back to provider list"
-  }, "x"))), /*#__PURE__*/React.createElement("div", {
-    className: "login-footer"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "login-meta"
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "dot"
-  }), " Solid OIDC Login"), /*#__PURE__*/React.createElement("button", {
-    className: "login-primary",
-    onClick: () => onLogin(issuerToLogin),
-    disabled: !issuerToLogin,
-    title: "Log in with selected provider"
-  }, /*#__PURE__*/React.createElement("i", {
-    className: "fa-solid fa-right-to-bracket",
-    "aria-hidden": "true"
-  }), /*#__PURE__*/React.createElement("span", null, "Login")))));
 };
 
 var VCARD_TYPE = "http://www.w3.org/2006/vcard/ns#type";
@@ -8521,7 +14233,7 @@ var PrivateRegistryModal = _ref => {
     }]);
   };
   var updateMember = (id, value) => {
-    setMembers(prev => prev.map(item => item.id === id ? _objectSpread2(_objectSpread2({}, item), {}, {
+    setMembers(prev => prev.map(item => item.id === id ? _objectSpread2$2(_objectSpread2$2({}, item), {}, {
       value
     }) : item));
   };
@@ -8538,7 +14250,7 @@ var PrivateRegistryModal = _ref => {
         var config = yield loadRegistryConfig(webId, session.fetch);
         var targetUrl = config.privateRegistry || buildDefaultPrivateRegistry(webId);
         if (!config.privateRegistry) {
-          yield saveRegistryConfig(webId, session.fetch, _objectSpread2(_objectSpread2({}, config), {}, {
+          yield saveRegistryConfig(webId, session.fetch, _objectSpread2$2(_objectSpread2$2({}, config), {}, {
             mode: "private",
             privateRegistry: targetUrl
           }));
@@ -8632,7 +14344,8 @@ var defaultIssuer = process.env.REACT_APP_OIDC_ISSUER || 'https://solid-communit
 var App = function App() {
   var {
     embedded = false,
-    webIdOverride = null
+    webIdOverride = null,
+    LoginScreenComponent = null
   } = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
   var [datasets, setDatasets] = React.useState([]);
   var [catalogs, setCatalogs] = React.useState([]);
@@ -8694,7 +14407,7 @@ var App = function App() {
       return _ref.apply(this, arguments);
     };
   }();
-  var enrichAccessFlags = (data, currentWebId) => data.map(dataset => _objectSpread2(_objectSpread2({}, dataset), {}, {
+  var enrichAccessFlags = (data, currentWebId) => data.map(dataset => _objectSpread2$2(_objectSpread2$2({}, dataset), {}, {
     userHasAccess: dataset.is_public || dataset.webid === currentWebId
   }));
   var _fetchDatasets = /*#__PURE__*/function () {
@@ -9037,9 +14750,10 @@ var App = function App() {
     });
   }
   if (!embedded && !isLoggedIn) {
+    var ActiveLoginScreen = LoginScreenComponent;
     return /*#__PURE__*/React.createElement("div", {
       className: "standalone-login-page"
-    }, /*#__PURE__*/React.createElement(LoginScreen, {
+    }, ActiveLoginScreen && /*#__PURE__*/React.createElement(ActiveLoginScreen, {
       defaultIssuer: issuer,
       onLogin: nextIssuer => {
         setIssuer(nextIssuer);
@@ -9068,7 +14782,7 @@ var App = function App() {
     className: "catalog-actions-inner"
   }, /*#__PURE__*/React.createElement("span", {
     className: "catalog-title"
-  }, "All datasets & series"), /*#__PURE__*/React.createElement("div", {
+  }, "All datasets & dataset series"), /*#__PURE__*/React.createElement("div", {
     className: "catalog-actions-right"
   }, /*#__PURE__*/React.createElement("button", {
     className: "btn btn-light mr-2",
@@ -9077,7 +14791,7 @@ var App = function App() {
     title: isLoggedIn ? "Add a new dataset" : "Please log in to add datasets"
   }, /*#__PURE__*/React.createElement("i", {
     className: "fa-solid fa-plus mr-2"
-  }), "Add Dataset (Series)"), isPrivateRegistry && isLoggedIn && /*#__PURE__*/React.createElement("button", {
+  }), "Add Dataset"), isPrivateRegistry && isLoggedIn && /*#__PURE__*/React.createElement("button", {
     className: "btn btn-light mr-2",
     onClick: () => setShowRegistryModal(true),
     title: "Manage private registry members"

@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
+import LoginScreen from './components/LoginScreen';
 import { restoreSession } from './solidSession';
 import './LoginScreen.css';
 
@@ -17,7 +18,7 @@ restoreSession().finally(() => {
         basename={process.env.PUBLIC_URL}
         future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
       >
-        <App />
+        <App LoginScreenComponent={LoginScreen} />
       </BrowserRouter>
     );
   } else {

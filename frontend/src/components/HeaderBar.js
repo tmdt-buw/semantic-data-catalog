@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faBookOpen } from "@fortawesome/free-solid-svg-icons";
 import { session } from "../solidSession";
 import {
   getSolidDataset,
@@ -128,7 +130,7 @@ const HeaderBar = ({ onLoginStatusChange, onWebIdChange, onUserInfoChange, activ
       <div className="header-left">
         <div className="header-title">
           <a href={process.env.PUBLIC_URL + '/'}>
-            <i className="fa-solid fa-book-open header-icon" aria-hidden="true"></i>
+            <FontAwesomeIcon icon={faBookOpen} className="header-icon" aria-hidden="true" />
             <span>Semantic <span className="highlight">Data</span> Catalog</span>
           </a>
         </div>

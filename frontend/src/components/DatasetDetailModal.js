@@ -4,8 +4,17 @@ import { session } from "../solidSession";
 import RDFGraph from "./RDFGraph";
 import RequestDatasetModal from "./RequestDatasetModal";
 import RequestSuccessModal from "./RequestSuccessModal";
-import SemanticModelModal from "./SemanticModelModal";
-import { getFileWithAcl, getAgentAccess } from "@inrupt/solid-client";
+import {
+  getFileWithAcl,
+  getAgentAccess,
+  getSolidDataset,
+  getThing,
+  getStringNoLocale,
+  getUrl,
+  getUrlAll,
+} from "@inrupt/solid-client";
+import { FOAF, VCARD } from "@inrupt/vocab-common-rdf";
+import "./DatasetDetailModal.css";
 
 const getPodRootFromWebId = (webId) => {
   if (!webId) return "";
@@ -44,7 +53,7 @@ const handleFileDownload = async (url, fileName) => {
     URL.revokeObjectURL(link.href);
   } catch (err) {
     console.error("Download error:", err);
-    alert("Failed to download file.");
+    openExternalLink(url);
   }
 };
 
@@ -96,9 +105,14 @@ const DatasetDetailModal = ({ dataset, onClose, sessionWebId, userName, userEmai
   const [triples, setTriples] = useState([]);
   const [canAccessDataset, setCanAccessDataset] = useState(false);
   const [canAccessModel, setCanAccessModel] = useState(false);
+  const [ownerProfile, setOwnerProfile] = useState({
+    name: "",
+    email: "",
+    photo: "",
+    webId: "",
+  });
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [showRequestSuccess, setShowRequestSuccess] = useState(false);
-  const [showSemanticModal, setShowSemanticModal] = useState(false);
   const [requestPending, setRequestPending] = useState(false);
   const isSeries = dataset?.datasetType === "series";
   const datasetLookup = new Map(
@@ -252,6 +266,87 @@ const DatasetDetailModal = ({ dataset, onClose, sessionWebId, userName, userEmai
     setRequestPending(false);
   }, [dataset, sessionWebId]);
 
+  useEffect(() => {
+    let cancelled = false;
+    let photoObjectUrl = "";
+    const ownerWebId = dataset?.webid || "";
+
+    const fallbackProfile = {
+      name: dataset?.publisher || "Solid Pod User",
+      email: dataset?.contact_point || "No email provided",
+      photo: "",
+      webId: ownerWebId,
+    };
+
+    const loadOwnerProfile = async () => {
+      if (!ownerWebId) {
+        setOwnerProfile(fallbackProfile);
+        return;
+      }
+
+      try {
+        const profileDocUrl = ownerWebId.split("#")[0] || ownerWebId;
+        const profileDataset = await getSolidDataset(profileDocUrl, { fetch: session.fetch });
+        const profile = getThing(profileDataset, ownerWebId);
+        if (!profile) {
+          if (!cancelled) setOwnerProfile(fallbackProfile);
+          return;
+        }
+
+        const name =
+          getStringNoLocale(profile, FOAF.name) ||
+          getStringNoLocale(profile, VCARD.fn) ||
+          fallbackProfile.name;
+        const emailNode = getUrlAll(profile, VCARD.hasEmail)[0];
+        let email = fallbackProfile.email;
+        if (emailNode) {
+          const emailThing = getThing(profileDataset, emailNode);
+          const emailValue = emailThing ? getStringNoLocale(emailThing, VCARD.value) : "";
+          email = emailValue ? emailValue.replace(/^mailto:/, "") : email;
+        }
+        const photoRef = getUrl(profile, VCARD.hasPhoto) || getUrl(profile, FOAF.img);
+        let photo = "";
+        if (photoRef) {
+          try {
+            const photoUrl = new URL(photoRef, profileDocUrl).toString();
+            const photoResponse = await session.fetch(photoUrl);
+            if (photoResponse.ok) {
+              const photoBlob = await photoResponse.blob();
+              photoObjectUrl = URL.createObjectURL(photoBlob);
+              if (cancelled) {
+                URL.revokeObjectURL(photoObjectUrl);
+                return;
+              }
+              photo = photoObjectUrl;
+            }
+          } catch {
+            photo = "";
+          }
+        }
+
+        if (!cancelled) {
+          setOwnerProfile({
+            name,
+            email,
+            photo,
+            webId: ownerWebId,
+          });
+        }
+      } catch (err) {
+        console.error("Failed to load dataset owner profile:", err);
+        if (!cancelled) setOwnerProfile(fallbackProfile);
+      }
+    };
+
+    loadOwnerProfile();
+    return () => {
+      cancelled = true;
+      if (photoObjectUrl) {
+        URL.revokeObjectURL(photoObjectUrl);
+      }
+    };
+  }, [dataset]);
+
   if (!dataset) return null;
   const hasSemanticModel = Boolean(dataset.access_url_semantic_model);
   const datasetLinkType = dataset.distribution_access_type === "access" ? "access" : "download";
@@ -261,207 +356,274 @@ const DatasetDetailModal = ({ dataset, onClose, sessionWebId, userName, userEmai
   const modelFileName = getResourceLabel(dataset.access_url_semantic_model, {
     fallback: "Semantic model",
   });
-  const datasetActionIsDownload =
-    datasetLinkType === "download" && isPodManagedUrl(dataset.access_url_dataset);
-  const modelActionIsDownload =
-    hasSemanticModel && isPodManagedUrl(dataset.access_url_semantic_model);
+  const datasetFileType = datasetLinkType === "access"
+    ? "URL"
+    : (datasetFileName.split(".").pop() || "DATA").slice(0, 5).toUpperCase();
+  const modelFileType = (modelFileName.split(".").pop() || "RDF").slice(0, 5).toUpperCase();
+  const datasetActionIsDownload = datasetLinkType === "download";
+  const modelActionIsDownload = hasSemanticModel;
   const hasUserAccess = dataset.is_public || canAccessDataset || canAccessModel;
   const canRequestAccess = !isSeries && !dataset.is_public && !hasUserAccess && Boolean(dataset.webid);
   const requestButtonDisabled = canRequestAccess && requestPending;
+  const titleValue = dataset.title || "Untitled dataset";
+  const descriptionValue = dataset.description || "No description provided.";
+  const themeValues = String(dataset.theme || "")
+    .split(/[,;|]/)
+    .map((value) => value.trim())
+    .filter(Boolean);
+  const accessRightsValue = dataset.is_public
+    ? "Public"
+    : hasUserAccess
+      ? "Restricted (you have access)"
+      : "Restricted";
+  const detailRows = [
+    { predicate: "dct:identifier", value: dataset.identifier },
+    { predicate: "dct:issued", value: formatDate(dataset.issued) },
+    { predicate: "dct:modified", value: formatDate(dataset.modified) },
+    { predicate: "dct:publisher", value: dataset.publisher },
+    {
+      predicate: "dcat:contactPoint",
+      value: dataset.contact_point ? (
+        <a href={`mailto:${dataset.contact_point}`}>{dataset.contact_point}</a>
+      ) : null,
+    },
+    {
+      predicate: "dct:creator",
+      value: dataset.webid ? (
+        <a href={dataset.webid} target="_blank" rel="noopener noreferrer">
+          {dataset.webid}
+        </a>
+      ) : null,
+    },
+    { predicate: "dct:accessRights", value: accessRightsValue },
+    {
+      predicate: "dcat:distribution",
+      value: isSeries ? "Dataset series" : datasetLinkType === "access" ? "Access URL" : "Download URL",
+    },
+  ];
+
+  if (!isSeries && dataset.access_url_dataset) {
+    detailRows.push({
+      predicate: datasetLinkType === "access" ? "dcat:accessURL" : "dcat:downloadURL",
+      value: (
+        <a href={dataset.access_url_dataset} target="_blank" rel="noopener noreferrer">
+          {dataset.access_url_dataset}
+        </a>
+      ),
+    });
+  }
+
+  if (!isSeries && hasSemanticModel) {
+    detailRows.push({
+      predicate: "dct:conformsTo",
+      value: (
+        <a href={dataset.access_url_semantic_model} target="_blank" rel="noopener noreferrer">
+          {dataset.access_url_semantic_model}
+        </a>
+      ),
+    });
+  }
+
+  if (isSeries) {
+    detailRows.push({
+      predicate: "dcat:seriesMember",
+      value: `${(dataset.seriesMembers || []).length} member${(dataset.seriesMembers || []).length === 1 ? "" : "s"}`,
+    });
+  }
+
+  const renderDetailValue = (value) => {
+    if (value === 0) return value;
+    return value || <span className="text-muted">N/A</span>;
+  };
+  const triggerDatasetAction = () => {
+    if (datasetActionIsDownload) {
+      handleFileDownload(dataset.access_url_dataset, datasetFileName);
+      return;
+    }
+    openExternalLink(dataset.access_url_dataset);
+  };
+  const triggerModelAction = () => {
+    if (modelActionIsDownload) {
+      handleFileDownload(dataset.access_url_semantic_model, modelFileName);
+      return;
+    }
+    openExternalLink(dataset.access_url_semantic_model);
+  };
 
   return (
     <>
-      <div className="modal show modal-show dataset-detail-modal">
-        <div className="modal-dialog modal-xl">
+      <div className="modal show modal-show dataset-add-modal dataset-detail-modal">
+        <div className="modal-dialog modal-xl dataset-detail-dialog">
           <div className="modal-content">
-            <div className="modal-header d-flex justify-content-between align-items-center">
+            <div className="modal-header">
               <h5 className="modal-title">
-                <i className="fa-solid fa-circle-info mr-2"></i>{' '}
-                {isSeries ? "Dataset Series Details" : "Dataset Details"}
+                <i className="fa-solid fa-database mr-2"></i> Detail Dataset
               </h5>
-              <div className="d-flex align-items-center">
-                {canRequestAccess && (
-                  <button
-                    className="btn btn-light mr-2"
-                    onClick={() => setShowRequestModal(true)}
-                    disabled={requestButtonDisabled}
-                    title={
-                      requestButtonDisabled
-                        ? "Request already sent. Waiting for the dataset owner."
-                        : "Request access to this dataset"
-                    }
-                  >
-                    {requestButtonDisabled ? "Request Pending" : "Request Dataset"}
-                  </button>
-                )}
-                <button type="button" className="close" onClick={onClose}><span>&times;</span></button>
-              </div>
+              {canRequestAccess && (
+                <button
+                  className="btn btn-light mr-2 dataset-detail-request-button"
+                  onClick={() => setShowRequestModal(true)}
+                  disabled={requestButtonDisabled}
+                  title={
+                    requestButtonDisabled
+                      ? "Request already sent. Waiting for the dataset owner."
+                      : "Request access to this dataset"
+                  }
+                >
+                  {requestButtonDisabled ? "Request Pending" : "Request Dataset"}
+                </button>
+              )}
+              <button type="button" className="close" onClick={onClose}><span>&times;</span></button>
             </div>
 
-            <div className={`modal-body d-flex ${isSeries ? "series-only" : ""}`}>
-              <div className="dataset-detail-left">
-                <ul className="list-group">
-                  <li className="list-group-item">
-                    <i className="fa-solid fa-heading mr-2"></i><strong>Title:</strong> {dataset.title}
-                  </li>
-                  <li className="list-group-item">
-                    <i className="fa-solid fa-align-left mr-2"></i><strong>Description:</strong> {dataset.description}
-                  </li>
-                  <li className="list-group-item">
-                    <i className="fa-solid fa-tags mr-2"></i><strong>Theme:</strong> {formatTheme(dataset.theme)}
-                  </li>
-                  <li className="list-group-item">
-                    <i className="fa-solid fa-calendar-plus mr-2"></i><strong>Issued Date:</strong> {formatDate(dataset.issued)}
-                  </li>
-                  <li className="list-group-item">
-                    <i className="fa-solid fa-calendar-check mr-2"></i><strong>Modified Date:</strong> {formatDate(dataset.modified)}
-                  </li>
-                  <li className="list-group-item">
-                    <i className="fa-solid fa-user mr-2"></i><strong>Publisher:</strong> {dataset.publisher}
-                  </li>
-                  <li className="list-group-item">
-                    <i className="fa-solid fa-envelope mr-2"></i><strong>Contact:</strong>{' '}
-                    {dataset.contact_point ? (
-                      <a href={`mailto:${dataset.contact_point}`}>{dataset.contact_point}</a>
-                    ) : (
-                      <span className="text-muted">N/A</span>
-                    )}
-                  </li>
-
-                  {isSeries ? (
-                    <li className="list-group-item">
-                      <i className="fa-solid fa-layer-group mr-2"></i><strong>Series Members:</strong>
-                      <div className="mt-3">
-                        {(dataset.seriesMembers || []).length === 0 ? (
-                          <span className="text-muted">No members listed.</span>
-                        ) : (
-                          <div className="series-members-scroll">
-                            <div className="d-flex flex-column gap-3">
-                              {dataset.seriesMembers.map((url) => {
-                                const resolved = resolveSeriesMember(url);
-                                const info = datasetLookup.get(url);
-                                return (
-                                  <div key={url} className="card shadow-sm border-0 p-3">
-                                    <div className="d-flex justify-content-between align-items-start">
-                                      <div>
-                                        <div className="font-weight-bold">{resolved.title}</div>
-                                        {info?.description && (
-                                          <div className="text-muted small mt-1">{info.description}</div>
-                                        )}
-                                      </div>
-                                      <span className="badge badge-light">
-                                        {info?.is_public ? "Public" : "Restricted"}
-                                      </span>
-                                    </div>
-                                    <div className="small text-muted mt-2">
-                                      {info?.publisher && (
-                                        <div><strong>Publisher:</strong> {info.publisher}</div>
-                                      )}
-                                      {info?.issued && (
-                                        <div><strong>Issued:</strong> {formatDate(info.issued)}</div>
-                                      )}
-                                      {info?.modified && (
-                                        <div><strong>Modified:</strong> {formatDate(info.modified)}</div>
-                                      )}
-                                    </div>
-                                    <div className="mt-2">
-                                      <a href={resolved.url} target="_blank" rel="noopener noreferrer">
-                                        Open dataset
-                                      </a>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </li>
+            <div className="modal-body dataset-detail-body">
+              <div className="pod-info-card dataset-detail-owner-card">
+                <div className="pod-info-left">
+                  {ownerProfile.photo ? (
+                    <img src={ownerProfile.photo} alt="Dataset owner" className="pod-avatar" />
                   ) : (
-                    <>
-                      <li className="list-group-item d-flex justify-content-between align-items-center">
-                        <div>
-                          <i className="fa-solid fa-file-csv mr-2"></i><strong>Dataset:</strong>{' '}
-                          {canAccessDataset ? (
-                            <a href={dataset.access_url_dataset} target="_blank" rel="noopener noreferrer">
-                              {datasetFileName}
-                            </a>
-                          ) : (
-                            <span className="text-muted">Restricted</span>
-                          )}
-                        </div>
-                        {canAccessDataset && (
-                          <button
-                            className="btn btn-link text-dark"
-                            onClick={() => {
-                              if (datasetActionIsDownload) {
-                                handleFileDownload(dataset.access_url_dataset, datasetFileName);
-                                return;
-                              }
-                              openExternalLink(dataset.access_url_dataset);
-                            }}
-                            title={datasetActionIsDownload ? "Download dataset" : "Open external link"}
-                          >
-                            <i className={`fa-solid ${datasetActionIsDownload ? "fa-download" : "fa-arrow-up-right-from-square"}`}></i>
-                          </button>
-                        )}
-                      </li>
-
-                      {hasSemanticModel && (
-                        <li className="list-group-item d-flex justify-content-between align-items-center">
-                          <div>
-                            <i className="fa-solid fa-project-diagram mr-2"></i><strong>Semantic Model:</strong>{' '}
-                            {canAccessModel ? (
-                              <a href={dataset.access_url_semantic_model} target="_blank" rel="noopener noreferrer">
-                                {modelFileName}
-                              </a>
-                            ) : (
-                              <span className="text-muted">Restricted</span>
-                            )}
-                          </div>
-                          {canAccessModel && (
-                            <button
-                              className="btn btn-link text-dark"
-                              onClick={() => {
-                                if (modelActionIsDownload) {
-                                  handleFileDownload(dataset.access_url_semantic_model, modelFileName);
-                                  return;
-                                }
-                                openExternalLink(dataset.access_url_semantic_model);
-                              }}
-                              title={modelActionIsDownload ? "Download semantic model" : "Open semantic model link"}
-                            >
-                              <i className={`fa-solid ${modelActionIsDownload ? "fa-download" : "fa-arrow-up-right-from-square"}`}></i>
-                            </button>
-                          )}
-                        </li>
-                      )}
-                      <li className="list-group-item">
-                        <i className="fa-solid fa-lock mr-2"></i><strong>Access Rights:</strong>{' '}
-                        {dataset.is_public ? (
-                          <span><i className="fa-solid fa-globe" title="Public"></i> Public</span>
-                        ) : hasUserAccess ? (
-                          <span><i className="fa-solid fa-lock-open text-success" title="Restricted (You have access)"></i> Restricted (You have access)</span>
-                        ) : (
-                          <span><i className="fa-solid fa-lock text-danger" title="Restricted"></i> Restricted</span>
-                        )}
-                      </li>
-                    </>
+                    <div className="pod-avatar pod-avatar--placeholder">
+                      <i className="fa-solid fa-user"></i>
+                    </div>
                   )}
-                </ul>
+                  <div>
+                    <div className="pod-name">{ownerProfile.name || "Solid Pod User"}</div>
+                    <div className="pod-meta">{ownerProfile.email || "No email provided"}</div>
+                    <div className="pod-meta pod-webid">
+                      <i className="fa-solid fa-link"></i>
+                      <span>{ownerProfile.webId || "No WebID"}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              {!isSeries && hasSemanticModel && (
-                <div
-                  className="dataset-detail-right d-flex align-items-center justify-content-center ml-3"
-                  title="Double-click to enlarge"
-                >
-                  {triples.length > 0 ? (
-                    <RDFGraph triples={triples} onDoubleClick={() => setShowSemanticModal(true)} />
-                  ) : (
-                    <p className="text-muted">No RDF triples found.</p>
-                  )}
+              <section className="dataset-detail-hero">
+                <div className="detail-predicate-label">dct:title</div>
+                <h2>{titleValue}</h2>
+                <div className="dataset-detail-description">
+                  <div className="detail-predicate-label">dct:description</div>
+                  <p>{descriptionValue}</p>
                 </div>
+              </section>
+
+              {!isSeries && (
+                <section className="dataset-detail-section dataset-detail-card">
+                  <h3>Files and Sources</h3>
+                  <div className="detail-file-list">
+                    <div className={`detail-file-row ${!canAccessDataset ? "is-restricted" : ""}`}>
+                      <div className="detail-file-icon">
+                        <span className="detail-file-icon-code">{datasetFileType}</span>
+                      </div>
+                      <div className="detail-file-main">
+                        <div className="detail-file-title">{datasetFileName}</div>
+                        <div className="detail-file-meta">Content: Dataset file</div>
+                        <div className="detail-file-meta">
+                          Access: {canAccessDataset ? accessRightsValue : "Restricted"}
+                        </div>
+                      </div>
+                      <button
+                        className="detail-download-button"
+                        onClick={triggerDatasetAction}
+                        disabled={!canAccessDataset || !dataset.access_url_dataset}
+                      >
+                        {datasetActionIsDownload ? "Download" : "Open"}
+                      </button>
+                    </div>
+
+                    {hasSemanticModel && (
+                      <div className={`detail-file-row ${!canAccessModel ? "is-restricted" : ""}`}>
+                        <div className="detail-file-icon semantic">
+                          <span className="detail-file-icon-code">{modelFileType}</span>
+                        </div>
+                        <div className="detail-file-main">
+                          <div className="detail-file-title">{modelFileName}</div>
+                          <div className="detail-file-meta">Content: Semantic model</div>
+                          <div className="detail-file-meta">
+                            Format: Turtle/RDF model
+                          </div>
+                        </div>
+                        <button
+                          className="detail-download-button"
+                          onClick={triggerModelAction}
+                          disabled={!canAccessModel}
+                        >
+                          {modelActionIsDownload ? "Download" : "Open"}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </section>
+              )}
+
+              <section className="dataset-detail-section dataset-detail-card">
+                <h3>Categories</h3>
+                <div className="detail-predicate-label">dcat:theme</div>
+                {themeValues.length > 0 ? (
+                  <div className="detail-theme-list">
+                    {themeValues.map((themeValue) => (
+                      <span className="detail-theme-chip" key={themeValue}>
+                        {formatTheme(themeValue)}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <span className="text-muted">N/A</span>
+                )}
+              </section>
+
+              <section className="dataset-detail-section dataset-detail-card">
+                <table className="detail-metadata-table">
+                  <tbody>
+                    {detailRows.map((row) => (
+                      <tr key={row.predicate}>
+                        <th scope="row">{row.predicate}</th>
+                        <td>{renderDetailValue(row.value)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </section>
+
+              {isSeries && (
+                <section className="dataset-detail-section dataset-detail-card">
+                  <h3>dcat:seriesMember</h3>
+                  {(dataset.seriesMembers || []).length === 0 ? (
+                    <span className="text-muted">No members listed.</span>
+                  ) : (
+                    <div className="detail-series-list">
+                      {dataset.seriesMembers.map((url) => {
+                        const resolved = resolveSeriesMember(url);
+                        const info = datasetLookup.get(url);
+                        return (
+                          <div key={url} className="detail-series-row">
+                            <div>
+                              <div className="detail-series-title">{resolved.title}</div>
+                              {info?.description && (
+                                <div className="detail-series-description">{info.description}</div>
+                              )}
+                            </div>
+                            <a href={resolved.url} target="_blank" rel="noopener noreferrer">
+                              Open dataset
+                            </a>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </section>
+              )}
+
+              {!isSeries && hasSemanticModel && (
+                <section className="dataset-detail-section dataset-detail-card dataset-detail-visualization">
+                  <h3>Semantic Model Visualization</h3>
+                  <div className="detail-graph-wide">
+                    {triples.length > 0 ? (
+                      <RDFGraph triples={triples} />
+                    ) : (
+                      <p className="text-muted">No RDF triples found.</p>
+                    )}
+                  </div>
+                </section>
               )}
             </div>
           </div>
@@ -482,9 +644,6 @@ const DatasetDetailModal = ({ dataset, onClose, sessionWebId, userName, userEmai
       )}
       {showRequestSuccess && !isSeries && (
         <RequestSuccessModal onClose={() => setShowRequestSuccess(false)} />
-      )}
-      {showSemanticModal && !isSeries && (
-        <SemanticModelModal triples={triples} onClose={() => setShowSemanticModal(false)} />
       )}
     </>
   );

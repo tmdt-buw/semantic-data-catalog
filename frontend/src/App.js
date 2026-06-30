@@ -7,7 +7,6 @@ import DatasetDeleteModal from './components/DatasetDeleteModal';
 import DatasetEditModal from './components/DatasetEditModal';
 import HeaderBar from './components/HeaderBar';
 import FooterBar from './components/FooterBar';
-import LoginScreen from './components/LoginScreen';
 import OnboardingWizard from './components/OnboardingWizard';
 import PrivateRegistryModal from './components/PrivateRegistryModal';
 import { session } from './solidSession';
@@ -26,7 +25,7 @@ import {
 
 const defaultIssuer = process.env.REACT_APP_OIDC_ISSUER || 'https://solid-community-server.tmdt.info';
 
-const App = ({ embedded = false, webIdOverride = null } = {}) => {
+const App = ({ embedded = false, webIdOverride = null, LoginScreenComponent = null } = {}) => {
   const [datasets, setDatasets] = useState([]);
   const [catalogs, setCatalogs] = useState([]);
   const [showNewDatasetModal, setShowNewDatasetModal] = useState(false);
@@ -465,15 +464,18 @@ const App = ({ embedded = false, webIdOverride = null } = {}) => {
   }
 
   if (!embedded && !isLoggedIn) {
+    const ActiveLoginScreen = LoginScreenComponent;
     return (
       <div className="standalone-login-page">
-        <LoginScreen
-          defaultIssuer={issuer}
-          onLogin={(nextIssuer) => {
-            setIssuer(nextIssuer);
-            loginToSolid(nextIssuer);
-          }}
-        />
+        {ActiveLoginScreen && (
+          <ActiveLoginScreen
+            defaultIssuer={issuer}
+            onLogin={(nextIssuer) => {
+              setIssuer(nextIssuer);
+              loginToSolid(nextIssuer);
+            }}
+          />
+        )}
       </div>
     );
   }
@@ -498,7 +500,7 @@ const App = ({ embedded = false, webIdOverride = null } = {}) => {
           <div className="catalog-shell">
             <div className="catalog-actions">
               <div className="catalog-actions-inner">
-                <span className="catalog-title">All datasets & series</span>
+                <span className="catalog-title">All datasets & dataset series</span>
                 <div className="catalog-actions-right">
                   <button
                     className="btn btn-light mr-2"
@@ -507,7 +509,7 @@ const App = ({ embedded = false, webIdOverride = null } = {}) => {
                     title={isLoggedIn ? "Add a new dataset" : "Please log in to add datasets"}
                   >
                     <i className="fa-solid fa-plus mr-2"></i>
-                    Add Dataset (Series)
+                    Add Dataset
                   </button>
                   {isPrivateRegistry && isLoggedIn && (
                     <button
