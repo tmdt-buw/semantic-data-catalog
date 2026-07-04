@@ -2,7 +2,7 @@ import React from "react";
 import { Box } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 
-const DatasetTable = ({ datasets, onRowClick, onEditClick, onDeleteClick, sessionWebId, searchQuery }) => {
+const DatasetTable = ({ datasets, onRowClick, searchQuery }) => {
   const formatDate = (dateString) => {
     if (!dateString) return "";
     const date = new Date(dateString);
@@ -118,39 +118,6 @@ const DatasetTable = ({ datasets, onRowClick, onEditClick, onDeleteClick, sessio
           );
         }
         return <i className="fa-solid fa-lock text-danger" title="Restricted"></i>;
-      },
-    },
-    {
-      field: "actions",
-      headerName: "Actions",
-      minWidth: 130,
-      sortable: false,
-      filterable: false,
-      renderCell: (params) => {
-        const dataset = params.row;
-        if (!dataset || !sessionWebId || dataset.webid !== sessionWebId) return null;
-        return (
-          <div className="inline-action-buttons">
-            <button
-              className="edit-button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onEditClick(dataset);
-              }}
-            >
-              <i className="fa-regular fa-pen-to-square"></i>
-            </button>
-            <button
-              className="delete-button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDeleteClick(dataset);
-              }}
-            >
-              <i className="fa-solid fa-trash"></i>
-            </button>
-          </div>
-        );
       },
     },
   ];

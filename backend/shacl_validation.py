@@ -1,4 +1,6 @@
 import os
+from typing import Optional
+
 from rdflib import Graph
 from pyshacl import validate
 
@@ -8,9 +10,9 @@ def _shape_path() -> str:
     return os.path.join(base_dir, "shapes", "sdcat-shape.ttl")
 
 
-def validate_turtle(ttl_data: str) -> tuple[bool, str]:
+def validate_turtle(ttl_data: str, base_uri: Optional[str] = None) -> tuple[bool, str]:
     data_graph = Graph()
-    data_graph.parse(data=ttl_data, format="turtle")
+    data_graph.parse(data=ttl_data, publicID=base_uri, format="turtle")
 
     shape_graph = Graph()
     shape_graph.parse(_shape_path(), format="turtle")

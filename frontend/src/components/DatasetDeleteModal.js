@@ -2,7 +2,7 @@ import React from 'react';
 import { deleteDatasetEntry, deleteSeriesEntry } from "../solidCatalog";
 import { session } from "../solidSession";
 
-const DatasetDeleteModal = ({ onClose, dataset, fetchDatasets }) => {
+const DatasetDeleteModal = ({ onClose, onDeleted, dataset, fetchDatasets }) => {
   const handleDelete = async () => {
     try {
       if (!dataset) return;
@@ -12,15 +12,19 @@ const DatasetDeleteModal = ({ onClose, dataset, fetchDatasets }) => {
         await deleteDatasetEntry(session, dataset.datasetUrl, dataset.identifier);
       }
       await fetchDatasets();
-      onClose();
+      if (onDeleted) {
+        onDeleted();
+      } else {
+        onClose();
+      }
     } catch (error) {
       console.error("Error deleting dataset:", error);
     }
   };
 
   return (
-    <div className="modal fade show modal-show" tabIndex="-1" role="dialog">
-      <div className="modal-dialog modal-lg" role="document">
+    <div className="modal fade show modal-show dataset-add-modal dataset-delete-modal" tabIndex="-1" role="dialog">
+      <div className="modal-dialog modal-xl" role="document">
         <div className="modal-content">
           <div className="modal-header">
             <h5 className="modal-title">
@@ -31,9 +35,9 @@ const DatasetDeleteModal = ({ onClose, dataset, fetchDatasets }) => {
             </button>
           </div>
 
-          <div className="modal-body text-center">
-            <i className="fa-solid fa-triangle-exclamation fa-8x text-danger mb-4"></i>
-            <p className="lead">
+          <div className="modal-body text-center dataset-delete-modal-body">
+            <i className="fa-solid fa-triangle-exclamation text-danger dataset-delete-modal-icon"></i>
+            <p className="lead dataset-delete-modal-message">
               Are you sure you want to delete this {dataset?.datasetType === "series" ? "series" : "dataset"}?
             </p>
           </div>

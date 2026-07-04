@@ -8,9 +8,9 @@ A FAIR-compliant **Semantic Data Catalog** for decentralized Solid-based dataspa
 
 - **Frontend (React)**: The UI that reads/writes DCAT metadata directly in the user's Solid Pod.
 - **Solid Pod**: Source of truth for catalog metadata (Turtle documents).
-- **Fuseki** (optional): Included in `docker-compose.yaml` for legacy/auxiliary triple-store workflows.
+- **Backend API (FastAPI)**: Helper API for public Solid catalog reads, SHACL validation, merged Turtle export, and service-account dataset creation.
 
-The previous SQL database setup is no longer used by the current `docker-compose.yaml`.
+The previous SQL database and Fuseki setup is no longer used by the current `docker-compose.yaml`.
 
 ---
 
@@ -22,7 +22,7 @@ docker-compose up -d --build
 
 Services:
 - Frontend: `http://localhost:5000`
-- Fuseki: `http://localhost:3030`
+- Backend API: `http://localhost:8000/api`
 
 ---
 
@@ -33,6 +33,22 @@ Edit the environment variables in `docker-compose.yaml` for the frontend:
 ```env
 REACT_APP_OIDC_ISSUER=https://solidcommunity.net
 ```
+
+For backend writes, configure a Solid service account:
+
+```env
+CATALOG_SERVICE_WEBID=https://solid-community-server.tmdt.info/solidservice/profile/card#me
+CATALOG_SERVICE_OIDC_ISSUER=https://solid-community-server.tmdt.info
+CATALOG_SERVICE_CLIENT_ID=
+CATALOG_SERVICE_CLIENT_SECRET=
+CATALOG_SERVICE_TOKEN_URL=
+```
+
+The service WebID needs write access to the target user's `catalog/` container
+and inherited write access for `catalog/ds/` and `catalog/records/`. To make
+new metadata documents publicly readable, it also needs ACL control access for
+those metadata resources. The backend uses Solid-OIDC client credentials with
+DPoP proofs for Solid requests.
 
 Notes:
 - The UI base path is `/semantic-data-catalog` (see `frontend/package.json` `homepage` and the `PUBLIC_URL` script flags).
@@ -54,6 +70,61 @@ Modeling rules used by the UI:
 - `dcat:Catalog` lists **datasets and series** via `dcat:dataset` (Series is a subclass of Dataset).
 - Dataset series members are linked from **datasets** via `dcat:inSeries`.
 - `dcat:seriesMember` on the series is optional/inverse.
+
+---
+
+## Backend API
+
+The API does not maintain a separate database or triple store. It reads public DCAT
+metadata directly from Solid Pods and returns JSON summaries.
+
+Useful endpoints:
+
+- `GET /api/docs` (Swagger UI)
+- `GET /api/redoc`
+- `GET /api/openapi.json`
+- `GET /api/health`
+- `GET /api/catalog?webId=...` or `GET /api/catalog?catalogUrl=...`
+- `GET /api/datasets?webId=...&q=...&theme=...&type=dataset|series`
+- `GET /api/datasets/count?webId=...`
+- `GET /api/datasets/resolve?url=...`
+- `POST /api/datasets`
+- `POST /api/validate` with `{ "turtle": "...", "base_uri": "..." }`
+- `GET /api/export/catalog?webId=...`
+
+`POST /api/datasets` writes one DCAT dataset document, links it from the
+owner's catalog, writes a catalog record document, and tries to make these
+metadata documents publicly readable. For public datasets, local Pod resources
+referenced by `access_url_dataset` or `access_url_semantic_model` are also made
+public-readable when the service account has ACL control access. If
+`identifier` is omitted, the backend generates a UUID. If `publisher` or
+`contact_point` are omitted, they are read from the owner WebID profile
+(`vcard:fn`/`foaf:name` and `vcard:hasEmail`). Example body:
+
+```json
+{
+  "ownerWebId": "https://solid-community-server.tmdt.info/alice/profile/card#me",
+  "title": "Air Quality Measurements",
+  "description": "Hourly sensor observations.",
+  "publisher": "City of Wuppertal",
+  "contact_point": "data@example.org",
+  "is_public": true,
+  "access_url_dataset": "https://example.org/data/air-quality.csv",
+  "distribution_access_type": "download",
+  "file_format": "text/csv",
+  "theme": "environment"
+}
+```
+
+Update, delete, ACL management, file uploads, and series creation are not part
+of the first backend write endpoint.
+
+Optional backend environment variables:
+
+- `CATALOG_FETCH_TIMEOUT_SECONDS` (default: `10`)
+- `CATALOG_FETCH_HOST_ALLOWLIST` (comma-separated hostnames; empty means no host restriction)
+- `CATALOG_SERVICE_AUTHORIZATION_HEADER` or `CATALOG_SERVICE_ACCESS_TOKEN` as alternatives to client credentials
+- `CATALOG_SERVICE_SCOPE` (default: `webid`)
 
 ---
 

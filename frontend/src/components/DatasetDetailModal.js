@@ -101,7 +101,16 @@ const isPendingFromDataset = (dataset) => {
   return status === "pending" || status === "waiting" || status === "requested";
 };
 
-const DatasetDetailModal = ({ dataset, onClose, sessionWebId, userName, userEmail, datasets = [] }) => {
+const DatasetDetailModal = ({
+  dataset,
+  onClose,
+  sessionWebId,
+  userName,
+  userEmail,
+  datasets = [],
+  onEditClick,
+  onDeleteClick,
+}) => {
   const [triples, setTriples] = useState([]);
   const [canAccessDataset, setCanAccessDataset] = useState(false);
   const [canAccessModel, setCanAccessModel] = useState(false);
@@ -365,6 +374,7 @@ const DatasetDetailModal = ({ dataset, onClose, sessionWebId, userName, userEmai
   const hasUserAccess = dataset.is_public || canAccessDataset || canAccessModel;
   const canRequestAccess = !isSeries && !dataset.is_public && !hasUserAccess && Boolean(dataset.webid);
   const requestButtonDisabled = canRequestAccess && requestPending;
+  const canManageDataset = Boolean(dataset.webid && sessionWebId && dataset.webid === sessionWebId);
   const titleValue = dataset.title || "Untitled dataset";
   const descriptionValue = dataset.description || "No description provided.";
   const themeValues = String(dataset.theme || "")
@@ -449,6 +459,12 @@ const DatasetDetailModal = ({ dataset, onClose, sessionWebId, userName, userEmai
     }
     openExternalLink(dataset.access_url_semantic_model);
   };
+  const handleEditAction = () => {
+    onEditClick?.(dataset);
+  };
+  const handleDeleteAction = () => {
+    onDeleteClick?.(dataset);
+  };
 
   return (
     <>
@@ -459,21 +475,44 @@ const DatasetDetailModal = ({ dataset, onClose, sessionWebId, userName, userEmai
               <h5 className="modal-title">
                 <i className="fa-solid fa-database mr-2"></i> Detail Dataset
               </h5>
-              {canRequestAccess && (
-                <button
-                  className="btn btn-light mr-2 dataset-detail-request-button"
-                  onClick={() => setShowRequestModal(true)}
-                  disabled={requestButtonDisabled}
-                  title={
-                    requestButtonDisabled
-                      ? "Request already sent. Waiting for the dataset owner."
-                      : "Request access to this dataset"
-                  }
-                >
-                  {requestButtonDisabled ? "Request Pending" : "Request Dataset"}
-                </button>
-              )}
-              <button type="button" className="close" onClick={onClose}><span>&times;</span></button>
+              <div className="dataset-detail-header-actions">
+                {canManageDataset && (
+                  <>
+                    <button
+                      type="button"
+                      className="dataset-detail-action-button dataset-detail-action-button--edit"
+                      onClick={handleEditAction}
+                    >
+                      <i className="fa-regular fa-pen-to-square"></i>
+                      <span>Edit</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="dataset-detail-action-button dataset-detail-action-button--delete"
+                      onClick={handleDeleteAction}
+                    >
+                      <i className="fa-solid fa-trash"></i>
+                      <span>Delete</span>
+                    </button>
+                  </>
+                )}
+                {canRequestAccess && (
+                  <button
+                    type="button"
+                    className="btn btn-light dataset-detail-request-button"
+                    onClick={() => setShowRequestModal(true)}
+                    disabled={requestButtonDisabled}
+                    title={
+                      requestButtonDisabled
+                        ? "Request already sent. Waiting for the dataset owner."
+                        : "Request access to this dataset"
+                    }
+                  >
+                    {requestButtonDisabled ? "Request Pending" : "Request Dataset"}
+                  </button>
+                )}
+              </div>
+              <button type="button" className="close" onClick={onClose} aria-label="Close"><span>&times;</span></button>
             </div>
 
             <div className="modal-body dataset-detail-body">

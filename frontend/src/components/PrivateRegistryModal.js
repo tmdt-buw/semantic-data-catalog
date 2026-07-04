@@ -109,7 +109,7 @@ const PrivateRegistryModal = ({ onClose, onSaved }) => {
         <div className="modal-content">
           <div className="modal-header">
             <h5 className="modal-title">Private Registry</h5>
-            <button type="button" className="close" onClick={onClose}>
+            <button type="button" className="close" onClick={onClose} aria-label="Close">
               <span>&times;</span>
             </button>
           </div>

@@ -109,9 +109,6 @@ var DatasetTable = _ref => {
   var {
     datasets,
     onRowClick: _onRowClick,
-    onEditClick,
-    onDeleteClick,
-    sessionWebId,
     searchQuery
   } = _ref;
   var formatDate = dateString => {
@@ -230,35 +227,6 @@ var DatasetTable = _ref => {
         className: "fa-solid fa-lock text-danger",
         title: "Restricted"
       });
-    }
-  }, {
-    field: "actions",
-    headerName: "Actions",
-    minWidth: 130,
-    sortable: false,
-    filterable: false,
-    renderCell: params => {
-      var dataset = params.row;
-      if (!dataset || !sessionWebId || dataset.webid !== sessionWebId) return null;
-      return /*#__PURE__*/React.createElement("div", {
-        className: "inline-action-buttons"
-      }, /*#__PURE__*/React.createElement("button", {
-        className: "edit-button",
-        onClick: e => {
-          e.stopPropagation();
-          onEditClick(dataset);
-        }
-      }, /*#__PURE__*/React.createElement("i", {
-        className: "fa-regular fa-pen-to-square"
-      })), /*#__PURE__*/React.createElement("button", {
-        className: "delete-button",
-        onClick: e => {
-          e.stopPropagation();
-          onDeleteClick(dataset);
-        }
-      }, /*#__PURE__*/React.createElement("i", {
-        className: "fa-solid fa-trash"
-      })));
     }
   }];
   return /*#__PURE__*/React.createElement(Box, {
@@ -5967,7 +5935,8 @@ var DatasetAddModal = _ref => {
   }), " Add Dataset"), /*#__PURE__*/React.createElement("button", {
     type: "button",
     className: "close",
-    onClick: onClose
+    onClick: onClose,
+    "aria-label": "Close"
   }, /*#__PURE__*/React.createElement("span", null, "\xD7"))), /*#__PURE__*/React.createElement("div", {
     className: "modal-body"
   }, /*#__PURE__*/React.createElement("div", {
@@ -6548,7 +6517,9 @@ var DatasetDetailModal = _ref2 => {
     sessionWebId,
     userName,
     userEmail,
-    datasets = []
+    datasets = [],
+    onEditClick,
+    onDeleteClick
   } = _ref2;
   var [triples, setTriples] = useState([]);
   var [canAccessDataset, setCanAccessDataset] = useState(false);
@@ -6817,6 +6788,7 @@ var DatasetDetailModal = _ref2 => {
   var hasUserAccess = dataset.is_public || canAccessDataset || canAccessModel;
   var canRequestAccess = !isSeries && !dataset.is_public && !hasUserAccess && Boolean(dataset.webid);
   var requestButtonDisabled = canRequestAccess && requestPending;
+  var canManageDataset = Boolean(dataset.webid && sessionWebId && dataset.webid === sessionWebId);
   var titleValue = dataset.title || "Untitled dataset";
   var descriptionValue = dataset.description || "No description provided.";
   var themeValues = String(dataset.theme || "").split(/[,;|]/).map(value => value.trim()).filter(Boolean);
@@ -6898,6 +6870,12 @@ var DatasetDetailModal = _ref2 => {
     }
     openExternalLink(dataset.access_url_semantic_model);
   };
+  var handleEditAction = () => {
+    onEditClick === null || onEditClick === void 0 || onEditClick(dataset);
+  };
+  var handleDeleteAction = () => {
+    onDeleteClick === null || onDeleteClick === void 0 || onDeleteClick(dataset);
+  };
   return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     className: "modal show modal-show dataset-add-modal dataset-detail-modal"
   }, /*#__PURE__*/React.createElement("div", {
@@ -6910,15 +6888,31 @@ var DatasetDetailModal = _ref2 => {
     className: "modal-title"
   }, /*#__PURE__*/React.createElement("i", {
     className: "fa-solid fa-database mr-2"
-  }), " Detail Dataset"), canRequestAccess && /*#__PURE__*/React.createElement("button", {
-    className: "btn btn-light mr-2 dataset-detail-request-button",
+  }), " Detail Dataset"), /*#__PURE__*/React.createElement("div", {
+    className: "dataset-detail-header-actions"
+  }, canManageDataset && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    className: "dataset-detail-action-button dataset-detail-action-button--edit",
+    onClick: handleEditAction
+  }, /*#__PURE__*/React.createElement("i", {
+    className: "fa-regular fa-pen-to-square"
+  }), /*#__PURE__*/React.createElement("span", null, "Edit")), /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    className: "dataset-detail-action-button dataset-detail-action-button--delete",
+    onClick: handleDeleteAction
+  }, /*#__PURE__*/React.createElement("i", {
+    className: "fa-solid fa-trash"
+  }), /*#__PURE__*/React.createElement("span", null, "Delete"))), canRequestAccess && /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    className: "btn btn-light dataset-detail-request-button",
     onClick: () => setShowRequestModal(true),
     disabled: requestButtonDisabled,
     title: requestButtonDisabled ? "Request already sent. Waiting for the dataset owner." : "Request access to this dataset"
-  }, requestButtonDisabled ? "Request Pending" : "Request Dataset"), /*#__PURE__*/React.createElement("button", {
+  }, requestButtonDisabled ? "Request Pending" : "Request Dataset")), /*#__PURE__*/React.createElement("button", {
     type: "button",
     className: "close",
-    onClick: onClose
+    onClick: onClose,
+    "aria-label": "Close"
   }, /*#__PURE__*/React.createElement("span", null, "\xD7"))), /*#__PURE__*/React.createElement("div", {
     className: "modal-body dataset-detail-body"
   }, /*#__PURE__*/React.createElement("div", {
@@ -7055,6 +7049,7 @@ var DatasetDetailModal = _ref2 => {
 var DatasetDeleteModal = _ref => {
   var {
     onClose,
+    onDeleted,
     dataset,
     fetchDatasets
   } = _ref;
@@ -7068,7 +7063,11 @@ var DatasetDeleteModal = _ref => {
           yield deleteDatasetEntry(session, dataset.datasetUrl, dataset.identifier);
         }
         yield fetchDatasets();
-        onClose();
+        if (onDeleted) {
+          onDeleted();
+        } else {
+          onClose();
+        }
       } catch (error) {
         console.error("Error deleting dataset:", error);
       }
@@ -7078,11 +7077,11 @@ var DatasetDeleteModal = _ref => {
     };
   }();
   return /*#__PURE__*/React.createElement("div", {
-    className: "modal fade show modal-show",
+    className: "modal fade show modal-show dataset-add-modal dataset-delete-modal",
     tabIndex: "-1",
     role: "dialog"
   }, /*#__PURE__*/React.createElement("div", {
-    className: "modal-dialog modal-lg",
+    className: "modal-dialog modal-xl",
     role: "document"
   }, /*#__PURE__*/React.createElement("div", {
     className: "modal-content"
@@ -7100,11 +7099,11 @@ var DatasetDeleteModal = _ref => {
   }, /*#__PURE__*/React.createElement("span", {
     "aria-hidden": "true"
   }, "\xD7"))), /*#__PURE__*/React.createElement("div", {
-    className: "modal-body text-center"
+    className: "modal-body text-center dataset-delete-modal-body"
   }, /*#__PURE__*/React.createElement("i", {
-    className: "fa-solid fa-triangle-exclamation fa-8x text-danger mb-4"
+    className: "fa-solid fa-triangle-exclamation text-danger dataset-delete-modal-icon"
   }), /*#__PURE__*/React.createElement("p", {
-    className: "lead"
+    className: "lead dataset-delete-modal-message"
   }, "Are you sure you want to delete this ", (dataset === null || dataset === void 0 ? void 0 : dataset.datasetType) === "series" ? "series" : "dataset", "?")), /*#__PURE__*/React.createElement("div", {
     className: "modal-footer justify-content-end"
   }, /*#__PURE__*/React.createElement("button", {
@@ -7663,7 +7662,8 @@ var DatasetEditModal = _ref => {
   }), " ", isSeries ? "Edit Dataset Series" : "Edit Dataset"), /*#__PURE__*/React.createElement("button", {
     type: "button",
     className: "close",
-    onClick: onClose
+    onClick: onClose,
+    "aria-label": "Close"
   }, /*#__PURE__*/React.createElement("span", null, "\xD7"))), /*#__PURE__*/React.createElement("div", {
     className: "modal-body"
   }, /*#__PURE__*/React.createElement("div", {
@@ -13539,7 +13539,7 @@ var HeaderBar = _ref => {
   }));
 };
 
-var appVersion = "0.8.48";
+var appVersion = "0.8.49";
 
 var FooterBar = () => {
   return /*#__PURE__*/React.createElement("footer", {
@@ -14285,7 +14285,8 @@ var PrivateRegistryModal = _ref => {
   }, "Private Registry"), /*#__PURE__*/React.createElement("button", {
     type: "button",
     className: "close",
-    onClick: onClose
+    onClick: onClose,
+    "aria-label": "Close"
   }, /*#__PURE__*/React.createElement("span", null, "\xD7"))), /*#__PURE__*/React.createElement("div", {
     className: "modal-body"
   }, error && /*#__PURE__*/React.createElement("div", {
@@ -14597,6 +14598,22 @@ var App = function App() {
     setShowAddDatasetModal(false);
     setSelectedDataset(null);
   };
+  var handleCloseNestedModal = () => {
+    setShowDeleteModal(false);
+    setShowEditModal(false);
+  };
+  useEffect(() => {
+    if (!selectedDataset || !showDetailModal && !showEditModal && !showDeleteModal) return;
+    var selectedKey = selectedDataset.datasetUrl || selectedDataset.identifier;
+    if (!selectedKey) return;
+    var updatedDataset = datasets.find(item => {
+      var itemKey = item.datasetUrl || item.identifier;
+      return itemKey === selectedKey;
+    });
+    if (updatedDataset && updatedDataset !== selectedDataset) {
+      setSelectedDataset(updatedDataset);
+    }
+  }, [datasets, selectedDataset, showDetailModal, showEditModal, showDeleteModal]);
   var populateFromSeed = /*#__PURE__*/function () {
     var _ref7 = _asyncToGenerator(function* (_ref6) {
       var {
@@ -14827,9 +14844,6 @@ var App = function App() {
   }, /*#__PURE__*/React.createElement(DatasetTable, {
     datasets: datasets,
     onRowClick: handleRowClick,
-    onEditClick: handleEditClick,
-    onDeleteClick: handleDeleteClick,
-    sessionWebId: webId,
     searchQuery: searchQuery
   })))), activeTab === 'collection' && /*#__PURE__*/React.createElement("div", {
     className: "text-center mt-5"
@@ -14844,9 +14858,12 @@ var App = function App() {
     sessionWebId: webId,
     userName: userName,
     userEmail: userEmail,
-    datasets: datasets
+    datasets: datasets,
+    onEditClick: handleEditClick,
+    onDeleteClick: handleDeleteClick
   }), showDeleteModal && /*#__PURE__*/React.createElement(DatasetDeleteModal, {
-    onClose: handleCloseModal,
+    onClose: handleCloseNestedModal,
+    onDeleted: handleCloseModal,
     dataset: selectedDataset,
     fetchDatasets: _fetchDatasets
   }), showRegistryModal && /*#__PURE__*/React.createElement(PrivateRegistryModal, {
@@ -14854,7 +14871,7 @@ var App = function App() {
     onSaved: _fetchDatasets
   }), showEditModal && /*#__PURE__*/React.createElement(DatasetEditModal, {
     dataset: selectedDataset,
-    onClose: handleCloseModal,
+    onClose: handleCloseNestedModal,
     fetchDatasets: _fetchDatasets
   }), !embedded && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     className: "footer-spacer"

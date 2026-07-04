@@ -1,10 +1,8 @@
 fastapi
 uvicorn[standard]
 pydantic
-python-dotenv
 cryptography
 requests
-python-multipart
 rdflib 
 rdflib-jsonld
 pyshacl

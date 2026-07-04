@@ -658,7 +658,7 @@ const DatasetAddModal = ({ onClose, fetchDatasets }) => {
             <h5 className="modal-title">
               <i className="fa-solid fa-plus mr-2"></i> Add Dataset
             </h5>
-            <button type="button" className="close" onClick={onClose}>
+            <button type="button" className="close" onClick={onClose} aria-label="Close">
               <span>&times;</span>
             </button>
           </div>

@@ -291,6 +291,27 @@ const App = ({ embedded = false, webIdOverride = null, LoginScreenComponent = nu
     setSelectedDataset(null);
   };
 
+  const handleCloseNestedModal = () => {
+    setShowDeleteModal(false);
+    setShowEditModal(false);
+  };
+
+  useEffect(() => {
+    if (!selectedDataset || (!showDetailModal && !showEditModal && !showDeleteModal)) return;
+
+    const selectedKey = selectedDataset.datasetUrl || selectedDataset.identifier;
+    if (!selectedKey) return;
+
+    const updatedDataset = datasets.find((item) => {
+      const itemKey = item.datasetUrl || item.identifier;
+      return itemKey === selectedKey;
+    });
+
+    if (updatedDataset && updatedDataset !== selectedDataset) {
+      setSelectedDataset(updatedDataset);
+    }
+  }, [datasets, selectedDataset, showDetailModal, showEditModal, showDeleteModal]);
+
   const populateFromSeed = async ({ publisher, webId }) => {
     if (!session.info.isLoggedIn || !session.info.webId) return;
     setIsPopulating(true);
@@ -555,9 +576,6 @@ const App = ({ embedded = false, webIdOverride = null, LoginScreenComponent = nu
               <DatasetTable
                 datasets={datasets}
                 onRowClick={handleRowClick}
-                onEditClick={handleEditClick}
-                onDeleteClick={handleDeleteClick}
-                sessionWebId={webId}
                 searchQuery={searchQuery}
               />
             </div>
@@ -587,11 +605,14 @@ const App = ({ embedded = false, webIdOverride = null, LoginScreenComponent = nu
           userName={userName}
           userEmail={userEmail}
           datasets={datasets}
+          onEditClick={handleEditClick}
+          onDeleteClick={handleDeleteClick}
         />
       )}
       {showDeleteModal && (
         <DatasetDeleteModal
-          onClose={handleCloseModal}
+          onClose={handleCloseNestedModal}
+          onDeleted={handleCloseModal}
           dataset={selectedDataset}
           fetchDatasets={fetchDatasets}
         />
@@ -605,7 +626,7 @@ const App = ({ embedded = false, webIdOverride = null, LoginScreenComponent = nu
       {showEditModal && (
         <DatasetEditModal
           dataset={selectedDataset}
-          onClose={handleCloseModal}
+          onClose={handleCloseNestedModal}
           fetchDatasets={fetchDatasets}
         />
       )}

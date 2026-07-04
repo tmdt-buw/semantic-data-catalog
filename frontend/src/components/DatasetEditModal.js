@@ -522,7 +522,7 @@ const DatasetEditModal = ({ dataset, onClose, fetchDatasets }) => {
             <h5 className="modal-title">
               <i className="fa-solid fa-pen-to-square mr-2"></i> {isSeries ? "Edit Dataset Series" : "Edit Dataset"}
             </h5>
-            <button type="button" className="close" onClick={onClose}><span>&times;</span></button>
+            <button type="button" className="close" onClick={onClose} aria-label="Close"><span>&times;</span></button>
           </div>
 
           <div className="modal-body">
