@@ -13541,7 +13541,7 @@ var HeaderBar = _ref => {
   }));
 };
 
-var appVersion = "0.8.49";
+var appVersion = "0.8.50";
 
 var FooterBar = () => {
   return /*#__PURE__*/React.createElement("footer", {
@@ -14341,12 +14341,433 @@ var PrivateRegistryModal = _ref => {
   }, saving ? "Saving..." : "Save")))));
 };
 
+var DEFAULT_LANGUAGE = "en";
+var LANGUAGE_STORAGE_KEY = "solid-dataspace.language";
+var LANGUAGE_EVENT = "solid-dataspace-language-change";
+var LANGUAGE_MESSAGE_TYPE = "solid-dataspace-language-change";
+var enToDe = {
+  Language: "Sprache",
+  English: "Englisch",
+  German: "Deutsch",
+  Login: "Anmelden",
+  Logout: "Abmelden",
+  Save: "Speichern",
+  Cancel: "Abbrechen",
+  Close: "Schließen",
+  Delete: "Löschen",
+  Edit: "Bearbeiten",
+  Search: "Suchen",
+  Download: "Herunterladen",
+  "Loading...": "Wird geladen...",
+  "Checking profile": "Profil wird geprüft",
+  "We are verifying your Solid profile and catalog configuration.": "Wir prüfen dein Solid-Profil und die Katalogkonfiguration.",
+  "Semantic Data Catalog": "Semantischer Datenkatalog",
+  "All datasets & dataset series": "Alle Datensätze und Datensatzreihen",
+  "Add Dataset": "Datensatz hinzufügen",
+  "Download Catalog": "Katalog herunterladen",
+  "Private Registry": "Private Registry",
+  "Manage private registry members": "Private Registry-Mitglieder verwalten",
+  "Add a new dataset": "Neuen Datensatz hinzufügen",
+  "Please log in to add datasets": "Bitte melde dich an, um Datensätze hinzuzufügen",
+  "Search datasets...": "Datensätze suchen...",
+  "Dataset": "Datensatz",
+  "Datasets": "Datensätze",
+  "Dataset Series": "Datensatzreihe",
+  "Title": "Titel",
+  "Description": "Beschreibung",
+  "Theme": "Thema",
+  "Publisher": "Herausgeber",
+  "Contact point": "Kontaktstelle",
+  "Access URL": "Zugriffs-URL",
+  "Semantic model": "Semantisches Modell",
+  "File format": "Dateiformat",
+  "Public": "Öffentlich",
+  "Private": "Privat",
+  "Request access": "Zugriff anfragen",
+  "Request Dataset": "Datensatz anfragen",
+  "Access request sent": "Zugriffsanfrage gesendet",
+  "Failed to build merged catalog download.": "Der zusammengeführte Katalog konnte nicht erstellt werden.",
+  "Catalog downloads": "Katalog-Downloads",
+  "Solid OIDC Login": "Solid-OIDC-Anmeldung",
+  "Enter a valid OIDC issuer or Pod URL.": "Gib einen gültigen OIDC-Issuer oder eine Pod-URL ein.",
+  "Back to provider list": "Zurück zur Anbieter-Liste",
+  "Log in with selected provider": "Mit ausgewähltem Anbieter anmelden",
+  "Suggested providers": "Vorgeschlagene Anbieter",
+  "Custom issuer": "Eigener Issuer",
+  Refresh: "Aktualisieren"
+};
+Object.assign(enToDe, {
+  "Under Construction": "In Arbeit",
+  "This section is not yet available.": "Dieser Bereich ist noch nicht verfügbar.",
+  "Access Rights": "Zugriffsrechte",
+  "Add External Link": "Externen Link hinzufügen",
+  "Add Semantic Model File": "Semantische Modelldatei hinzufügen",
+  "Browse files": "Dateien durchsuchen",
+  "Create Semantic Model": "Semantisches Modell erstellen",
+  "Dataset Resource": "Datensatz-Ressource",
+  "Drag & drop": "Drag & Drop",
+  "External Dataset link": "Externer Datensatzlink",
+  "External link": "Externer Link",
+  "General Information": "Allgemeine Informationen",
+  "Issued Date": "Ausgabedatum",
+  "Only TTL files are allowed.": "Nur TTL-Dateien sind erlaubt.",
+  Optional: "Optional",
+  "Pod owner": "Pod-Eigentümer",
+  Remove: "Entfernen",
+  "Remove Semantic Model": "Semantisches Modell entfernen",
+  "Remove external link": "Externen Link entfernen",
+  Restricted: "Eingeschränkt",
+  "Save Dataset": "Datensatz speichern",
+  Categories: "Kategorien",
+  "Content: Dataset file": "Inhalt: Datensatzdatei",
+  "Content: Semantic model": "Inhalt: Semantisches Modell",
+  "Dataset owner": "Datensatz-Eigentümer",
+  "Dataset resource": "Datensatz-Ressource",
+  "Detail Dataset": "Datensatzdetails",
+  "Download URL": "Download-URL",
+  "Files and Sources": "Dateien und Quellen",
+  "Format: Turtle/RDF model": "Format: Turtle/RDF-Modell",
+  "No RDF triples found.": "Keine RDF-Tripel gefunden.",
+  "No members listed.": "Keine Mitglieder gelistet.",
+  Open: "Öffnen",
+  "Open dataset": "Datensatz öffnen",
+  "Request access to this dataset": "Zugriff auf diesen Datensatz anfragen",
+  "Semantic Model Visualization": "Visualisierung des semantischen Modells",
+  "Current Members": "Aktuelle Mitglieder",
+  "Dataset link is required": "Datensatzlink ist erforderlich",
+  "Edit Dataset": "Datensatz bearbeiten",
+  "Save Changes": "Änderungen speichern",
+  Members: "Mitglieder",
+  "Restricted (You have access)": "Eingeschränkt (du hast Zugriff)",
+  Catalog: "Katalog",
+  Data: "Daten",
+  "Login with Solid": "Mit Solid anmelden",
+  "Not logged in": "Nicht angemeldet",
+  Profile: "Profil",
+  Semantic: "Semantik",
+  "Choose Solid Pod Provider": "Solid-Pod-Anbieter auswählen",
+  "Custom Issuer URL": "Eigene Issuer-URL",
+  "Please select a provider or enter your own Solid OIDC Issuer:": "Wähle einen Anbieter aus oder gib deinen eigenen Solid-OIDC-Issuer ein:",
+  Back: "Zurück",
+  Next: "Weiter",
+  Finish: "Abschließen",
+  Basics: "Basisdaten",
+  Email: "E-Mail",
+  Name: "Name",
+  Organization: "Organisation",
+  Role: "Rolle",
+  "Add at least one contact email.": "Füge mindestens eine Kontakt-E-Mail hinzu.",
+  "Add email": "E-Mail hinzufügen",
+  "Catalog URL": "Katalog-URL",
+  "Complete these steps to activate your catalog access.": "Schließe diese Schritte ab, um deinen Katalogzugang zu aktivieren.",
+  "Configure your Solid inbox, catalog, and private registry so access requests and metadata stay in your pod.": "Richte deine Solid-Inbox, deinen Katalog und deine private Registry ein, damit Zugriffsanfragen und Metadaten in deinem Pod bleiben.",
+  "I understand that finishing will create and configure my catalog.": "Ich verstehe, dass beim Abschließen mein Katalog erstellt und konfiguriert wird.",
+  "I understand that finishing will create and configure my inbox.": "Ich verstehe, dass beim Abschließen meine Inbox erstellt und konfiguriert wird.",
+  "I understand that finishing will create and configure my private registry.": "Ich verstehe, dass beim Abschließen meine private Registry erstellt und konfiguriert wird.",
+  "Inbox URL": "Inbox-URL",
+  "Inbox, Catalog & Registry": "Inbox, Katalog und Registry",
+  "No photo": "Kein Foto",
+  "Please provide your profile basics.": "Bitte gib deine grundlegenden Profildaten an."
+});
+Object.assign(enToDe, {
+  "Semantic Model File": "Semantische Modelldatei",
+  "Series title is required": "Titel der Reihe ist erforderlich",
+  "Upload file": "Datei hochladen",
+  "Series Description": "Beschreibung der Reihe",
+  "Series Members (Existing Datasets)": "Reihenmitglieder (bestehende Datensätze)",
+  "Series Theme (IRI)": "Reihenthema (IRI)",
+  "Series Title": "Titel der Reihe",
+  "your file here": "deine Datei hier",
+  "Preparing your profile...": "Dein Profil wird vorbereitet...",
+  "Welcome to the Semantic Data Catalog": "Willkommen im Semantic Data Catalog",
+  "Profile avatar": "Profilavatar",
+  "Upload profile photo": "Profilfoto hochladen",
+  "Upload profile photo (optional)": "Profilfoto hochladen (optional)",
+  "Uploading...": "Wird hochgeladen...",
+  "Solid Inbox, Catalog & Registry": "Solid-Inbox, Katalog und Registry",
+  "The inbox will be created in a": "Die Inbox wird in einem",
+  "The catalog metadata will be created in a": "Die Katalog-Metadaten werden in einem",
+  "The registry will always be created in your pod root under": "Die Registry wird immer in deinem Pod-Root unter",
+  "container in your pod.": "Container in deinem Pod erstellt.",
+  Folder: "Ordner",
+  "Create Folder": "Ordner erstellen",
+  "Folder name": "Ordnername",
+  "Folder name is required.": "Ordnername ist erforderlich.",
+  "Folder name cannot contain /, \\, #, or ?.": "Ordnernamen dürfen /, \\, # oder ? nicht enthalten.",
+  "Loading folders...": "Ordner werden geladen...",
+  "New Folder": "Neuer Ordner",
+  "No Solid Pod is available.": "Kein Solid-Pod verfügbar.",
+  "No subfolders in this folder.": "Keine Unterordner in diesem Ordner.",
+  "No matching files in this folder.": "Keine passenden Dateien in diesem Ordner.",
+  "Pod root": "Pod-Wurzel",
+  "Search files...": "Dateien suchen...",
+  "Creating...": "Wird erstellt...",
+  "Add WebID": "WebID hinzufügen",
+  "Loading registry members...": "Registry-Mitglieder werden geladen...",
+  "Members (WebIDs)": "Mitglieder (WebIDs)",
+  "No WebIDs added yet.": "Noch keine WebIDs hinzugefügt.",
+  "Registry URL": "Registry-URL",
+  "Remove WebID": "WebID entfernen",
+  "This registry is stored in your pod under": "Diese Registry wird in deinem Pod gespeichert unter",
+  "Request Access": "Zugriff anfragen",
+  "Request Dataset Access": "Datensatzzugriff anfragen",
+  "Required message...": "Erforderliche Nachricht...",
+  "To submit a request, please include a short background explaining why you need this dataset.": "Füge für die Anfrage bitte kurz hinzu, warum du diesen Datensatz benötigst.",
+  "Your request will be delivered to the owner&apos;s Solid inbox and handled in the Solid Dataspace Manager.": "Deine Anfrage wird an die Solid-Inbox des Eigentümers zugestellt und im Solid Dataspace Manager bearbeitet.",
+  "Your request will be delivered to the owner's Solid inbox and handled in the Solid Dataspace Manager.": "Deine Anfrage wird an die Solid-Inbox des Eigentümers zugestellt und im Solid Dataspace Manager bearbeitet."
+});
+var deToEn = Object.entries(enToDe).reduce((acc, _ref) => {
+  var [en, de] = _ref;
+  acc[de] = en;
+  return acc;
+}, {});
+function withOriginalWhitespace(original, translated) {
+  var _original$match, _original$match2;
+  var leading = ((_original$match = original.match(/^\s*/)) === null || _original$match === void 0 ? void 0 : _original$match[0]) || "";
+  var trailing = ((_original$match2 = original.match(/\s*$/)) === null || _original$match2 === void 0 ? void 0 : _original$match2[0]) || "";
+  return "".concat(leading).concat(translated).concat(trailing);
+}
+function normalizeLanguage(value) {
+  var normalized = String(value || "").trim().toLowerCase();
+  if (normalized.startsWith("de")) return "de";
+  if (normalized.startsWith("en")) return "en";
+  return DEFAULT_LANGUAGE;
+}
+function getLanguageFromUrl() {
+  if (typeof window === "undefined") return "";
+  try {
+    var params = new URLSearchParams(window.location.search);
+    var value = params.get("lang") || params.get("language");
+    return value ? normalizeLanguage(value) : "";
+  } catch (_unused) {
+    return "";
+  }
+}
+function getLanguageFromHostBridge() {
+  if (typeof window === "undefined" || window.parent === window) return "";
+  try {
+    var _window$parent$__SOLI, _window$parent$__SOLI2;
+    if (window.parent.location.origin !== window.location.origin) return "";
+    var value = (_window$parent$__SOLI = window.parent.__SOLID_DATASPACE_AUTH__) === null || _window$parent$__SOLI === void 0 || (_window$parent$__SOLI2 = _window$parent$__SOLI.getLanguage) === null || _window$parent$__SOLI2 === void 0 ? void 0 : _window$parent$__SOLI2.call(_window$parent$__SOLI);
+    return value ? normalizeLanguage(value) : "";
+  } catch (_unused2) {
+    return "";
+  }
+}
+function readStoredLanguage() {
+  if (typeof window === "undefined") return "";
+  try {
+    var value = window.localStorage.getItem(LANGUAGE_STORAGE_KEY);
+    return value ? normalizeLanguage(value) : "";
+  } catch (_unused3) {
+    return "";
+  }
+}
+function writeStoredLanguage(language) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(LANGUAGE_STORAGE_KEY, normalizeLanguage(language));
+  } catch (_unused4) {
+    // Ignore storage failures.
+  }
+}
+function resolveInitialLanguage() {
+  return getLanguageFromUrl() || getLanguageFromHostBridge() || readStoredLanguage() || DEFAULT_LANGUAGE;
+}
+function translateText(value, language) {
+  if (typeof value !== "string" || !value.trim()) return value;
+  var body = value.trim();
+  var target = normalizeLanguage(language);
+  if (target === "de") {
+    return enToDe[body] ? withOriginalWhitespace(value, enToDe[body]) : value;
+  }
+  return deToEn[body] ? withOriginalWhitespace(value, deToEn[body]) : value;
+}
+function translateNode(node, language) {
+  if (!node) return;
+  if (node.nodeType === Node.TEXT_NODE) {
+    var next = translateText(node.nodeValue || "", language);
+    if (next !== node.nodeValue) node.nodeValue = next;
+    return;
+  }
+  if (node.nodeType !== Node.ELEMENT_NODE) return;
+  if (["SCRIPT", "STYLE", "NOSCRIPT", "CODE", "PRE", "TEXTAREA"].includes(node.tagName)) {
+    return;
+  }
+  ["title", "placeholder", "aria-label", "alt"].forEach(name => {
+    var _node$hasAttribute;
+    if (!((_node$hasAttribute = node.hasAttribute) !== null && _node$hasAttribute !== void 0 && _node$hasAttribute.call(node, name))) return;
+    var current = node.getAttribute(name);
+    var next = translateText(current, language);
+    if (next !== current) node.setAttribute(name, next);
+  });
+  node.childNodes.forEach(child => translateNode(child, language));
+}
+function applyDocumentTranslations(language) {
+  if (typeof document === "undefined" || !document.body) return;
+  document.documentElement.lang = normalizeLanguage(language);
+  translateNode(document.body, language);
+}
+function installDomTranslator(getLanguage) {
+  if (typeof document === "undefined" || typeof MutationObserver === "undefined") {
+    return () => {};
+  }
+  var scheduled = false;
+  var run = () => {
+    scheduled = false;
+    applyDocumentTranslations(getLanguage());
+  };
+  var schedule = () => {
+    if (scheduled) return;
+    scheduled = true;
+    window.requestAnimationFrame(run);
+  };
+  var observer = new MutationObserver(schedule);
+  if (document.body) {
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+      attributes: true,
+      attributeFilter: ["title", "placeholder", "aria-label", "alt"]
+    });
+    schedule();
+  }
+  return () => observer.disconnect();
+}
+function publishLanguage(language) {
+  if (typeof window === "undefined") return;
+  var normalized = normalizeLanguage(language);
+  writeStoredLanguage(normalized);
+  window.dispatchEvent(new CustomEvent(LANGUAGE_EVENT, {
+    detail: {
+      language: normalized
+    }
+  }));
+  try {
+    var _window$parent;
+    (_window$parent = window.parent) === null || _window$parent === void 0 || _window$parent.postMessage({
+      type: LANGUAGE_MESSAGE_TYPE,
+      language: normalized
+    }, "*");
+  } catch (_unused5) {
+    // Ignore cross-window failures.
+  }
+  try {
+    var _window$parent2, _window$parent2$setLa;
+    (_window$parent2 = window.parent) === null || _window$parent2 === void 0 || (_window$parent2 = _window$parent2.__SOLID_DATASPACE_AUTH__) === null || _window$parent2 === void 0 || (_window$parent2$setLa = _window$parent2.setLanguage) === null || _window$parent2$setLa === void 0 || _window$parent2$setLa.call(_window$parent2, normalized);
+  } catch (_unused6) {
+    // Ignore bridge failures.
+  }
+}
+function subscribeLanguage(callback) {
+  if (typeof window === "undefined") return () => {};
+  var handleEvent = event => {
+    var _event$detail;
+    return callback(normalizeLanguage(event === null || event === void 0 || (_event$detail = event.detail) === null || _event$detail === void 0 ? void 0 : _event$detail.language));
+  };
+  var handleStorage = event => {
+    if (event.key === LANGUAGE_STORAGE_KEY && event.newValue) {
+      callback(normalizeLanguage(event.newValue));
+    }
+  };
+  var handleMessage = event => {
+    var data = event.data || {};
+    if (data.type === LANGUAGE_MESSAGE_TYPE && data.language) {
+      callback(normalizeLanguage(data.language));
+    }
+  };
+  var unsubscribeBridge;
+  try {
+    var _window$parent3, _window$parent3$subsc;
+    unsubscribeBridge = (_window$parent3 = window.parent) === null || _window$parent3 === void 0 || (_window$parent3 = _window$parent3.__SOLID_DATASPACE_AUTH__) === null || _window$parent3 === void 0 || (_window$parent3$subsc = _window$parent3.subscribeLanguage) === null || _window$parent3$subsc === void 0 ? void 0 : _window$parent3$subsc.call(_window$parent3, callback);
+  } catch (_unused7) {
+    unsubscribeBridge = undefined;
+  }
+  window.addEventListener(LANGUAGE_EVENT, handleEvent);
+  window.addEventListener("storage", handleStorage);
+  window.addEventListener("message", handleMessage);
+  return () => {
+    var _unsubscribeBridge;
+    window.removeEventListener(LANGUAGE_EVENT, handleEvent);
+    window.removeEventListener("storage", handleStorage);
+    window.removeEventListener("message", handleMessage);
+    (_unsubscribeBridge = unsubscribeBridge) === null || _unsubscribeBridge === void 0 || _unsubscribeBridge();
+  };
+}
+var I18nContext = /*#__PURE__*/React.createContext({
+  language: DEFAULT_LANGUAGE,
+  setLanguage: () => {},
+  t: value => value
+});
+function I18nProvider(_ref2) {
+  var {
+    children,
+    language: controlledLanguage
+  } = _ref2;
+  var [internalLanguage, setInternalLanguage] = React.useState(resolveInitialLanguage);
+  var language = normalizeLanguage(controlledLanguage || internalLanguage);
+  var languageRef = React.useRef(language);
+  languageRef.current = language;
+  var setLanguage = React.useCallback(nextLanguage => {
+    var normalized = normalizeLanguage(nextLanguage);
+    if (!controlledLanguage) setInternalLanguage(normalized);
+    publishLanguage(normalized);
+  }, [controlledLanguage]);
+  React.useEffect(() => {
+    applyDocumentTranslations(language);
+  }, [language]);
+  React.useEffect(() => installDomTranslator(() => languageRef.current), []);
+  React.useEffect(() => subscribeLanguage(nextLanguage => {
+    if (nextLanguage === languageRef.current) return;
+    if (!controlledLanguage) setInternalLanguage(nextLanguage);
+  }), [controlledLanguage]);
+  var value = React.useMemo(() => ({
+    language,
+    setLanguage,
+    t: key => translateText(key, language)
+  }), [language, setLanguage]);
+  return /*#__PURE__*/React.createElement(I18nContext.Provider, {
+    value
+  }, children);
+}
+function useI18n() {
+  return React.useContext(I18nContext);
+}
+function LanguageSelect() {
+  var {
+    className = "",
+    compact = false,
+    label = ""
+  } = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+  var {
+    language,
+    setLanguage,
+    t
+  } = useI18n();
+  return /*#__PURE__*/React.createElement("label", {
+    className: "language-select ".concat(className).trim()
+  }, !compact && /*#__PURE__*/React.createElement("span", {
+    className: "language-select__label"
+  }, label || t("Language")), /*#__PURE__*/React.createElement("select", {
+    value: language,
+    onChange: event => setLanguage(event.target.value),
+    "aria-label": t("Language"),
+    title: t("Language")
+  }, /*#__PURE__*/React.createElement("option", {
+    value: "en"
+  }, language === "de" ? "Englisch" : "English"), /*#__PURE__*/React.createElement("option", {
+    value: "de"
+  }, "Deutsch")));
+}
+
 var defaultIssuer = process.env.REACT_APP_OIDC_ISSUER || 'https://solid-community-server.tmdt.info';
 var App = function App() {
   var {
     embedded = false,
     webIdOverride = null,
-    LoginScreenComponent = null
+    LoginScreenComponent = null,
+    language = null
   } = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
   var [datasets, setDatasets] = React.useState([]);
   var [catalogs, setCatalogs] = React.useState([]);
@@ -14743,8 +15164,11 @@ var App = function App() {
     var cleanUrl = "".concat(window.location.origin).concat(cleanedPath).concat(window.location.search);
     window.history.replaceState({}, "", cleanUrl);
   }, [isLoggedIn, webId]);
+  var renderWithI18n = content => /*#__PURE__*/React.createElement(I18nProvider, {
+    language: language
+  }, content);
   if (checkingProfile) {
-    return /*#__PURE__*/React.createElement("div", {
+    return renderWithI18n(/*#__PURE__*/React.createElement("div", {
       className: "onboarding-wrap"
     }, /*#__PURE__*/React.createElement("div", {
       className: "onboarding-card"
@@ -14752,10 +15176,10 @@ var App = function App() {
       className: "onboarding-title"
     }, "Checking profile"), /*#__PURE__*/React.createElement("div", {
       className: "onboarding-subtitle"
-    }, "We are verifying your Solid profile and catalog configuration.")));
+    }, "We are verifying your Solid profile and catalog configuration."))));
   }
   if (onboardingRequired && isLoggedIn) {
-    return /*#__PURE__*/React.createElement(OnboardingWizard, {
+    return renderWithI18n(/*#__PURE__*/React.createElement(OnboardingWizard, {
       webId: webId,
       onComplete: () => setOnboardingRequired(false),
       onCancel: /*#__PURE__*/_asyncToGenerator(function* () {
@@ -14764,21 +15188,25 @@ var App = function App() {
         });
         window.location.reload();
       })
-    });
+    }));
   }
   if (!embedded && !isLoggedIn) {
     var ActiveLoginScreen = LoginScreenComponent;
-    return /*#__PURE__*/React.createElement("div", {
+    return renderWithI18n(/*#__PURE__*/React.createElement("div", {
       className: "standalone-login-page"
-    }, ActiveLoginScreen && /*#__PURE__*/React.createElement(ActiveLoginScreen, {
+    }, /*#__PURE__*/React.createElement(LanguageSelect, {
+      className: "language-select--standalone"
+    }), ActiveLoginScreen && /*#__PURE__*/React.createElement(ActiveLoginScreen, {
       defaultIssuer: issuer,
       onLogin: nextIssuer => {
         setIssuer(nextIssuer);
         loginToSolid(nextIssuer);
       }
-    }));
+    })));
   }
-  return /*#__PURE__*/React.createElement("div", null, !embedded && /*#__PURE__*/React.createElement(HeaderBar, {
+  return renderWithI18n(/*#__PURE__*/React.createElement("div", null, !embedded && /*#__PURE__*/React.createElement(LanguageSelect, {
+    className: "language-select--standalone"
+  }), !embedded && /*#__PURE__*/React.createElement(HeaderBar, {
     onLoginStatusChange: setIsLoggedIn,
     onWebIdChange: setWebId,
     onUserInfoChange: _ref9 => {
@@ -14877,16 +15305,18 @@ var App = function App() {
     fetchDatasets: _fetchDatasets
   }), !embedded && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     className: "footer-spacer"
-  }), /*#__PURE__*/React.createElement(FooterBar, null)));
+  }), /*#__PURE__*/React.createElement(FooterBar, null))));
 };
 
 function SemanticDataCatalogEmbed(_ref) {
   var {
-    webId
+    webId,
+    language
   } = _ref;
   return /*#__PURE__*/React.createElement(App, {
     embedded: true,
-    webIdOverride: webId
+    webIdOverride: webId,
+    language: language
   });
 }
 

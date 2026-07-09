@@ -9,6 +9,8 @@ import HeaderBar from './components/HeaderBar';
 import FooterBar from './components/FooterBar';
 import OnboardingWizard from './components/OnboardingWizard';
 import PrivateRegistryModal from './components/PrivateRegistryModal';
+import { I18nProvider, LanguageSelect } from './i18n';
+import './LanguageSelect.css';
 import { session } from './solidSession';
 import {
   buildDefaultPrivateRegistry,
@@ -25,7 +27,12 @@ import {
 
 const defaultIssuer = process.env.REACT_APP_OIDC_ISSUER || 'https://solid-community-server.tmdt.info';
 
-const App = ({ embedded = false, webIdOverride = null, LoginScreenComponent = null } = {}) => {
+const App = ({
+  embedded = false,
+  webIdOverride = null,
+  LoginScreenComponent = null,
+  language = null,
+} = {}) => {
   const [datasets, setDatasets] = useState([]);
   const [catalogs, setCatalogs] = useState([]);
   const [showNewDatasetModal, setShowNewDatasetModal] = useState(false);
@@ -458,8 +465,12 @@ const App = ({ embedded = false, webIdOverride = null, LoginScreenComponent = nu
     window.history.replaceState({}, "", cleanUrl);
   }, [isLoggedIn, webId]);
 
+  const renderWithI18n = (content) => (
+    <I18nProvider language={language}>{content}</I18nProvider>
+  );
+
   if (checkingProfile) {
-    return (
+    return renderWithI18n(
       <div className="onboarding-wrap">
         <div className="onboarding-card">
           <div className="onboarding-title">Checking profile</div>
@@ -472,7 +483,7 @@ const App = ({ embedded = false, webIdOverride = null, LoginScreenComponent = nu
   }
 
   if (onboardingRequired && isLoggedIn) {
-    return (
+    return renderWithI18n(
       <OnboardingWizard
         webId={webId}
         onComplete={() => setOnboardingRequired(false)}
@@ -486,8 +497,9 @@ const App = ({ embedded = false, webIdOverride = null, LoginScreenComponent = nu
 
   if (!embedded && !isLoggedIn) {
     const ActiveLoginScreen = LoginScreenComponent;
-    return (
+    return renderWithI18n(
       <div className="standalone-login-page">
+        <LanguageSelect className="language-select--standalone" />
         {ActiveLoginScreen && (
           <ActiveLoginScreen
             defaultIssuer={issuer}
@@ -501,8 +513,9 @@ const App = ({ embedded = false, webIdOverride = null, LoginScreenComponent = nu
     );
   }
 
-  return (
+  return renderWithI18n(
     <div>
+      {!embedded && <LanguageSelect className="language-select--standalone" />}
       {!embedded && (
         <HeaderBar
           onLoginStatusChange={setIsLoggedIn}
