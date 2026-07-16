@@ -32,7 +32,45 @@ Edit the environment variables in `docker-compose.yaml` for the frontend:
 
 ```env
 REACT_APP_OIDC_ISSUER=https://solidcommunity.net
+STATISTICS_ENABLED=true
+STATISTICS_POD_BASE_URL=https://solid-community-server.tmdt.info/solidtestpod/statistics/
+STATISTICS_EVENTS_URL=https://solid-community-server.tmdt.info/solidtestpod/statistics/events/catalog-instances/test/downloads/
+STATISTICS_REGISTRY_CONTEXT=
 ```
+
+When statistics are enabled, the standalone app appends anonymous Turtle events
+to the configured Solid container with the authenticated browser session. The
+container must grant authenticated agents `Append` access. Events contain the
+event type, the canonical dataset-metadata URL, a title snapshot, an optional
+registry context, a UUID, and a UTC timestamp. Query parameters are removed
+from the dataset-metadata URL. Action targets, download URLs, and presigned URLs
+are never stored, so their query credentials cannot enter the event data. The
+events also contain no WebID, IP address, or user-agent value. Only
+catalog-mediated dataset downloads/access clicks and semantic-model downloads
+are counted. Direct access outside the catalog, automatic semantic-model
+visualization, access checks, and catalog exports are not counted.
+`STATISTICS_EVENTS_URL` is optional and overrides the default
+`<STATISTICS_POD_BASE_URL>/events/downloads/` container when set.
+For a multi-instance deployment it should always be set explicitly to the
+instance's dedicated leaf container.
+
+For an embedded catalog, pass the configuration explicitly. The prop takes
+priority over standalone `window._env_` values:
+
+```jsx
+<SemanticDataCatalogEmbed
+  webId={webId}
+  statisticsConfig={{
+    enabled: true,
+    podBaseUrl: "https://solid.example/statistics/",
+    eventsUrl: "https://solid.example/statistics/events/catalog-instances/test/downloads/",
+    registryContext: "https://solid.example/registry/research/",
+  }}
+/>
+```
+
+The Embed prop also accepts an explicit `eventsUrl`; it takes priority over the
+URL derived from `podBaseUrl`.
 
 For backend writes, configure a Solid service account:
 

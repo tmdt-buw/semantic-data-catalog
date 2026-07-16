@@ -1,6 +1,6 @@
 {
   "name": "@hoelk-f/semantic-data-catalog",
-  "version": "0.8.50",
+  "version": "0.8.51",
   "license": "Apache-2.0",
   "private": false,
   "homepage": "/semantic-data-catalog",
@@ -38,9 +38,11 @@
   },
   "scripts": {
     "sync:version": "node scripts/sync-version.cjs",
-    "prestart": "npm run sync:version",
-    "prestart-watch": "npm run sync:version",
-    "prebuild:app": "npm run sync:version",
+    "write:runtime-env": "node scripts/write-runtime-env.cjs",
+    "prepare:app": "npm run sync:version && npm run write:runtime-env",
+    "prestart": "npm run prepare:app",
+    "prestart-watch": "npm run prepare:app",
+    "prebuild:app": "npm run prepare:app",
     "prebuild:lib": "npm run sync:version",
     "prebuild:lib:watch": "npm run sync:version",
     "start": "PUBLIC_URL=/semantic-data-catalog react-scripts start",

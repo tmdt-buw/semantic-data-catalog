@@ -14,6 +14,12 @@ import {
   getUrlAll,
 } from "@inrupt/solid-client";
 import { FOAF, VCARD } from "@inrupt/vocab-common-rdf";
+import {
+  downloadCatalogResource,
+  openExternalLink,
+  openDatasetAccess,
+} from "../catalogActions";
+import { CATALOG_EVENT_TYPES } from "../statistics";
 import "./DatasetDetailModal.css";
 
 const getPodRootFromWebId = (webId) => {
@@ -38,28 +44,6 @@ const formatDate = (dateString) => {
     month: "2-digit",
     day: "2-digit",
   });
-};
-
-const handleFileDownload = async (url, fileName) => {
-  try {
-    const res = await session.fetch(url);
-    if (!res.ok) throw new Error("Download failed.");
-    const blob = await res.blob();
-
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = fileName;
-    link.click();
-    URL.revokeObjectURL(link.href);
-  } catch (err) {
-    console.error("Download error:", err);
-    openExternalLink(url);
-  }
-};
-
-const openExternalLink = (url) => {
-  if (!url || typeof window === "undefined") return;
-  window.open(url, "_blank", "noopener,noreferrer");
 };
 
 const getResourceLabel = (url, { fallback = "Open resource" } = {}) => {
@@ -110,6 +94,7 @@ const DatasetDetailModal = ({
   datasets = [],
   onEditClick,
   onDeleteClick,
+  statisticsConfig,
 }) => {
   const [triples, setTriples] = useState([]);
   const [canAccessDataset, setCanAccessDataset] = useState(false);
@@ -416,7 +401,15 @@ const DatasetDetailModal = ({
     detailRows.push({
       predicate: datasetLinkType === "access" ? "dcat:accessURL" : "dcat:downloadURL",
       value: (
-        <a href={dataset.access_url_dataset} target="_blank" rel="noopener noreferrer">
+        <a
+          href={dataset.access_url_dataset}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(event) => {
+            event.preventDefault();
+            triggerDatasetAction();
+          }}
+        >
           {dataset.access_url_dataset}
         </a>
       ),
@@ -427,7 +420,15 @@ const DatasetDetailModal = ({
     detailRows.push({
       predicate: "dct:conformsTo",
       value: (
-        <a href={dataset.access_url_semantic_model} target="_blank" rel="noopener noreferrer">
+        <a
+          href={dataset.access_url_semantic_model}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(event) => {
+            event.preventDefault();
+            triggerModelAction();
+          }}
+        >
           {dataset.access_url_semantic_model}
         </a>
       ),
@@ -447,14 +448,34 @@ const DatasetDetailModal = ({
   };
   const triggerDatasetAction = () => {
     if (datasetActionIsDownload) {
-      handleFileDownload(dataset.access_url_dataset, datasetFileName);
+      downloadCatalogResource({
+        session,
+        dataset,
+        resourceUrl: dataset.access_url_dataset,
+        fileName: datasetFileName,
+        eventType: CATALOG_EVENT_TYPES.datasetDownload,
+        statisticsConfig,
+        fallbackToDatasetAccess: true,
+      });
       return;
     }
-    openExternalLink(dataset.access_url_dataset);
+    openDatasetAccess({
+      session,
+      dataset,
+      resourceUrl: dataset.access_url_dataset,
+      statisticsConfig,
+    });
   };
   const triggerModelAction = () => {
     if (modelActionIsDownload) {
-      handleFileDownload(dataset.access_url_semantic_model, modelFileName);
+      downloadCatalogResource({
+        session,
+        dataset,
+        resourceUrl: dataset.access_url_semantic_model,
+        fileName: modelFileName,
+        eventType: CATALOG_EVENT_TYPES.semanticModelDownload,
+        statisticsConfig,
+      });
       return;
     }
     openExternalLink(dataset.access_url_semantic_model);

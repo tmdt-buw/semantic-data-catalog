@@ -12,6 +12,7 @@ import PrivateRegistryModal from './components/PrivateRegistryModal';
 import { I18nProvider, LanguageSelect } from './i18n';
 import './LanguageSelect.css';
 import { session } from './solidSession';
+import { resolveStatisticsConfig } from './statistics';
 import {
   buildDefaultPrivateRegistry,
   buildCatalogDownload,
@@ -32,6 +33,7 @@ const App = ({
   webIdOverride = null,
   LoginScreenComponent = null,
   language = null,
+  statisticsConfig,
 } = {}) => {
   const [datasets, setDatasets] = useState([]);
   const [catalogs, setCatalogs] = useState([]);
@@ -59,6 +61,10 @@ const App = ({
 
   const retryTimeoutRef = useRef(null);
   const cleanupTriggerRef = useRef(false);
+  const effectiveStatisticsConfig = resolveStatisticsConfig({
+    embedded,
+    statisticsConfig,
+  });
 
   useEffect(() => {
     if (!embedded) return;
@@ -620,6 +626,7 @@ const App = ({
           datasets={datasets}
           onEditClick={handleEditClick}
           onDeleteClick={handleDeleteClick}
+          statisticsConfig={effectiveStatisticsConfig}
         />
       )}
       {showDeleteModal && (

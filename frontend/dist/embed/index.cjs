@@ -6436,6 +6436,302 @@ var RequestSuccessModal = _ref => {
   }, "Close")))));
 };
 
+var STATISTICS_NS = "https://w3id.org/solid-dataspace-manager/statistics#";
+var LDP_RESOURCE = "http://www.w3.org/ns/ldp#Resource";
+var CATALOG_EVENT_TYPES = Object.freeze({
+  datasetDownload: "dataset_download",
+  datasetAccess: "dataset_access",
+  semanticModelDownload: "semantic_model_download"
+});
+var ALLOWED_EVENT_TYPES = new Set(Object.values(CATALOG_EVENT_TYPES));
+var parseBoolean = value => {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value === 1;
+  return ["1", "true", "yes", "on"].includes(String(value || "").trim().toLowerCase());
+};
+var normalizeHttpUrl = function normalizeHttpUrl(value) {
+  var {
+    container = false,
+    stripHash = false,
+    stripQuery = false,
+    requireHttps = false
+  } = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+  var raw = String(value || "").trim();
+  if (!raw) return "";
+  try {
+    var parsed = new URL(raw);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return "";
+    if (requireHttps && parsed.protocol !== "https:") return "";
+    if (parsed.username || parsed.password) return "";
+    if (stripHash) parsed.hash = "";
+    if (container || stripQuery) parsed.search = "";
+    var normalized = parsed.toString();
+    return container && !normalized.endsWith("/") ? "".concat(normalized, "/") : normalized;
+  } catch (_unused) {
+    return "";
+  }
+};
+var normalizeOptionalContext = value => String(value || "").trim();
+var normalizeStatisticsConfig = function normalizeStatisticsConfig() {
+  var config = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+  var podBaseUrl = normalizeHttpUrl(config === null || config === void 0 ? void 0 : config.podBaseUrl, {
+    container: true,
+    stripHash: true,
+    requireHttps: true
+  });
+  var explicitEventsUrl = normalizeHttpUrl(config === null || config === void 0 ? void 0 : config.eventsUrl, {
+    container: true,
+    stripHash: true,
+    requireHttps: true
+  });
+  var eventsUrl = explicitEventsUrl || (podBaseUrl ? new URL("events/downloads/", podBaseUrl).href : "");
+  return {
+    enabled: parseBoolean(config === null || config === void 0 ? void 0 : config.enabled) && Boolean(eventsUrl),
+    podBaseUrl,
+    eventsUrl,
+    registryContext: normalizeOptionalContext(config === null || config === void 0 ? void 0 : config.registryContext)
+  };
+};
+var resolveStatisticsConfig = function resolveStatisticsConfig() {
+  var {
+    embedded = false,
+    statisticsConfig,
+    runtimeEnv
+  } = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+  if (statisticsConfig !== undefined) {
+    return normalizeStatisticsConfig(statisticsConfig);
+  }
+  if (embedded) {
+    return normalizeStatisticsConfig();
+  }
+  var env = runtimeEnv !== undefined ? runtimeEnv : typeof window !== "undefined" ? window._env_ : undefined;
+  return normalizeStatisticsConfig({
+    enabled: env === null || env === void 0 ? void 0 : env.STATISTICS_ENABLED,
+    podBaseUrl: env === null || env === void 0 ? void 0 : env.STATISTICS_POD_BASE_URL,
+    eventsUrl: env === null || env === void 0 ? void 0 : env.STATISTICS_EVENTS_URL,
+    registryContext: env === null || env === void 0 ? void 0 : env.STATISTICS_REGISTRY_CONTEXT
+  });
+};
+var createUuid = () => {
+  var cryptoApi = typeof globalThis !== "undefined" ? globalThis.crypto : undefined;
+  if (typeof (cryptoApi === null || cryptoApi === void 0 ? void 0 : cryptoApi.randomUUID) === "function") {
+    return cryptoApi.randomUUID();
+  }
+  if (typeof (cryptoApi === null || cryptoApi === void 0 ? void 0 : cryptoApi.getRandomValues) === "function") {
+    var bytes = cryptoApi.getRandomValues(new Uint8Array(16));
+    bytes[6] = bytes[6] & 0x0f | 0x40;
+    bytes[8] = bytes[8] & 0x3f | 0x80;
+    return Array.from(bytes, (byte, index) => {
+      var hex = byte.toString(16).padStart(2, "0");
+      return [4, 6, 8, 10].includes(index) ? "-".concat(hex) : hex;
+    }).join("");
+  }
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, char => {
+    var random = Math.floor(Math.random() * 16);
+    var value = char === "x" ? random : random & 0x3 | 0x8;
+    return value.toString(16);
+  });
+};
+var normalizeTimestamp = value => {
+  var date = value instanceof Date ? value : new Date(value || Date.now());
+  return Number.isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString();
+};
+var createCatalogEvent = function createCatalogEvent() {
+  var {
+    eventType,
+    dataset,
+    resourceUrl,
+    registryContext,
+    eventId,
+    occurredAt
+  } = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+  if (!ALLOWED_EVENT_TYPES.has(eventType)) return null;
+  var datasetUrl = normalizeHttpUrl(dataset === null || dataset === void 0 ? void 0 : dataset.datasetUrl, {
+    stripQuery: true
+  });
+  // The action target may be a presigned URL. Validate it for the action, but
+  // never persist it because query parameters can contain credentials.
+  if (!datasetUrl || !normalizeHttpUrl(resourceUrl)) return null;
+  return {
+    eventId: eventId || createUuid(),
+    eventType,
+    datasetUrl,
+    datasetTitle: String((dataset === null || dataset === void 0 ? void 0 : dataset.title) || "").trim(),
+    registryContext: normalizeOptionalContext((dataset === null || dataset === void 0 ? void 0 : dataset.registryContext) || registryContext),
+    occurredAt: normalizeTimestamp(occurredAt)
+  };
+};
+var escapeTurtleLiteral = value => String(value || "").replace(/\\/g, "\\\\").replace(/\"/g, '\\"').replace(/\r/g, "\\r").replace(/\n/g, "\\n").replace(/\t/g, "\\t").replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, char => "\\u".concat(char.charCodeAt(0).toString(16).padStart(4, "0")));
+var turtleLiteral = function turtleLiteral(value) {
+  var datatype = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : "";
+  return "\"".concat(escapeTurtleLiteral(value), "\"").concat(datatype ? "^^".concat(datatype) : "");
+};
+var serializeCatalogEvent = event => {
+  var predicates = ["  stats:eventId ".concat(turtleLiteral(event.eventId)), "  stats:eventType ".concat(turtleLiteral(event.eventType)), "  stats:datasetUrl ".concat(turtleLiteral(event.datasetUrl, "xsd:anyURI")), "  stats:datasetTitle ".concat(turtleLiteral(event.datasetTitle)), "  stats:occurredAt ".concat(turtleLiteral(event.occurredAt, "xsd:dateTime"))];
+  if (event.registryContext) {
+    predicates.push("  stats:registryContext ".concat(turtleLiteral(event.registryContext)));
+  }
+  return ["@prefix stats: <".concat(STATISTICS_NS, "> ."), "@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .", "", "<#event> a stats:CatalogEvent ;", "".concat(predicates.join(" ;\n"), " ."), ""].join("\n");
+};
+var recordCatalogEvent = /*#__PURE__*/function () {
+  var _ref = _asyncToGenerator(function* () {
+    var _session$info;
+    var {
+      session,
+      statisticsConfig,
+      eventType,
+      dataset,
+      resourceUrl
+    } = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+    var config = normalizeStatisticsConfig(statisticsConfig);
+    if (!config.enabled) return false;
+    if (!(session !== null && session !== void 0 && (_session$info = session.info) !== null && _session$info !== void 0 && _session$info.isLoggedIn) || typeof (session === null || session === void 0 ? void 0 : session.fetch) !== "function") return false;
+    var event = createCatalogEvent({
+      eventType,
+      dataset,
+      resourceUrl,
+      registryContext: config.registryContext
+    });
+    if (!event) return false;
+    var response = yield session.fetch(config.eventsUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "text/turtle",
+        Link: "<".concat(LDP_RESOURCE, ">; rel=\"type\""),
+        Slug: "".concat(event.eventId, ".ttl")
+      },
+      body: serializeCatalogEvent(event)
+    });
+    if (!(response !== null && response !== void 0 && response.ok)) {
+      throw new Error("Statistics event write failed (".concat((response === null || response === void 0 ? void 0 : response.status) || "unknown", ")."));
+    }
+    return true;
+  });
+  return function recordCatalogEvent() {
+    return _ref.apply(this, arguments);
+  };
+}();
+var trackCatalogEvent = /*#__PURE__*/function () {
+  var _ref2 = _asyncToGenerator(function* (options) {
+    try {
+      return yield recordCatalogEvent(options);
+    } catch (error) {
+      console.warn("Catalog statistics event could not be stored.", error);
+      return false;
+    }
+  });
+  return function trackCatalogEvent(_x) {
+    return _ref2.apply(this, arguments);
+  };
+}();
+
+var openExternalLink = (url, windowRef) => {
+  var targetWindow = windowRef !== undefined ? windowRef : typeof window !== "undefined" ? window : undefined;
+  if (!url || !(targetWindow !== null && targetWindow !== void 0 && targetWindow.open)) return false;
+  targetWindow.open(url, "_blank", "noopener,noreferrer");
+  return true;
+};
+var startTracking = (trackEvent, options) => {
+  try {
+    var result = trackEvent(options);
+    if (result && typeof result.catch === "function") {
+      result.catch(() => false);
+    }
+  } catch (_unused) {
+    // Statistics are deliberately best effort and must never block the action.
+  }
+};
+var triggerBrowserDownload = function triggerBrowserDownload(blob, fileName) {
+  var browser = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
+  var documentRef = browser.document !== undefined ? browser.document : typeof document !== "undefined" ? document : undefined;
+  var urlApi = browser.URL !== undefined ? browser.URL : typeof URL !== "undefined" ? URL : undefined;
+  if (!(documentRef !== null && documentRef !== void 0 && documentRef.createElement) || !(urlApi !== null && urlApi !== void 0 && urlApi.createObjectURL)) {
+    throw new Error("Browser download APIs are unavailable.");
+  }
+  var objectUrl = urlApi.createObjectURL(blob);
+  try {
+    var link = documentRef.createElement("a");
+    link.href = objectUrl;
+    link.download = fileName;
+    link.click();
+  } finally {
+    var _urlApi$revokeObjectU;
+    (_urlApi$revokeObjectU = urlApi.revokeObjectURL) === null || _urlApi$revokeObjectU === void 0 || _urlApi$revokeObjectU.call(urlApi, objectUrl);
+  }
+};
+var openDatasetAccess = function openDatasetAccess() {
+  var {
+    session,
+    dataset,
+    resourceUrl,
+    statisticsConfig,
+    trackEvent = trackCatalogEvent,
+    windowRef
+  } = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+  startTracking(trackEvent, {
+    session,
+    statisticsConfig,
+    eventType: CATALOG_EVENT_TYPES.datasetAccess,
+    dataset,
+    resourceUrl
+  });
+  return openExternalLink(resourceUrl, windowRef);
+};
+var downloadCatalogResource = /*#__PURE__*/function () {
+  var _ref = _asyncToGenerator(function* () {
+    var {
+      session,
+      dataset,
+      resourceUrl,
+      fileName,
+      eventType,
+      statisticsConfig,
+      fallbackToDatasetAccess = false,
+      trackEvent = trackCatalogEvent,
+      openLink = openExternalLink,
+      browser
+    } = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+    var blob;
+    try {
+      var response = yield session.fetch(resourceUrl);
+      if (!response.ok) throw new Error("Download failed.");
+      blob = yield response.blob();
+    } catch (error) {
+      console.error("Download error:", error);
+      if (fallbackToDatasetAccess) {
+        startTracking(trackEvent, {
+          session,
+          statisticsConfig,
+          eventType: CATALOG_EVENT_TYPES.datasetAccess,
+          dataset,
+          resourceUrl
+        });
+      }
+      openLink(resourceUrl);
+      return false;
+    }
+
+    // Recording starts only after the protected resource was fetched as a blob.
+    startTracking(trackEvent, {
+      session,
+      statisticsConfig,
+      eventType,
+      dataset,
+      resourceUrl
+    });
+    try {
+      triggerBrowserDownload(blob, fileName, browser);
+    } catch (error) {
+      console.error("Browser download error:", error);
+      openLink(resourceUrl);
+    }
+    return true;
+  });
+  return function downloadCatalogResource() {
+    return _ref.apply(this, arguments);
+  };
+}();
+
 var getPodRootFromWebId = webId => {
   if (!webId) return "";
   try {
@@ -6457,30 +6753,6 @@ var formatDate = dateString => {
     month: "2-digit",
     day: "2-digit"
   });
-};
-var handleFileDownload = /*#__PURE__*/function () {
-  var _ref = _asyncToGenerator(function* (url, fileName) {
-    try {
-      var res = yield session.fetch(url);
-      if (!res.ok) throw new Error("Download failed.");
-      var blob = yield res.blob();
-      var link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = fileName;
-      link.click();
-      URL.revokeObjectURL(link.href);
-    } catch (err) {
-      console.error("Download error:", err);
-      openExternalLink(url);
-    }
-  });
-  return function handleFileDownload(_x, _x2) {
-    return _ref.apply(this, arguments);
-  };
-}();
-var openExternalLink = url => {
-  if (!url || typeof window === "undefined") return;
-  window.open(url, "_blank", "noopener,noreferrer");
 };
 var getResourceLabel = function getResourceLabel(url) {
   var {
@@ -6512,7 +6784,7 @@ var isPendingFromDataset = dataset => {
   var status = String(raw).toLowerCase();
   return status === "pending" || status === "waiting" || status === "requested";
 };
-var DatasetDetailModal = _ref2 => {
+var DatasetDetailModal = _ref => {
   var {
     dataset,
     onClose,
@@ -6521,8 +6793,9 @@ var DatasetDetailModal = _ref2 => {
     userEmail,
     datasets = [],
     onEditClick,
-    onDeleteClick
-  } = _ref2;
+    onDeleteClick,
+    statisticsConfig
+  } = _ref;
   var [triples, setTriples] = React.useState([]);
   var [canAccessDataset, setCanAccessDataset] = React.useState(false);
   var [canAccessModel, setCanAccessModel] = React.useState(false);
@@ -6573,7 +6846,7 @@ var DatasetDetailModal = _ref2 => {
   React.useEffect(() => {
     var cancelled = false;
     var loadTriples = /*#__PURE__*/function () {
-      var _ref3 = _asyncToGenerator(function* () {
+      var _ref2 = _asyncToGenerator(function* () {
         if (isSeries || !(dataset !== null && dataset !== void 0 && dataset.access_url_semantic_model) || !canAccessModel) {
           setTriples([]);
           return;
@@ -6607,7 +6880,7 @@ var DatasetDetailModal = _ref2 => {
         }
       });
       return function loadTriples() {
-        return _ref3.apply(this, arguments);
+        return _ref2.apply(this, arguments);
       };
     }();
     loadTriples();
@@ -6617,7 +6890,7 @@ var DatasetDetailModal = _ref2 => {
   }, [dataset, canAccessModel]);
   React.useEffect(() => {
     var checkAccess = /*#__PURE__*/function () {
-      var _ref4 = _asyncToGenerator(function* () {
+      var _ref3 = _asyncToGenerator(function* () {
         if (!dataset) return;
         if (isSeries) {
           setCanAccessDataset(false);
@@ -6635,7 +6908,7 @@ var DatasetDetailModal = _ref2 => {
           return;
         }
         var hasAclAccess = /*#__PURE__*/function () {
-          var _ref5 = _asyncToGenerator(function* (url) {
+          var _ref4 = _asyncToGenerator(function* (url) {
             if (!url) return false;
             if (!isPodManagedUrl(url)) {
               return false;
@@ -6661,8 +6934,8 @@ var DatasetDetailModal = _ref2 => {
               }
             }
           });
-          return function hasAclAccess(_x3) {
-            return _ref5.apply(this, arguments);
+          return function hasAclAccess(_x) {
+            return _ref4.apply(this, arguments);
           };
         }();
         var datasetAccess = yield hasAclAccess(dataset.access_url_dataset);
@@ -6674,7 +6947,7 @@ var DatasetDetailModal = _ref2 => {
         setCanAccessModel(modelAccess);
       });
       return function checkAccess() {
-        return _ref4.apply(this, arguments);
+        return _ref3.apply(this, arguments);
       };
     }();
     checkAccess();
@@ -6707,7 +6980,7 @@ var DatasetDetailModal = _ref2 => {
       webId: ownerWebId
     };
     var loadOwnerProfile = /*#__PURE__*/function () {
-      var _ref6 = _asyncToGenerator(function* () {
+      var _ref5 = _asyncToGenerator(function* () {
         if (!ownerWebId) {
           setOwnerProfile(fallbackProfile);
           return;
@@ -6763,7 +7036,7 @@ var DatasetDetailModal = _ref2 => {
         }
       });
       return function loadOwnerProfile() {
-        return _ref6.apply(this, arguments);
+        return _ref5.apply(this, arguments);
       };
     }();
     loadOwnerProfile();
@@ -6832,7 +7105,11 @@ var DatasetDetailModal = _ref2 => {
       value: /*#__PURE__*/React.createElement("a", {
         href: dataset.access_url_dataset,
         target: "_blank",
-        rel: "noopener noreferrer"
+        rel: "noopener noreferrer",
+        onClick: event => {
+          event.preventDefault();
+          triggerDatasetAction();
+        }
       }, dataset.access_url_dataset)
     });
   }
@@ -6842,7 +7119,11 @@ var DatasetDetailModal = _ref2 => {
       value: /*#__PURE__*/React.createElement("a", {
         href: dataset.access_url_semantic_model,
         target: "_blank",
-        rel: "noopener noreferrer"
+        rel: "noopener noreferrer",
+        onClick: event => {
+          event.preventDefault();
+          triggerModelAction();
+        }
       }, dataset.access_url_semantic_model)
     });
   }
@@ -6860,14 +7141,34 @@ var DatasetDetailModal = _ref2 => {
   };
   var triggerDatasetAction = () => {
     if (datasetActionIsDownload) {
-      handleFileDownload(dataset.access_url_dataset, datasetFileName);
+      downloadCatalogResource({
+        session,
+        dataset,
+        resourceUrl: dataset.access_url_dataset,
+        fileName: datasetFileName,
+        eventType: CATALOG_EVENT_TYPES.datasetDownload,
+        statisticsConfig,
+        fallbackToDatasetAccess: true
+      });
       return;
     }
-    openExternalLink(dataset.access_url_dataset);
+    openDatasetAccess({
+      session,
+      dataset,
+      resourceUrl: dataset.access_url_dataset,
+      statisticsConfig
+    });
   };
   var triggerModelAction = () => {
     if (modelActionIsDownload) {
-      handleFileDownload(dataset.access_url_semantic_model, modelFileName);
+      downloadCatalogResource({
+        session,
+        dataset,
+        resourceUrl: dataset.access_url_semantic_model,
+        fileName: modelFileName,
+        eventType: CATALOG_EVENT_TYPES.semanticModelDownload,
+        statisticsConfig
+      });
       return;
     }
     openExternalLink(dataset.access_url_semantic_model);
@@ -13541,7 +13842,7 @@ var HeaderBar = _ref => {
   }));
 };
 
-var appVersion = "0.8.50";
+var appVersion = "0.8.51";
 
 var FooterBar = () => {
   return /*#__PURE__*/React.createElement("footer", {
@@ -14767,7 +15068,8 @@ var App = function App() {
     embedded = false,
     webIdOverride = null,
     LoginScreenComponent = null,
-    language = null
+    language = null,
+    statisticsConfig
   } = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
   var [datasets, setDatasets] = React.useState([]);
   var [catalogs, setCatalogs] = React.useState([]);
@@ -14793,6 +15095,10 @@ var App = function App() {
   var [issuer, setIssuer] = React.useState(defaultIssuer);
   var retryTimeoutRef = React.useRef(null);
   var cleanupTriggerRef = React.useRef(false);
+  var effectiveStatisticsConfig = resolveStatisticsConfig({
+    embedded,
+    statisticsConfig
+  });
   React.useEffect(() => {
     if (!embedded) return;
     if (webIdOverride) {
@@ -15290,7 +15596,8 @@ var App = function App() {
     userEmail: userEmail,
     datasets: datasets,
     onEditClick: handleEditClick,
-    onDeleteClick: handleDeleteClick
+    onDeleteClick: handleDeleteClick,
+    statisticsConfig: effectiveStatisticsConfig
   }), showDeleteModal && /*#__PURE__*/React.createElement(DatasetDeleteModal, {
     onClose: handleCloseNestedModal,
     onDeleted: handleCloseModal,
@@ -15311,12 +15618,14 @@ var App = function App() {
 function SemanticDataCatalogEmbed(_ref) {
   var {
     webId,
-    language
+    language,
+    statisticsConfig
   } = _ref;
   return /*#__PURE__*/React.createElement(App, {
     embedded: true,
     webIdOverride: webId,
-    language: language
+    language: language,
+    statisticsConfig: statisticsConfig
   });
 }
 
