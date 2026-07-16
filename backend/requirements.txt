@@ -5,4 +5,4 @@ cryptography
 requests
 rdflib 
 rdflib-jsonld
-pyshacl
+pyshacl==0.40.0
