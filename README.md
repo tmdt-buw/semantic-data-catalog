@@ -45,9 +45,9 @@ event type, the canonical dataset-metadata URL, a title snapshot, an optional
 registry context, a UUID, and a UTC timestamp. Query parameters are removed
 from the dataset-metadata URL. Action targets, download URLs, and presigned URLs
 are never stored, so their query credentials cannot enter the event data. The
-events also contain no WebID, IP address, or user-agent value. Only
-catalog-mediated dataset downloads/access clicks and semantic-model downloads
-are counted. Direct access outside the catalog, automatic semantic-model
+events also contain no WebID, IP address, or user-agent value. Only successful
+dataset downloads and semantic-model downloads are counted. Dataset access
+clicks, direct access outside the catalog, automatic semantic-model
 visualization, access checks, and catalog exports are not counted.
 `STATISTICS_EVENTS_URL` is optional and overrides the default
 `<STATISTICS_POD_BASE_URL>/events/downloads/` container when set.

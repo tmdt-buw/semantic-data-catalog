@@ -6440,7 +6440,6 @@ var STATISTICS_NS = "https://w3id.org/solid-dataspace-manager/statistics#";
 var LDP_RESOURCE = "http://www.w3.org/ns/ldp#Resource";
 var CATALOG_EVENT_TYPES = Object.freeze({
   datasetDownload: "dataset_download",
-  datasetAccess: "dataset_access",
   semanticModelDownload: "semantic_model_download"
 });
 var ALLOWED_EVENT_TYPES = new Set(Object.values(CATALOG_EVENT_TYPES));
@@ -6661,20 +6660,9 @@ var triggerBrowserDownload = function triggerBrowserDownload(blob, fileName) {
 };
 var openDatasetAccess = function openDatasetAccess() {
   var {
-    session,
-    dataset,
     resourceUrl,
-    statisticsConfig,
-    trackEvent = trackCatalogEvent,
     windowRef
   } = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
-  startTracking(trackEvent, {
-    session,
-    statisticsConfig,
-    eventType: CATALOG_EVENT_TYPES.datasetAccess,
-    dataset,
-    resourceUrl
-  });
   return openExternalLink(resourceUrl, windowRef);
 };
 var downloadCatalogResource = /*#__PURE__*/function () {
@@ -6686,7 +6674,6 @@ var downloadCatalogResource = /*#__PURE__*/function () {
       fileName,
       eventType,
       statisticsConfig,
-      fallbackToDatasetAccess = false,
       trackEvent = trackCatalogEvent,
       openLink = openExternalLink,
       browser
@@ -6698,15 +6685,6 @@ var downloadCatalogResource = /*#__PURE__*/function () {
       blob = yield response.blob();
     } catch (error) {
       console.error("Download error:", error);
-      if (fallbackToDatasetAccess) {
-        startTracking(trackEvent, {
-          session,
-          statisticsConfig,
-          eventType: CATALOG_EVENT_TYPES.datasetAccess,
-          dataset,
-          resourceUrl
-        });
-      }
       openLink(resourceUrl);
       return false;
     }
@@ -7147,16 +7125,12 @@ var DatasetDetailModal = _ref => {
         resourceUrl: dataset.access_url_dataset,
         fileName: datasetFileName,
         eventType: CATALOG_EVENT_TYPES.datasetDownload,
-        statisticsConfig,
-        fallbackToDatasetAccess: true
+        statisticsConfig
       });
       return;
     }
     openDatasetAccess({
-      session,
-      dataset,
-      resourceUrl: dataset.access_url_dataset,
-      statisticsConfig
+      resourceUrl: dataset.access_url_dataset
     });
   };
   var triggerModelAction = () => {
@@ -13842,7 +13816,7 @@ var HeaderBar = _ref => {
   }));
 };
 
-var appVersion = "0.8.52";
+var appVersion = "0.8.54";
 
 var FooterBar = () => {
   return /*#__PURE__*/React.createElement("footer", {

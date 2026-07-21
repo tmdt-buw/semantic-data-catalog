@@ -47,7 +47,6 @@ describe("catalog resource actions", () => {
       fileName: "air.csv",
       eventType: CATALOG_EVENT_TYPES.datasetDownload,
       statisticsConfig: { enabled: true },
-      fallbackToDatasetAccess: true,
       trackEvent,
       browser: createBrowser(order),
     });
@@ -61,7 +60,7 @@ describe("catalog resource actions", () => {
     ]);
   });
 
-  test("records dataset access before opening a download fallback", async () => {
+  test("opens a download fallback without recording an access click", async () => {
     const order = [];
     const trackEvent = jest.fn((event) => {
       order.push(`track:${event.eventType}`);
@@ -80,15 +79,12 @@ describe("catalog resource actions", () => {
       resourceUrl: "https://source.example/air.csv",
       fileName: "air.csv",
       eventType: CATALOG_EVENT_TYPES.datasetDownload,
-      fallbackToDatasetAccess: true,
       trackEvent,
       openLink,
     });
 
-    expect(order).toEqual(["fetch", "track:dataset_access", "open"]);
-    expect(trackEvent).not.toHaveBeenCalledWith(
-      expect.objectContaining({ eventType: CATALOG_EVENT_TYPES.datasetDownload })
-    );
+    expect(order).toEqual(["fetch", "open"]);
+    expect(trackEvent).not.toHaveBeenCalled();
     consoleSpy.mockRestore();
   });
 
@@ -112,12 +108,9 @@ describe("catalog resource actions", () => {
     consoleSpy.mockRestore();
   });
 
-  test("starts an access event before window.open and ignores tracking errors", () => {
+  test("opens an access URL without recording a statistics event", () => {
     const order = [];
-    const trackEvent = jest.fn(() => {
-      order.push("track");
-      throw new Error("statistics unavailable");
-    });
+    const trackEvent = jest.fn(() => order.push("track"));
     const windowRef = {
       open: jest.fn(() => order.push("open")),
     };
@@ -131,7 +124,7 @@ describe("catalog resource actions", () => {
       windowRef,
     })).toBe(true);
 
-    expect(order).toEqual(["track", "open"]);
+    expect(order).toEqual(["open"]);
+    expect(trackEvent).not.toHaveBeenCalled();
   });
 });
-

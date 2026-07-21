@@ -3,7 +3,6 @@ const LDP_RESOURCE = "http://www.w3.org/ns/ldp#Resource";
 
 export const CATALOG_EVENT_TYPES = Object.freeze({
   datasetDownload: "dataset_download",
-  datasetAccess: "dataset_access",
   semanticModelDownload: "semantic_model_download",
 });
 

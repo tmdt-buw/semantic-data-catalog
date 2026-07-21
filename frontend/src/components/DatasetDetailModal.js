@@ -455,15 +455,11 @@ const DatasetDetailModal = ({
         fileName: datasetFileName,
         eventType: CATALOG_EVENT_TYPES.datasetDownload,
         statisticsConfig,
-        fallbackToDatasetAccess: true,
       });
       return;
     }
     openDatasetAccess({
-      session,
-      dataset,
       resourceUrl: dataset.access_url_dataset,
-      statisticsConfig,
     });
   };
   const triggerModelAction = () => {

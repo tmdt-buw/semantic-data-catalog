@@ -131,7 +131,7 @@ describe("catalog event serialization", () => {
 
   test("does not persist action URL secrets and canonicalizes the dataset URL", () => {
     const event = createCatalogEvent({
-      eventType: CATALOG_EVENT_TYPES.datasetAccess,
+      eventType: CATALOG_EVENT_TYPES.semanticModelDownload,
       dataset: {
         ...dataset,
         datasetUrl:
@@ -176,9 +176,9 @@ describe("recordCatalogEvent", () => {
         enabled: true,
         eventsUrl: "https://stats.example/events/downloads/",
       },
-      eventType: CATALOG_EVENT_TYPES.datasetAccess,
+      eventType: CATALOG_EVENT_TYPES.semanticModelDownload,
       dataset,
-      resourceUrl: "https://source.example/data/air",
+      resourceUrl: "https://source.example/data/model.ttl",
     })).resolves.toBe(true);
 
     expect(fetch).toHaveBeenCalledTimes(1);
@@ -188,10 +188,31 @@ describe("recordCatalogEvent", () => {
     expect(request.headers["Content-Type"]).toBe("text/turtle");
     expect(request.headers.Link).toBe('<http://www.w3.org/ns/ldp#Resource>; rel="type"');
     expect(request.headers.Slug).toMatch(/^[0-9a-f-]{36}\.ttl$/);
-    expect(request.body).toContain('stats:eventType "dataset_access"');
+    expect(request.body).toContain('stats:eventType "semantic_model_download"');
     expect(request.body).not.toContain("source.example");
     expect(request.body).not.toContain(session.info.webId);
     expect(request.body).not.toContain("userAgent");
+  });
+
+  test("does not create or write retired dataset-access events", async () => {
+    const fetch = jest.fn();
+    expect(createCatalogEvent({
+      eventType: "dataset_access",
+      dataset,
+      resourceUrl: "https://source.example/data/air",
+    })).toBeNull();
+
+    await expect(recordCatalogEvent({
+      session: { info: { isLoggedIn: true }, fetch },
+      statisticsConfig: {
+        enabled: true,
+        eventsUrl: "https://stats.example/events/downloads/",
+      },
+      eventType: "dataset_access",
+      dataset,
+      resourceUrl: "https://source.example/data/air",
+    })).resolves.toBe(false);
+    expect(fetch).not.toHaveBeenCalled();
   });
 
   test("does not write without an authenticated session", async () => {

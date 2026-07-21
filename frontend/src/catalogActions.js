@@ -1,7 +1,4 @@
-import {
-  CATALOG_EVENT_TYPES,
-  trackCatalogEvent,
-} from "./statistics";
+import { trackCatalogEvent } from "./statistics";
 
 export const openExternalLink = (url, windowRef) => {
   const targetWindow = windowRef !== undefined
@@ -46,20 +43,9 @@ const triggerBrowserDownload = (blob, fileName, browser = {}) => {
 };
 
 export const openDatasetAccess = ({
-  session,
-  dataset,
   resourceUrl,
-  statisticsConfig,
-  trackEvent = trackCatalogEvent,
   windowRef,
 } = {}) => {
-  startTracking(trackEvent, {
-    session,
-    statisticsConfig,
-    eventType: CATALOG_EVENT_TYPES.datasetAccess,
-    dataset,
-    resourceUrl,
-  });
   return openExternalLink(resourceUrl, windowRef);
 };
 
@@ -70,7 +56,6 @@ export const downloadCatalogResource = async ({
   fileName,
   eventType,
   statisticsConfig,
-  fallbackToDatasetAccess = false,
   trackEvent = trackCatalogEvent,
   openLink = openExternalLink,
   browser,
@@ -82,15 +67,6 @@ export const downloadCatalogResource = async ({
     blob = await response.blob();
   } catch (error) {
     console.error("Download error:", error);
-    if (fallbackToDatasetAccess) {
-      startTracking(trackEvent, {
-        session,
-        statisticsConfig,
-        eventType: CATALOG_EVENT_TYPES.datasetAccess,
-        dataset,
-        resourceUrl,
-      });
-    }
     openLink(resourceUrl);
     return false;
   }
@@ -112,4 +88,3 @@ export const downloadCatalogResource = async ({
   }
   return true;
 };
-
