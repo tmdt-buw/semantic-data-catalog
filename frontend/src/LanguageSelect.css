@@ -55,7 +55,7 @@
 }
 
 @media (max-width: 900px) {
-  .header-right {
+  .header-right--catalog {
     flex-wrap: wrap;
   }
 

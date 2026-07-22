@@ -1,6 +1,7 @@
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import CatalogSurvey from "./CatalogSurvey";
+import { translateText } from "../i18n";
 import {
   CATALOG_SURFACES,
   CATALOG_SURVEY_QUESTION_IDS,
@@ -91,6 +92,74 @@ describe("CatalogSurvey", () => {
     const available = await renderSurvey();
     expect(available.container.querySelector(".catalog-survey-launcher")).not.toBeNull();
     await available.unmount();
+  });
+
+  test("uses monochrome Font Awesome icons instead of Unicode emoji", async () => {
+    const view = await renderSurvey();
+
+    expect(
+      view.container.querySelector(".catalog-survey-launcher svg[data-icon='comment-dots']")
+    ).not.toBeNull();
+    await click(view.container.querySelector(".catalog-survey-launcher"));
+
+    const ratingIcons = Array.from(
+      view.container.querySelectorAll("svg.catalog-survey-rating__icon")
+    );
+    expect(ratingIcons).toHaveLength(5);
+    expect(ratingIcons.map((icon) => icon.getAttribute("data-icon"))).toEqual([
+      "face-frown-open",
+      "face-frown",
+      "face-meh",
+      "face-smile",
+      "face-laugh-beam",
+    ]);
+    ["😞", "🙁", "😐", "🙂", "😄", "☺"].forEach((emoji) => {
+      expect(view.container.textContent).not.toContain(emoji);
+    });
+    await view.unmount();
+  });
+
+  test("provides complete German and English survey text", () => {
+    const translations = {
+      Feedback: "Feedback",
+      "Give feedback": "Feedback geben",
+      "Feedback completed": "Feedback abgeschlossen",
+      "Close feedback survey": "Feedback-Befragung schließen",
+      "User survey": "Nutzerbefragung",
+      "Your feedback": "Dein Feedback",
+      "How understandable is the system?": "Wie verständlich ist das System?",
+      "How easy is it to find relevant datasets?":
+        "Wie einfach lassen sich relevante Datensätze finden?",
+      "Step 1 of 2": "Schritt 1 von 2",
+      "Step 2 of 2": "Schritt 2 von 2",
+      "Choose the answer that best matches your experience.":
+        "Wähle die Antwort, die deiner Erfahrung am besten entspricht.",
+      "Your first answer has already been saved separately.":
+        "Deine erste Antwort wurde bereits separat gespeichert.",
+      "Very poor": "Sehr schlecht",
+      Poor: "Schlecht",
+      Neutral: "Neutral",
+      Good: "Gut",
+      "Very good": "Sehr gut",
+      "Please select a rating.": "Bitte wähle eine Bewertung aus.",
+      "Feedback could not be saved. Please try again.":
+        "Das Feedback konnte nicht gespeichert werden. Bitte versuche es erneut.",
+      "Saving...": "Wird gespeichert...",
+      "Try again": "Erneut versuchen",
+      Close: "Schließen",
+      Cancel: "Abbrechen",
+      Next: "Weiter",
+      Submit: "Absenden",
+      "Thank you for your feedback!": "Vielen Dank für dein Feedback!",
+      "Both answers were saved and evaluated separately.":
+        "Beide Antworten wurden separat gespeichert und werden getrennt ausgewertet.",
+    };
+
+    Object.entries(translations).forEach(([english, german]) => {
+      expect(translateText(english, "en")).toBe(english);
+      expect(translateText(english, "de")).toBe(german);
+      expect(translateText(german, "en")).toBe(english);
+    });
   });
 
   test("stores each step independently and completes after the second answer", async () => {

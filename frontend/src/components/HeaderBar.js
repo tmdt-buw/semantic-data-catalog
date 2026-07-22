@@ -143,7 +143,7 @@ const HeaderBar = ({
         </div>
       </div>
 
-      <div className="header-right">
+      <div className="header-right header-right--catalog">
         {languageControl}
         {userInfo.loggedIn ? (
           <div className="header-user">

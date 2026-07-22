@@ -13665,6 +13665,46 @@ var convertCurry = convert.bind(null, React.createElement);
  * License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License)
  * Copyright 2026 Fonticons, Inc.
  */
+var faFaceMeh = {
+  prefix: 'fas',
+  iconName: 'face-meh',
+  icon: [512, 512, [128528, "meh"], "f11a", "M256 512a256 256 0 1 0 0-512 256 256 0 1 0 0 512zM176 176a32 32 0 1 1 0 64 32 32 0 1 1 0-64zm128 32a32 32 0 1 1 64 0 32 32 0 1 1 -64 0zM176 320l160 0c13.3 0 24 10.7 24 24s-10.7 24-24 24l-160 0c-13.3 0-24-10.7-24-24s10.7-24 24-24z"]
+};
+var faFaceFrownOpen = {
+  prefix: 'fas',
+  iconName: 'face-frown-open',
+  icon: [512, 512, [128550, "frown-open"], "f57a", "M256 512a256 256 0 1 0 0-512 256 256 0 1 0 0 512zM176 176a32 32 0 1 1 0 64 32 32 0 1 1 0-64zm128 32a32 32 0 1 1 64 0 32 32 0 1 1 -64 0zM182.4 382.5c-12.4 5.2-26.5-4.1-21.1-16.4 16-36.6 52.4-62.1 94.8-62.1s78.8 25.6 94.8 62.1c5.4 12.3-8.7 21.6-21.1 16.4-22.4-9.5-47.4-14.8-73.7-14.8s-51.3 5.3-73.7 14.8z"]
+};
+var faCheck = {
+  prefix: 'fas',
+  iconName: 'check',
+  icon: [448, 512, [10003, 10004], "f00c", "M434.8 70.1c14.3 10.4 17.5 30.4 7.1 44.7l-256 352c-5.5 7.6-14 12.3-23.4 13.1s-18.5-2.7-25.1-9.3l-128-128c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l101.5 101.5 234-321.7c10.4-14.3 30.4-17.5 44.7-7.1z"]
+};
+var faFaceFrown = {
+  prefix: 'fas',
+  iconName: 'face-frown',
+  icon: [512, 512, [9785, "frown"], "f119", "M256 512a256 256 0 1 0 0-512 256 256 0 1 0 0 512zm90.6-113.9c-20.4-28-53.4-46.1-90.6-46.1s-70.2 18.1-90.6 46.1c-7.8 10.7-22.8 13.1-33.5 5.3s-13.1-22.8-5.3-33.5C155.7 330 202.8 304 256 304s100.3 26 129.4 65.9c7.8 10.7 5.4 25.7-5.3 33.5s-25.7 5.4-33.5-5.3zM144 208a32 32 0 1 1 64 0 32 32 0 1 1 -64 0zm192-32a32 32 0 1 1 0 64 32 32 0 1 1 0-64z"]
+};
+var faXmark = {
+  prefix: 'fas',
+  iconName: 'xmark',
+  icon: [384, 512, [128473, 10005, 10006, 10060, 215, "close", "multiply", "remove", "times"], "f00d", "M55.1 73.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L147.2 256 9.9 393.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L192.5 301.3 329.9 438.6c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L237.8 256 375.1 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L192.5 210.7 55.1 73.4z"]
+};
+var faFaceLaughBeam = {
+  prefix: 'fas',
+  iconName: 'face-laugh-beam',
+  icon: [512, 512, [128513, "laugh-beam"], "f59a", "M256 512a256 256 0 1 0 0-512 256 256 0 1 0 0 512zM101.6 314c-3.7-13.7 7.5-26 21.7-26l265.4 0c14.2 0 25.4 12.3 21.7 26-18.5 68-80.6 118-154.4 118S120 382 101.6 314zM176 164c-15.5 0-28 12.5-28 28l0 8c0 11-9 20-20 20s-20-9-20-20l0-8c0-37.6 30.4-68 68-68s68 30.4 68 68l0 8c0 11-9 20-20 20s-20-9-20-20l0-8c0-15.5-12.5-28-28-28zm132 28l0 8c0 11-9 20-20 20s-20-9-20-20l0-8c0-37.6 30.4-68 68-68s68 30.4 68 68l0 8c0 11-9 20-20 20s-20-9-20-20l0-8c0-15.5-12.5-28-28-28s-28 12.5-28 28z"]
+};
+var faCommentDots = {
+  prefix: 'fas',
+  iconName: 'comment-dots',
+  icon: [512, 512, [128172, 62075, "commenting"], "f4ad", "M256 480c141.4 0 256-107.5 256-240S397.4 0 256 0 0 107.5 0 240c0 54.3 19.2 104.3 51.6 144.5L2.8 476.8c-4.8 9-3.3 20 3.6 27.5s17.8 9.8 27.1 5.8l118.4-50.7C183.7 472.6 218.9 480 256 480zM128 208a32 32 0 1 1 0 64 32 32 0 1 1 0-64zm128 0a32 32 0 1 1 0 64 32 32 0 1 1 0-64zm96 32a32 32 0 1 1 64 0 32 32 0 1 1 -64 0z"]
+};
+var faFaceSmile = {
+  prefix: 'fas',
+  iconName: 'face-smile',
+  icon: [512, 512, [128578, "smile"], "f118", "M256 512a256 256 0 1 0 0-512 256 256 0 1 0 0 512zM165.4 321.9c20.4 28 53.4 46.1 90.6 46.1s70.2-18.1 90.6-46.1c7.8-10.7 22.8-13.1 33.5-5.3s13.1 22.8 5.3 33.5C356.3 390 309.2 416 256 416s-100.3-26-129.4-65.9c-7.8-10.7-5.4-25.7 5.3-33.5s25.7-5.4 33.5 5.3zM144 208a32 32 0 1 1 64 0 32 32 0 1 1 -64 0zm192-32a32 32 0 1 1 0 64 32 32 0 1 1 0-64z"]
+};
 var faBookOpen = {
   prefix: 'fas',
   iconName: 'book-open',
@@ -13884,7 +13924,7 @@ var HeaderBar = _ref => {
   }), /*#__PURE__*/React.createElement("span", null, "Semantic ", /*#__PURE__*/React.createElement("span", {
     className: "highlight"
   }, "Data"), " Catalog")))), /*#__PURE__*/React.createElement("div", {
-    className: "header-right"
+    className: "header-right header-right--catalog"
   }, languageControl, userInfo.loggedIn ? /*#__PURE__*/React.createElement("div", {
     className: "header-user"
   }, userInfo.photo && /*#__PURE__*/React.createElement("img", {
@@ -13919,7 +13959,7 @@ var HeaderBar = _ref => {
   }));
 };
 
-var appVersion = "0.8.57";
+var appVersion = "0.8.59";
 
 var FooterBar = () => {
   return /*#__PURE__*/React.createElement("footer", {
@@ -15239,23 +15279,23 @@ var QUESTIONS = [{
 }];
 var RATINGS = [{
   value: 1,
-  emoji: "😞",
+  icon: faFaceFrownOpen,
   label: "Very poor"
 }, {
   value: 2,
-  emoji: "🙁",
+  icon: faFaceFrown,
   label: "Poor"
 }, {
   value: 3,
-  emoji: "😐",
+  icon: faFaceMeh,
   label: "Neutral"
 }, {
   value: 4,
-  emoji: "🙂",
+  icon: faFaceSmile,
   label: "Good"
 }, {
   value: 5,
-  emoji: "😄",
+  icon: faFaceLaughBeam,
   label: "Very good"
 }];
 var browserStorage = () => {
@@ -15457,10 +15497,13 @@ function CatalogSurvey(_ref3) {
     "aria-controls": "catalog-survey-drawer",
     "aria-expanded": open,
     "aria-label": t("Give feedback")
-  }, /*#__PURE__*/React.createElement("span", {
+  }, /*#__PURE__*/React.createElement(FontAwesomeIcon, {
+    icon: faCommentDots,
     "aria-hidden": "true",
     className: "catalog-survey-launcher__icon"
-  }, "\u263A"), /*#__PURE__*/React.createElement("span", null, t(completed ? "Feedback completed" : "Feedback"))), open && /*#__PURE__*/React.createElement("div", {
+  }), /*#__PURE__*/React.createElement("span", {
+    className: "catalog-survey-launcher__label"
+  }, t(completed ? "Feedback completed" : "Feedback"))), open && /*#__PURE__*/React.createElement("div", {
     className: "catalog-survey-layer"
   }, /*#__PURE__*/React.createElement("button", {
     type: "button",
@@ -15488,15 +15531,18 @@ function CatalogSurvey(_ref3) {
     onClick: handleClose,
     disabled: saving,
     "aria-label": t("Close")
-  }, /*#__PURE__*/React.createElement("span", {
+  }, /*#__PURE__*/React.createElement(FontAwesomeIcon, {
+    icon: faXmark,
     "aria-hidden": "true"
-  }, "\xD7"))), completed ? /*#__PURE__*/React.createElement("div", {
+  }))), completed ? /*#__PURE__*/React.createElement("div", {
     className: "catalog-survey-complete",
     role: "status"
   }, /*#__PURE__*/React.createElement("div", {
     className: "catalog-survey-complete__icon",
     "aria-hidden": "true"
-  }, "\u2713"), /*#__PURE__*/React.createElement("h3", null, t("Thank you for your feedback!")), /*#__PURE__*/React.createElement("p", null, t("Both answers were saved and evaluated separately.")), /*#__PURE__*/React.createElement("button", {
+  }, /*#__PURE__*/React.createElement(FontAwesomeIcon, {
+    icon: faCheck
+  })), /*#__PURE__*/React.createElement("h3", null, t("Thank you for your feedback!")), /*#__PURE__*/React.createElement("p", null, t("Both answers were saved and evaluated separately.")), /*#__PURE__*/React.createElement("button", {
     type: "button",
     className: "catalog-survey-primary",
     onClick: handleClose
@@ -15522,7 +15568,7 @@ function CatalogSurvey(_ref3) {
   }, t(question.title)), RATINGS.map(_ref5 => {
     var {
       value,
-      emoji,
+      icon,
       label
     } = _ref5;
     return /*#__PURE__*/React.createElement("label", {
@@ -15537,10 +15583,11 @@ function CatalogSurvey(_ref3) {
         setSelectedRating(value);
         setError("");
       }
-    }), /*#__PURE__*/React.createElement("span", {
-      className: "catalog-survey-rating__emoji",
+    }), /*#__PURE__*/React.createElement(FontAwesomeIcon, {
+      icon: icon,
+      className: "catalog-survey-rating__icon",
       "aria-hidden": "true"
-    }, emoji), /*#__PURE__*/React.createElement("span", {
+    }), /*#__PURE__*/React.createElement("span", {
       className: "catalog-survey-rating__label"
     }, t(label)));
   })), error && /*#__PURE__*/React.createElement("p", {

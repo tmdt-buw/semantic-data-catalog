@@ -60,7 +60,7 @@ describe("HeaderBar", () => {
       await Promise.resolve();
     });
 
-    const headerActions = container.querySelector(".header-right");
+    const headerActions = container.querySelector(".header-right--catalog");
     expect(headerActions).not.toBeNull();
     expect(
       headerActions.querySelector(".language-select--header")

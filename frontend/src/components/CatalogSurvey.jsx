@@ -1,4 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faCheck,
+  faCommentDots,
+  faFaceFrown,
+  faFaceFrownOpen,
+  faFaceLaughBeam,
+  faFaceMeh,
+  faFaceSmile,
+  faXmark,
+} from "@fortawesome/free-solid-svg-icons";
 import { useI18n } from "../i18n";
 import {
   CATALOG_SURVEY_QUESTION_IDS,
@@ -25,11 +36,11 @@ const QUESTIONS = [
 ];
 
 const RATINGS = [
-  { value: 1, emoji: "😞", label: "Very poor" },
-  { value: 2, emoji: "🙁", label: "Poor" },
-  { value: 3, emoji: "😐", label: "Neutral" },
-  { value: 4, emoji: "🙂", label: "Good" },
-  { value: 5, emoji: "😄", label: "Very good" },
+  { value: 1, icon: faFaceFrownOpen, label: "Very poor" },
+  { value: 2, icon: faFaceFrown, label: "Poor" },
+  { value: 3, icon: faFaceMeh, label: "Neutral" },
+  { value: 4, icon: faFaceSmile, label: "Good" },
+  { value: 5, icon: faFaceLaughBeam, label: "Very good" },
 ];
 
 const browserStorage = () => {
@@ -249,8 +260,14 @@ export default function CatalogSurvey({
         aria-expanded={open}
         aria-label={t("Give feedback")}
       >
-        <span aria-hidden="true" className="catalog-survey-launcher__icon">☺</span>
-        <span>{t(completed ? "Feedback completed" : "Feedback")}</span>
+        <FontAwesomeIcon
+          icon={faCommentDots}
+          aria-hidden="true"
+          className="catalog-survey-launcher__icon"
+        />
+        <span className="catalog-survey-launcher__label">
+          {t(completed ? "Feedback completed" : "Feedback")}
+        </span>
       </button>
 
       {open && (
@@ -283,13 +300,15 @@ export default function CatalogSurvey({
                 disabled={saving}
                 aria-label={t("Close")}
               >
-                <span aria-hidden="true">×</span>
+                <FontAwesomeIcon icon={faXmark} aria-hidden="true" />
               </button>
             </header>
 
             {completed ? (
               <div className="catalog-survey-complete" role="status">
-                <div className="catalog-survey-complete__icon" aria-hidden="true">✓</div>
+                <div className="catalog-survey-complete__icon" aria-hidden="true">
+                  <FontAwesomeIcon icon={faCheck} />
+                </div>
                 <h3>{t("Thank you for your feedback!")}</h3>
                 <p>{t("Both answers were saved and evaluated separately.")}</p>
                 <button type="button" className="catalog-survey-primary" onClick={handleClose}>
@@ -313,7 +332,7 @@ export default function CatalogSurvey({
 
                 <fieldset className="catalog-survey-ratings" disabled={saving || Boolean(pendingEvent)}>
                   <legend className="catalog-survey-sr-only">{t(question.title)}</legend>
-                  {RATINGS.map(({ value, emoji, label }) => (
+                  {RATINGS.map(({ value, icon, label }) => (
                     <label
                       key={value}
                       className={`catalog-survey-rating${selectedRating === value ? " is-selected" : ""}`}
@@ -328,7 +347,11 @@ export default function CatalogSurvey({
                           setError("");
                         }}
                       />
-                      <span className="catalog-survey-rating__emoji" aria-hidden="true">{emoji}</span>
+                      <FontAwesomeIcon
+                        icon={icon}
+                        className="catalog-survey-rating__icon"
+                        aria-hidden="true"
+                      />
                       <span className="catalog-survey-rating__label">{t(label)}</span>
                     </label>
                   ))}

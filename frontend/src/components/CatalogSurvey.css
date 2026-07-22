@@ -16,7 +16,8 @@
   box-shadow: 0 14px 30px rgba(15, 23, 42, 0.28);
   font: 800 0.85rem/1.1 "Manrope", "Segoe UI", sans-serif;
   writing-mode: vertical-rl;
-  transform: translateY(-50%) rotate(180deg);
+  text-orientation: mixed;
+  transform: translateY(-50%);
   transition: background 0.16s ease, box-shadow 0.16s ease;
 }
 
@@ -29,6 +30,7 @@
 }
 
 .catalog-survey-launcher__icon {
+  width: 1em;
   font-size: 1.25rem;
   line-height: 1;
 }
@@ -224,7 +226,15 @@
   transform: none;
 }
 
-.catalog-survey-rating__emoji { font-size: 2rem; line-height: 1; }
+.catalog-survey-rating__icon {
+  width: 1em;
+  color: #64748b;
+  font-size: 2rem;
+  line-height: 1;
+}
+.catalog-survey-rating.is-selected .catalog-survey-rating__icon {
+  color: #1d4ed8;
+}
 .catalog-survey-rating__label {
   min-width: 0;
   color: #334155;
@@ -340,7 +350,7 @@
   .catalog-survey-complete { padding: 24px 20px; }
   .catalog-survey-ratings { gap: 5px; }
   .catalog-survey-rating { min-height: 84px; padding: 8px 2px; }
-  .catalog-survey-rating__emoji { font-size: 1.65rem; }
+  .catalog-survey-rating__icon { font-size: 1.65rem; }
   .catalog-survey-rating__label { font-size: 0.62rem; }
 }
 
@@ -349,4 +359,3 @@
   .catalog-survey-rating,
   .catalog-survey-progress__track span { transition: none; }
 }
-
