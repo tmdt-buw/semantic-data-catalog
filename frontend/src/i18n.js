@@ -202,6 +202,38 @@ Object.assign(enToDe, {
     "Deine Anfrage wird an die Solid-Inbox des Eigentümers zugestellt und im Solid Dataspace Manager bearbeitet.",
 });
 
+Object.assign(enToDe, {
+  Feedback: "Feedback",
+  "Give feedback": "Feedback geben",
+  "Feedback completed": "Feedback abgeschlossen",
+  "Close feedback survey": "Feedback-Befragung schließen",
+  "User survey": "Nutzerbefragung",
+  "Your feedback": "Dein Feedback",
+  "How understandable is the system?": "Wie verständlich ist das System?",
+  "How easy is it to find relevant datasets?":
+    "Wie einfach lassen sich relevante Datensätze finden?",
+  "Step 1 of 2": "Schritt 1 von 2",
+  "Step 2 of 2": "Schritt 2 von 2",
+  "Choose the answer that best matches your experience.":
+    "Wähle die Antwort, die deiner Erfahrung am besten entspricht.",
+  "Your first answer has already been saved separately.":
+    "Deine erste Antwort wurde bereits separat gespeichert.",
+  "Very poor": "Sehr schlecht",
+  Poor: "Schlecht",
+  Neutral: "Neutral",
+  Good: "Gut",
+  "Very good": "Sehr gut",
+  "Please select a rating.": "Bitte wähle eine Bewertung aus.",
+  "Feedback could not be saved. Please try again.":
+    "Das Feedback konnte nicht gespeichert werden. Bitte versuche es erneut.",
+  "Saving...": "Wird gespeichert...",
+  "Try again": "Erneut versuchen",
+  Submit: "Absenden",
+  "Thank you for your feedback!": "Vielen Dank für dein Feedback!",
+  "Both answers were saved and evaluated separately.":
+    "Beide Antworten wurden separat gespeichert und werden getrennt ausgewertet.",
+});
+
 const deToEn = Object.entries(enToDe).reduce((acc, [en, de]) => {
   acc[de] = en;
   return acc;

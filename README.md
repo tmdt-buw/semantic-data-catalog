@@ -54,6 +54,16 @@ visualization, access checks, and catalog exports are not counted.
 For a multi-instance deployment it should always be set explicitly to the
 instance's dedicated leaf container.
 
+With a canonical per-instance URL ending in
+`/events/catalog-instances/<instance-id>/downloads/`, the catalog also enables
+the two-step usability survey. Its sibling container is derived as
+`/events/catalog-instances/<instance-id>/survey-responses/`; legacy or custom
+download paths deliberately do not enable the survey. Each question is stored
+as a separate anonymous `CatalogSurveyResponse` with its own event UUID,
+question ID, rating, catalog surface, survey version, and UTC timestamp. A local
+per-question browser marker prevents accidental repeat submissions and keeps a
+pending UUID stable across retries.
+
 For an embedded catalog, pass the configuration explicitly. The prop takes
 priority over standalone `window._env_` values:
 

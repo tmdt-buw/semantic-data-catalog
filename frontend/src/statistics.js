@@ -6,7 +6,22 @@ export const CATALOG_EVENT_TYPES = Object.freeze({
   semanticModelDownload: "semantic_model_download",
 });
 
+export const CATALOG_SURVEY_VERSION = "catalog-usability-v1";
+
+export const CATALOG_SURVEY_QUESTION_IDS = Object.freeze({
+  systemComprehensibility: "system_comprehensibility",
+  datasetFindability: "dataset_findability",
+});
+
+export const CATALOG_SURFACES = Object.freeze({
+  embedded: "embedded",
+  standalone: "standalone",
+});
+
 const ALLOWED_EVENT_TYPES = new Set(Object.values(CATALOG_EVENT_TYPES));
+const ALLOWED_SURVEY_QUESTION_IDS = new Set(Object.values(CATALOG_SURVEY_QUESTION_IDS));
+const ALLOWED_CATALOG_SURFACES = new Set(Object.values(CATALOG_SURFACES));
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const parseBoolean = (value) => {
   if (typeof value === "boolean") return value;
@@ -86,6 +101,31 @@ export const resolveStatisticsConfig = ({
     eventsUrl: env?.STATISTICS_EVENTS_URL,
     registryContext: env?.STATISTICS_REGISTRY_CONTEXT,
   });
+};
+
+export const deriveSurveyEventsUrl = (eventsUrl) => {
+  const normalized = normalizeHttpUrl(eventsUrl, {
+    container: true,
+    stripHash: true,
+    requireHttps: true,
+  });
+  if (!normalized) return "";
+
+  const parsed = new URL(normalized);
+  const pathSegments = parsed.pathname.split("/").filter(Boolean);
+  const suffixStart = pathSegments.length - 4;
+  if (
+    suffixStart < 0 ||
+    pathSegments[suffixStart] !== "events" ||
+    pathSegments[suffixStart + 1] !== "catalog-instances" ||
+    !pathSegments[suffixStart + 2] ||
+    pathSegments[suffixStart + 3] !== "downloads"
+  ) {
+    return "";
+  }
+  pathSegments[pathSegments.length - 1] = "survey-responses";
+  parsed.pathname = `/${pathSegments.join("/")}/`;
+  return parsed.href;
 };
 
 const createUuid = () => {
@@ -174,6 +214,91 @@ export const serializeCatalogEvent = (event) => {
     `${predicates.join(" ;\n")} .`,
     "",
   ].join("\n");
+};
+
+export const createCatalogSurveyEvent = ({
+  questionId,
+  rating,
+  catalogSurface,
+  eventId,
+  occurredAt,
+  surveyVersion = CATALOG_SURVEY_VERSION,
+} = {}) => {
+  const normalizedRating = Number(rating);
+  if (!ALLOWED_SURVEY_QUESTION_IDS.has(questionId)) return null;
+  if (!Number.isInteger(normalizedRating) || normalizedRating < 1 || normalizedRating > 5) {
+    return null;
+  }
+  if (!ALLOWED_CATALOG_SURFACES.has(catalogSurface)) return null;
+
+  const normalizedSurveyVersion = String(surveyVersion || "").trim();
+  if (normalizedSurveyVersion !== CATALOG_SURVEY_VERSION) return null;
+  const normalizedEventId = eventId ? String(eventId).trim().toLowerCase() : createUuid();
+  if (!UUID_PATTERN.test(normalizedEventId)) return null;
+
+  return {
+    eventId: normalizedEventId,
+    surveyVersion: normalizedSurveyVersion,
+    questionId,
+    rating: normalizedRating,
+    catalogSurface,
+    occurredAt: normalizeTimestamp(occurredAt),
+  };
+};
+
+export const serializeCatalogSurveyEvent = (event) => [
+  `@prefix stats: <${STATISTICS_NS}> .`,
+  "@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .",
+  "",
+  "<#event> a stats:CatalogSurveyResponse ;",
+  `  stats:eventId ${turtleLiteral(event.eventId)} ;`,
+  `  stats:surveyVersion ${turtleLiteral(event.surveyVersion)} ;`,
+  `  stats:questionId ${turtleLiteral(event.questionId)} ;`,
+  `  stats:rating ${turtleLiteral(event.rating, "xsd:integer")} ;`,
+  `  stats:catalogSurface ${turtleLiteral(event.catalogSurface)} ;`,
+  `  stats:occurredAt ${turtleLiteral(event.occurredAt, "xsd:dateTime")} .`,
+  "",
+].join("\n");
+
+export const recordCatalogSurveyResponse = async ({
+  session,
+  statisticsConfig,
+  questionId,
+  rating,
+  catalogSurface,
+  eventId,
+  occurredAt,
+  surveyVersion,
+} = {}) => {
+  const config = normalizeStatisticsConfig(statisticsConfig);
+  const surveyEventsUrl = deriveSurveyEventsUrl(config.eventsUrl);
+  if (!config.enabled || !surveyEventsUrl) return false;
+  if (!session?.info?.isLoggedIn || typeof session?.fetch !== "function") return false;
+
+  const event = createCatalogSurveyEvent({
+    questionId,
+    rating,
+    catalogSurface,
+    eventId,
+    occurredAt,
+    surveyVersion,
+  });
+  if (!event) return false;
+
+  const response = await session.fetch(surveyEventsUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "text/turtle",
+      Link: `<${LDP_RESOURCE}>; rel="type"`,
+      Slug: `${event.eventId}.ttl`,
+    },
+    body: serializeCatalogSurveyEvent(event),
+  });
+
+  if (!response?.ok) {
+    throw new Error(`Survey response write failed (${response?.status || "unknown"}).`);
+  }
+  return true;
 };
 
 export const recordCatalogEvent = async ({

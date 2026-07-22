@@ -9,10 +9,11 @@ import HeaderBar from './components/HeaderBar';
 import FooterBar from './components/FooterBar';
 import OnboardingWizard from './components/OnboardingWizard';
 import PrivateRegistryModal from './components/PrivateRegistryModal';
+import CatalogSurvey from './components/CatalogSurvey';
 import { I18nProvider, LanguageSelect } from './i18n';
 import './LanguageSelect.css';
 import { session } from './solidSession';
-import { resolveStatisticsConfig } from './statistics';
+import { CATALOG_SURFACES, resolveStatisticsConfig } from './statistics';
 import {
   buildDefaultPrivateRegistry,
   buildCatalogDownload,
@@ -650,6 +651,12 @@ const App = ({
           fetchDatasets={fetchDatasets}
         />
       )}
+      <CatalogSurvey
+        session={session}
+        statisticsConfig={effectiveStatisticsConfig}
+        catalogSurface={embedded ? CATALOG_SURFACES.embedded : CATALOG_SURFACES.standalone}
+        authenticated={isLoggedIn && Boolean(webId)}
+      />
       {!embedded && (
         <>
           <div className="footer-spacer"></div>

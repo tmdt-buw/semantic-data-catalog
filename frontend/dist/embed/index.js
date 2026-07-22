@@ -323,8 +323,8 @@ var DatasetTable = _ref => {
   }));
 };
 
-var STORAGE_PREFIX = "semantic-data-catalog:";
-var storageKey = key => "".concat(STORAGE_PREFIX).concat(key);
+var STORAGE_PREFIX$1 = "semantic-data-catalog:";
+var storageKey = key => "".concat(STORAGE_PREFIX$1).concat(key);
 
 // Simple IStorage wrapper backed by the browser's sessionStorage so that
 // authentication data is kept only for the lifetime of the tab.
@@ -6440,7 +6440,19 @@ var CATALOG_EVENT_TYPES = Object.freeze({
   datasetDownload: "dataset_download",
   semanticModelDownload: "semantic_model_download"
 });
+var CATALOG_SURVEY_VERSION = "catalog-usability-v1";
+var CATALOG_SURVEY_QUESTION_IDS = Object.freeze({
+  systemComprehensibility: "system_comprehensibility",
+  datasetFindability: "dataset_findability"
+});
+var CATALOG_SURFACES = Object.freeze({
+  embedded: "embedded",
+  standalone: "standalone"
+});
 var ALLOWED_EVENT_TYPES = new Set(Object.values(CATALOG_EVENT_TYPES));
+var ALLOWED_SURVEY_QUESTION_IDS = new Set(Object.values(CATALOG_SURVEY_QUESTION_IDS));
+var ALLOWED_CATALOG_SURFACES = new Set(Object.values(CATALOG_SURFACES));
+var UUID_PATTERN$1 = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 var parseBoolean = value => {
   if (typeof value === "boolean") return value;
   if (typeof value === "number") return value === 1;
@@ -6509,6 +6521,23 @@ var resolveStatisticsConfig = function resolveStatisticsConfig() {
     registryContext: env === null || env === void 0 ? void 0 : env.STATISTICS_REGISTRY_CONTEXT
   });
 };
+var deriveSurveyEventsUrl = eventsUrl => {
+  var normalized = normalizeHttpUrl(eventsUrl, {
+    container: true,
+    stripHash: true,
+    requireHttps: true
+  });
+  if (!normalized) return "";
+  var parsed = new URL(normalized);
+  var pathSegments = parsed.pathname.split("/").filter(Boolean);
+  var suffixStart = pathSegments.length - 4;
+  if (suffixStart < 0 || pathSegments[suffixStart] !== "events" || pathSegments[suffixStart + 1] !== "catalog-instances" || !pathSegments[suffixStart + 2] || pathSegments[suffixStart + 3] !== "downloads") {
+    return "";
+  }
+  pathSegments[pathSegments.length - 1] = "survey-responses";
+  parsed.pathname = "/".concat(pathSegments.join("/"), "/");
+  return parsed.href;
+};
 var createUuid = () => {
   var cryptoApi = typeof globalThis !== "undefined" ? globalThis.crypto : undefined;
   if (typeof (cryptoApi === null || cryptoApi === void 0 ? void 0 : cryptoApi.randomUUID) === "function") {
@@ -6570,9 +6599,82 @@ var serializeCatalogEvent = event => {
   }
   return ["@prefix stats: <".concat(STATISTICS_NS, "> ."), "@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .", "", "<#event> a stats:CatalogEvent ;", "".concat(predicates.join(" ;\n"), " ."), ""].join("\n");
 };
-var recordCatalogEvent = /*#__PURE__*/function () {
+var createCatalogSurveyEvent = function createCatalogSurveyEvent() {
+  var {
+    questionId,
+    rating,
+    catalogSurface,
+    eventId,
+    occurredAt,
+    surveyVersion = CATALOG_SURVEY_VERSION
+  } = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+  var normalizedRating = Number(rating);
+  if (!ALLOWED_SURVEY_QUESTION_IDS.has(questionId)) return null;
+  if (!Number.isInteger(normalizedRating) || normalizedRating < 1 || normalizedRating > 5) {
+    return null;
+  }
+  if (!ALLOWED_CATALOG_SURFACES.has(catalogSurface)) return null;
+  var normalizedSurveyVersion = String(surveyVersion || "").trim();
+  if (normalizedSurveyVersion !== CATALOG_SURVEY_VERSION) return null;
+  var normalizedEventId = eventId ? String(eventId).trim().toLowerCase() : createUuid();
+  if (!UUID_PATTERN$1.test(normalizedEventId)) return null;
+  return {
+    eventId: normalizedEventId,
+    surveyVersion: normalizedSurveyVersion,
+    questionId,
+    rating: normalizedRating,
+    catalogSurface,
+    occurredAt: normalizeTimestamp(occurredAt)
+  };
+};
+var serializeCatalogSurveyEvent = event => ["@prefix stats: <".concat(STATISTICS_NS, "> ."), "@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .", "", "<#event> a stats:CatalogSurveyResponse ;", "  stats:eventId ".concat(turtleLiteral(event.eventId), " ;"), "  stats:surveyVersion ".concat(turtleLiteral(event.surveyVersion), " ;"), "  stats:questionId ".concat(turtleLiteral(event.questionId), " ;"), "  stats:rating ".concat(turtleLiteral(event.rating, "xsd:integer"), " ;"), "  stats:catalogSurface ".concat(turtleLiteral(event.catalogSurface), " ;"), "  stats:occurredAt ".concat(turtleLiteral(event.occurredAt, "xsd:dateTime"), " ."), ""].join("\n");
+var recordCatalogSurveyResponse = /*#__PURE__*/function () {
   var _ref = _asyncToGenerator(function* () {
     var _session$info;
+    var {
+      session,
+      statisticsConfig,
+      questionId,
+      rating,
+      catalogSurface,
+      eventId,
+      occurredAt,
+      surveyVersion
+    } = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+    var config = normalizeStatisticsConfig(statisticsConfig);
+    var surveyEventsUrl = deriveSurveyEventsUrl(config.eventsUrl);
+    if (!config.enabled || !surveyEventsUrl) return false;
+    if (!(session !== null && session !== void 0 && (_session$info = session.info) !== null && _session$info !== void 0 && _session$info.isLoggedIn) || typeof (session === null || session === void 0 ? void 0 : session.fetch) !== "function") return false;
+    var event = createCatalogSurveyEvent({
+      questionId,
+      rating,
+      catalogSurface,
+      eventId,
+      occurredAt,
+      surveyVersion
+    });
+    if (!event) return false;
+    var response = yield session.fetch(surveyEventsUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "text/turtle",
+        Link: "<".concat(LDP_RESOURCE, ">; rel=\"type\""),
+        Slug: "".concat(event.eventId, ".ttl")
+      },
+      body: serializeCatalogSurveyEvent(event)
+    });
+    if (!(response !== null && response !== void 0 && response.ok)) {
+      throw new Error("Survey response write failed (".concat((response === null || response === void 0 ? void 0 : response.status) || "unknown", ")."));
+    }
+    return true;
+  });
+  return function recordCatalogSurveyResponse() {
+    return _ref.apply(this, arguments);
+  };
+}();
+var recordCatalogEvent = /*#__PURE__*/function () {
+  var _ref2 = _asyncToGenerator(function* () {
+    var _session$info2;
     var {
       session,
       statisticsConfig,
@@ -6582,7 +6684,7 @@ var recordCatalogEvent = /*#__PURE__*/function () {
     } = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
     var config = normalizeStatisticsConfig(statisticsConfig);
     if (!config.enabled) return false;
-    if (!(session !== null && session !== void 0 && (_session$info = session.info) !== null && _session$info !== void 0 && _session$info.isLoggedIn) || typeof (session === null || session === void 0 ? void 0 : session.fetch) !== "function") return false;
+    if (!(session !== null && session !== void 0 && (_session$info2 = session.info) !== null && _session$info2 !== void 0 && _session$info2.isLoggedIn) || typeof (session === null || session === void 0 ? void 0 : session.fetch) !== "function") return false;
     var event = createCatalogEvent({
       eventType,
       dataset,
@@ -6605,11 +6707,11 @@ var recordCatalogEvent = /*#__PURE__*/function () {
     return true;
   });
   return function recordCatalogEvent() {
-    return _ref.apply(this, arguments);
+    return _ref2.apply(this, arguments);
   };
 }();
 var trackCatalogEvent = /*#__PURE__*/function () {
-  var _ref2 = _asyncToGenerator(function* (options) {
+  var _ref3 = _asyncToGenerator(function* (options) {
     try {
       return yield recordCatalogEvent(options);
     } catch (error) {
@@ -6618,7 +6720,7 @@ var trackCatalogEvent = /*#__PURE__*/function () {
     }
   });
   return function trackCatalogEvent(_x) {
-    return _ref2.apply(this, arguments);
+    return _ref3.apply(this, arguments);
   };
 }();
 
@@ -13814,7 +13916,7 @@ var HeaderBar = _ref => {
   }));
 };
 
-var appVersion = "0.8.54";
+var appVersion = "0.8.56";
 
 var FooterBar = () => {
   return /*#__PURE__*/React.createElement("footer", {
@@ -14789,6 +14891,32 @@ Object.assign(enToDe, {
   "Your request will be delivered to the owner&apos;s Solid inbox and handled in the Solid Dataspace Manager.": "Deine Anfrage wird an die Solid-Inbox des Eigentümers zugestellt und im Solid Dataspace Manager bearbeitet.",
   "Your request will be delivered to the owner's Solid inbox and handled in the Solid Dataspace Manager.": "Deine Anfrage wird an die Solid-Inbox des Eigentümers zugestellt und im Solid Dataspace Manager bearbeitet."
 });
+Object.assign(enToDe, {
+  Feedback: "Feedback",
+  "Give feedback": "Feedback geben",
+  "Feedback completed": "Feedback abgeschlossen",
+  "Close feedback survey": "Feedback-Befragung schließen",
+  "User survey": "Nutzerbefragung",
+  "Your feedback": "Dein Feedback",
+  "How understandable is the system?": "Wie verständlich ist das System?",
+  "How easy is it to find relevant datasets?": "Wie einfach lassen sich relevante Datensätze finden?",
+  "Step 1 of 2": "Schritt 1 von 2",
+  "Step 2 of 2": "Schritt 2 von 2",
+  "Choose the answer that best matches your experience.": "Wähle die Antwort, die deiner Erfahrung am besten entspricht.",
+  "Your first answer has already been saved separately.": "Deine erste Antwort wurde bereits separat gespeichert.",
+  "Very poor": "Sehr schlecht",
+  Poor: "Schlecht",
+  Neutral: "Neutral",
+  Good: "Gut",
+  "Very good": "Sehr gut",
+  "Please select a rating.": "Bitte wähle eine Bewertung aus.",
+  "Feedback could not be saved. Please try again.": "Das Feedback konnte nicht gespeichert werden. Bitte versuche es erneut.",
+  "Saving...": "Wird gespeichert...",
+  "Try again": "Erneut versuchen",
+  Submit: "Absenden",
+  "Thank you for your feedback!": "Vielen Dank für dein Feedback!",
+  "Both answers were saved and evaluated separately.": "Beide Antworten wurden separat gespeichert und werden getrennt ausgewertet."
+});
 var deToEn = Object.entries(enToDe).reduce((acc, _ref) => {
   var [en, de] = _ref;
   acc[de] = en;
@@ -15032,6 +15160,402 @@ function LanguageSelect() {
   }, language === "de" ? "Englisch" : "English"), /*#__PURE__*/React.createElement("option", {
     value: "de"
   }, "Deutsch")));
+}
+
+var STORAGE_PREFIX = "semantic-data-catalog:survey";
+var VALID_STATUSES = new Set(["pending", "submitted"]);
+var UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+var buildCatalogSurveyStorageKey = function buildCatalogSurveyStorageKey() {
+  var {
+    surveyEventsUrl,
+    questionId,
+    surveyVersion = CATALOG_SURVEY_VERSION
+  } = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+  var endpoint = String(surveyEventsUrl || "").trim();
+  var question = String(questionId || "").trim();
+  var version = String(surveyVersion || "").trim();
+  if (!endpoint || !question || !version) return "";
+  return "".concat(STORAGE_PREFIX, ":").concat(encodeURIComponent(endpoint), ":").concat(encodeURIComponent(version), ":").concat(encodeURIComponent(question));
+};
+var readCatalogSurveyQuestionState = function readCatalogSurveyQuestionState() {
+  var {
+    storage,
+    surveyEventsUrl,
+    questionId,
+    surveyVersion = CATALOG_SURVEY_VERSION
+  } = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+  var key = buildCatalogSurveyStorageKey({
+    surveyEventsUrl,
+    questionId,
+    surveyVersion
+  });
+  if (!key || !(storage !== null && storage !== void 0 && storage.getItem)) return null;
+  try {
+    var value = JSON.parse(storage.getItem(key) || "null");
+    if (!value || !VALID_STATUSES.has(value.status)) return null;
+    if (value.status === "submitted") {
+      return UUID_PATTERN.test(String(value.eventId || "")) ? value : null;
+    }
+    var event = value.event;
+    if (!UUID_PATTERN.test(String((event === null || event === void 0 ? void 0 : event.eventId) || "")) || event.questionId !== questionId || event.surveyVersion !== surveyVersion || !Number.isInteger(event.rating) || event.rating < 1 || event.rating > 5) {
+      return null;
+    }
+    return value;
+  } catch (_unused) {
+    return null;
+  }
+};
+var writeCatalogSurveyQuestionState = function writeCatalogSurveyQuestionState() {
+  var {
+    storage,
+    surveyEventsUrl,
+    questionId,
+    surveyVersion = CATALOG_SURVEY_VERSION,
+    state
+  } = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+  var key = buildCatalogSurveyStorageKey({
+    surveyEventsUrl,
+    questionId,
+    surveyVersion
+  });
+  if (!key || !(storage !== null && storage !== void 0 && storage.setItem) || !state || !VALID_STATUSES.has(state.status)) return false;
+  try {
+    storage.setItem(key, JSON.stringify(state));
+    return true;
+  } catch (_unused2) {
+    return false;
+  }
+};
+
+var QUESTIONS = [{
+  id: CATALOG_SURVEY_QUESTION_IDS.systemComprehensibility,
+  title: "How understandable is the system?"
+}, {
+  id: CATALOG_SURVEY_QUESTION_IDS.datasetFindability,
+  title: "How easy is it to find relevant datasets?"
+}];
+var RATINGS = [{
+  value: 1,
+  emoji: "😞",
+  label: "Very poor"
+}, {
+  value: 2,
+  emoji: "🙁",
+  label: "Poor"
+}, {
+  value: 3,
+  emoji: "😐",
+  label: "Neutral"
+}, {
+  value: 4,
+  emoji: "🙂",
+  label: "Good"
+}, {
+  value: 5,
+  emoji: "😄",
+  label: "Very good"
+}];
+var browserStorage = () => {
+  try {
+    return typeof window !== "undefined" ? window.localStorage : null;
+  } catch (_unused) {
+    return null;
+  }
+};
+var loadQuestionStates = surveyEventsUrl => {
+  var storage = browserStorage();
+  return Object.fromEntries(QUESTIONS.map(_ref => {
+    var {
+      id
+    } = _ref;
+    return [id, readCatalogSurveyQuestionState({
+      storage,
+      surveyEventsUrl,
+      questionId: id
+    })];
+  }));
+};
+var firstOpenQuestionIndex = states => {
+  var index = QUESTIONS.findIndex(_ref2 => {
+    var _states$id;
+    var {
+      id
+    } = _ref2;
+    return ((_states$id = states[id]) === null || _states$id === void 0 ? void 0 : _states$id.status) !== "submitted";
+  });
+  return index < 0 ? QUESTIONS.length : index;
+};
+function CatalogSurvey(_ref3) {
+  var _session$info, _questionStates$quest;
+  var {
+    session,
+    statisticsConfig,
+    catalogSurface,
+    authenticated = false
+  } = _ref3;
+  var {
+    t
+  } = useI18n();
+  var launcherRef = useRef(null);
+  var drawerRef = useRef(null);
+  var closeRef = useRef(null);
+  var savingRef = useRef(false);
+  var normalizedConfig = useMemo(() => normalizeStatisticsConfig(statisticsConfig), [statisticsConfig]);
+  var surveyEventsUrl = useMemo(() => deriveSurveyEventsUrl(normalizedConfig.eventsUrl), [normalizedConfig.eventsUrl]);
+  var available = Boolean(authenticated && normalizedConfig.enabled && surveyEventsUrl && (session === null || session === void 0 || (_session$info = session.info) === null || _session$info === void 0 ? void 0 : _session$info.isLoggedIn) && typeof (session === null || session === void 0 ? void 0 : session.fetch) === "function");
+  var [open, setOpen] = useState(false);
+  var [questionStates, setQuestionStates] = useState({});
+  var [questionIndex, setQuestionIndex] = useState(0);
+  var [selectedRating, setSelectedRating] = useState(null);
+  var [saving, setSaving] = useState(false);
+  var [error, setError] = useState("");
+  savingRef.current = saving;
+  var refreshState = useCallback(() => {
+    var _nextStates$QUESTIONS, _nextStates$QUESTIONS2;
+    var nextStates = loadQuestionStates(surveyEventsUrl);
+    var nextIndex = firstOpenQuestionIndex(nextStates);
+    setQuestionStates(nextStates);
+    setQuestionIndex(nextIndex);
+    setSelectedRating(nextIndex < QUESTIONS.length ? (_nextStates$QUESTIONS = (_nextStates$QUESTIONS2 = nextStates[QUESTIONS[nextIndex].id]) === null || _nextStates$QUESTIONS2 === void 0 || (_nextStates$QUESTIONS2 = _nextStates$QUESTIONS2.event) === null || _nextStates$QUESTIONS2 === void 0 ? void 0 : _nextStates$QUESTIONS2.rating) !== null && _nextStates$QUESTIONS !== void 0 ? _nextStates$QUESTIONS : null : null);
+    return nextStates;
+  }, [surveyEventsUrl]);
+  useEffect(() => {
+    if (!available) {
+      setOpen(false);
+      return;
+    }
+    refreshState();
+  }, [available, refreshState]);
+  useEffect(() => {
+    if (!open || typeof document === "undefined") return undefined;
+    var previouslyFocused = document.activeElement;
+    var previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    var focusTimer = window.setTimeout(() => {
+      var _closeRef$current;
+      return (_closeRef$current = closeRef.current) === null || _closeRef$current === void 0 ? void 0 : _closeRef$current.focus();
+    }, 0);
+    var handleKeyDown = event => {
+      var _drawerRef$current;
+      if (event.key === "Escape" && !savingRef.current) {
+        event.preventDefault();
+        setOpen(false);
+        return;
+      }
+      if (event.key !== "Tab") return;
+      var focusable = Array.from(((_drawerRef$current = drawerRef.current) === null || _drawerRef$current === void 0 ? void 0 : _drawerRef$current.querySelectorAll('button:not([disabled]), input:not([disabled]), [href], [tabindex]:not([tabindex="-1"])')) || []);
+      if (!focusable.length) return;
+      var first = focusable[0];
+      var last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      var _launcherRef$current;
+      window.clearTimeout(focusTimer);
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", handleKeyDown);
+      if (previouslyFocused !== null && previouslyFocused !== void 0 && previouslyFocused.focus) previouslyFocused.focus();else (_launcherRef$current = launcherRef.current) === null || _launcherRef$current === void 0 || _launcherRef$current.focus();
+    };
+  }, [open]);
+  if (!available) return null;
+  var completed = questionIndex >= QUESTIONS.length;
+  var question = completed ? null : QUESTIONS[questionIndex];
+  var pendingEvent = question ? (_questionStates$quest = questionStates[question.id]) === null || _questionStates$quest === void 0 ? void 0 : _questionStates$quest.event : null;
+  var handleOpen = () => {
+    refreshState();
+    setError("");
+    setOpen(true);
+  };
+  var handleClose = () => {
+    if (saving) return;
+    setError("");
+    setOpen(false);
+  };
+  var handleSave = /*#__PURE__*/function () {
+    var _ref4 = _asyncToGenerator(function* () {
+      if (!question || selectedRating === null) {
+        setError(t("Please select a rating."));
+        return;
+      }
+      setSaving(true);
+      setError("");
+      var event = pendingEvent || createCatalogSurveyEvent({
+        questionId: question.id,
+        rating: selectedRating,
+        catalogSurface
+      });
+      if (!event) {
+        setSaving(false);
+        setError(t("Feedback could not be saved. Please try again."));
+        return;
+      }
+      var pendingState = {
+        status: "pending",
+        event
+      };
+      var statesWithPending = _objectSpread2$2(_objectSpread2$2({}, questionStates), {}, {
+        [question.id]: pendingState
+      });
+      setQuestionStates(statesWithPending);
+      writeCatalogSurveyQuestionState({
+        storage: browserStorage(),
+        surveyEventsUrl,
+        questionId: question.id,
+        state: pendingState
+      });
+      try {
+        var _nextStates$QUESTIONS3, _nextStates$QUESTIONS4;
+        var saved = yield recordCatalogSurveyResponse(_objectSpread2$2({
+          session,
+          statisticsConfig: normalizedConfig
+        }, event));
+        if (!saved) throw new Error("Survey response was not stored.");
+        var submittedState = {
+          status: "submitted",
+          eventId: event.eventId,
+          occurredAt: event.occurredAt
+        };
+        writeCatalogSurveyQuestionState({
+          storage: browserStorage(),
+          surveyEventsUrl,
+          questionId: question.id,
+          state: submittedState
+        });
+        var nextStates = _objectSpread2$2(_objectSpread2$2({}, statesWithPending), {}, {
+          [question.id]: submittedState
+        });
+        var nextIndex = firstOpenQuestionIndex(nextStates);
+        setQuestionStates(nextStates);
+        setQuestionIndex(nextIndex);
+        setSelectedRating(nextIndex < QUESTIONS.length ? (_nextStates$QUESTIONS3 = (_nextStates$QUESTIONS4 = nextStates[QUESTIONS[nextIndex].id]) === null || _nextStates$QUESTIONS4 === void 0 || (_nextStates$QUESTIONS4 = _nextStates$QUESTIONS4.event) === null || _nextStates$QUESTIONS4 === void 0 ? void 0 : _nextStates$QUESTIONS4.rating) !== null && _nextStates$QUESTIONS3 !== void 0 ? _nextStates$QUESTIONS3 : null : null);
+      } catch (saveError) {
+        console.warn("Catalog survey response could not be stored.", saveError);
+        setError(t("Feedback could not be saved. Please try again."));
+      } finally {
+        setSaving(false);
+      }
+    });
+    return function handleSave() {
+      return _ref4.apply(this, arguments);
+    };
+  }();
+  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("button", {
+    ref: launcherRef,
+    type: "button",
+    className: "catalog-survey-launcher",
+    onClick: handleOpen,
+    "aria-controls": "catalog-survey-drawer",
+    "aria-expanded": open,
+    "aria-label": t("Give feedback")
+  }, /*#__PURE__*/React.createElement("span", {
+    "aria-hidden": "true",
+    className: "catalog-survey-launcher__icon"
+  }, "\u263A"), /*#__PURE__*/React.createElement("span", null, t(completed ? "Feedback completed" : "Feedback"))), open && /*#__PURE__*/React.createElement("div", {
+    className: "catalog-survey-layer"
+  }, /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    className: "catalog-survey-backdrop",
+    onClick: handleClose,
+    "aria-label": t("Close feedback survey"),
+    tabIndex: -1
+  }), /*#__PURE__*/React.createElement("aside", {
+    id: "catalog-survey-drawer",
+    ref: drawerRef,
+    className: "catalog-survey-drawer",
+    role: "dialog",
+    "aria-modal": "true",
+    "aria-labelledby": "catalog-survey-title"
+  }, /*#__PURE__*/React.createElement("header", {
+    className: "catalog-survey-header"
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", {
+    className: "catalog-survey-eyebrow"
+  }, t("User survey")), /*#__PURE__*/React.createElement("h2", {
+    id: "catalog-survey-title"
+  }, t("Your feedback"))), /*#__PURE__*/React.createElement("button", {
+    ref: closeRef,
+    type: "button",
+    className: "catalog-survey-close",
+    onClick: handleClose,
+    disabled: saving,
+    "aria-label": t("Close")
+  }, /*#__PURE__*/React.createElement("span", {
+    "aria-hidden": "true"
+  }, "\xD7"))), completed ? /*#__PURE__*/React.createElement("div", {
+    className: "catalog-survey-complete",
+    role: "status"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "catalog-survey-complete__icon",
+    "aria-hidden": "true"
+  }, "\u2713"), /*#__PURE__*/React.createElement("h3", null, t("Thank you for your feedback!")), /*#__PURE__*/React.createElement("p", null, t("Both answers were saved and evaluated separately.")), /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    className: "catalog-survey-primary",
+    onClick: handleClose
+  }, t("Close"))) : /*#__PURE__*/React.createElement("div", {
+    className: "catalog-survey-content"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "catalog-survey-progress",
+    "aria-label": t("Step ".concat(questionIndex + 1, " of 2"))
+  }, /*#__PURE__*/React.createElement("span", null, t("Step ".concat(questionIndex + 1, " of 2"))), /*#__PURE__*/React.createElement("div", {
+    className: "catalog-survey-progress__track",
+    "aria-hidden": "true"
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: "".concat((questionIndex + 1) / 2 * 100, "%")
+    }
+  }))), /*#__PURE__*/React.createElement("h3", null, t(question.title)), /*#__PURE__*/React.createElement("p", {
+    className: "catalog-survey-hint"
+  }, questionIndex === 0 ? t("Choose the answer that best matches your experience.") : t("Your first answer has already been saved separately.")), /*#__PURE__*/React.createElement("fieldset", {
+    className: "catalog-survey-ratings",
+    disabled: saving || Boolean(pendingEvent)
+  }, /*#__PURE__*/React.createElement("legend", {
+    className: "catalog-survey-sr-only"
+  }, t(question.title)), RATINGS.map(_ref5 => {
+    var {
+      value,
+      emoji,
+      label
+    } = _ref5;
+    return /*#__PURE__*/React.createElement("label", {
+      key: value,
+      className: "catalog-survey-rating".concat(selectedRating === value ? " is-selected" : "")
+    }, /*#__PURE__*/React.createElement("input", {
+      type: "radio",
+      name: "catalog-survey-".concat(question.id),
+      value: value,
+      checked: selectedRating === value,
+      onChange: () => {
+        setSelectedRating(value);
+        setError("");
+      }
+    }), /*#__PURE__*/React.createElement("span", {
+      className: "catalog-survey-rating__emoji",
+      "aria-hidden": "true"
+    }, emoji), /*#__PURE__*/React.createElement("span", {
+      className: "catalog-survey-rating__label"
+    }, t(label)));
+  })), error && /*#__PURE__*/React.createElement("p", {
+    className: "catalog-survey-error",
+    role: "alert"
+  }, error), /*#__PURE__*/React.createElement("div", {
+    className: "catalog-survey-actions"
+  }, /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    className: "catalog-survey-secondary",
+    onClick: handleClose,
+    disabled: saving
+  }, t("Cancel")), /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    className: "catalog-survey-primary",
+    onClick: handleSave,
+    disabled: saving || selectedRating === null
+  }, saving ? t("Saving...") : t(pendingEvent ? "Try again" : questionIndex === 0 ? "Next" : "Submit")))))));
 }
 
 var defaultIssuer = process.env.REACT_APP_OIDC_ISSUER || 'https://solid-community-server.tmdt.info';
@@ -15582,6 +16106,11 @@ var App = function App() {
     dataset: selectedDataset,
     onClose: handleCloseNestedModal,
     fetchDatasets: _fetchDatasets
+  }), /*#__PURE__*/React.createElement(CatalogSurvey, {
+    session: session,
+    statisticsConfig: effectiveStatisticsConfig,
+    catalogSurface: embedded ? CATALOG_SURFACES.embedded : CATALOG_SURFACES.standalone,
+    authenticated: isLoggedIn && Boolean(webId)
   }), !embedded && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     className: "footer-spacer"
   }), /*#__PURE__*/React.createElement(FooterBar, null))));

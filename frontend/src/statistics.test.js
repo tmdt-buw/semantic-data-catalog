@@ -1,9 +1,15 @@
 import {
   CATALOG_EVENT_TYPES,
+  CATALOG_SURFACES,
+  CATALOG_SURVEY_QUESTION_IDS,
   createCatalogEvent,
+  createCatalogSurveyEvent,
+  deriveSurveyEventsUrl,
   recordCatalogEvent,
+  recordCatalogSurveyResponse,
   resolveStatisticsConfig,
   serializeCatalogEvent,
+  serializeCatalogSurveyEvent,
 } from "./statistics";
 import { Parser } from "n3";
 
@@ -156,6 +162,112 @@ describe("catalog event serialization", () => {
       },
       resourceUrl: "https://pod.example/files/air.csv",
     })).toBeNull();
+  });
+});
+
+describe("catalog survey statistics", () => {
+  const canonicalDownloadUrl =
+    "https://stats.example/statistics/events/catalog-instances/test/downloads/";
+
+  test("derives only a provisioned per-instance survey container", () => {
+    expect(deriveSurveyEventsUrl(canonicalDownloadUrl)).toBe(
+      "https://stats.example/statistics/events/catalog-instances/test/survey-responses/"
+    );
+    expect(deriveSurveyEventsUrl("https://stats.example/statistics/events/downloads/")).toBe("");
+    expect(deriveSurveyEventsUrl("https://stats.example/custom/downloads/")).toBe("");
+    expect(deriveSurveyEventsUrl("http://stats.example/events/catalog-instances/test/downloads/")).toBe("");
+  });
+
+  test("serializes one anonymous answer with an independent question id", () => {
+    const event = createCatalogSurveyEvent({
+      questionId: CATALOG_SURVEY_QUESTION_IDS.systemComprehensibility,
+      rating: 4,
+      catalogSurface: CATALOG_SURFACES.embedded,
+      eventId: "77b20b0f-e506-4e75-ac4c-5779a21c6f7a",
+      occurredAt: "2026-07-22T08:09:10.000Z",
+    });
+    const turtle = serializeCatalogSurveyEvent(event);
+
+    expect(turtle).toContain("a stats:CatalogSurveyResponse");
+    expect(turtle).toContain('stats:surveyVersion "catalog-usability-v1"');
+    expect(turtle).toContain('stats:questionId "system_comprehensibility"');
+    expect(turtle).toContain('stats:rating "4"^^xsd:integer');
+    expect(turtle).toContain('stats:catalogSurface "embedded"');
+    expect(turtle).not.toContain("webId");
+    expect(turtle).not.toContain("userAgent");
+    expect(() => new Parser().parse(turtle)).not.toThrow();
+  });
+
+  test("rejects invalid questions, ratings, and surfaces", () => {
+    expect(createCatalogSurveyEvent({
+      questionId: "combined_score",
+      rating: 5,
+      catalogSurface: CATALOG_SURFACES.standalone,
+    })).toBeNull();
+    expect(createCatalogSurveyEvent({
+      questionId: CATALOG_SURVEY_QUESTION_IDS.datasetFindability,
+      rating: 6,
+      catalogSurface: CATALOG_SURFACES.standalone,
+    })).toBeNull();
+    expect(createCatalogSurveyEvent({
+      questionId: CATALOG_SURVEY_QUESTION_IDS.datasetFindability,
+      rating: 3,
+      catalogSurface: "unknown",
+    })).toBeNull();
+    expect(createCatalogSurveyEvent({
+      questionId: CATALOG_SURVEY_QUESTION_IDS.datasetFindability,
+      rating: 3,
+      catalogSurface: CATALOG_SURFACES.standalone,
+      surveyVersion: "catalog-usability-v2",
+    })).toBeNull();
+    expect(createCatalogSurveyEvent({
+      questionId: CATALOG_SURVEY_QUESTION_IDS.datasetFindability,
+      rating: 3,
+      catalogSurface: CATALOG_SURFACES.standalone,
+      eventId: "not-a-uuid",
+    })).toBeNull();
+  });
+
+  test("POSTs one answer to the derived survey leaf and preserves retry ids", async () => {
+    const fetch = jest.fn().mockResolvedValue({ ok: true, status: 201 });
+    const eventId = "77b20b0f-e506-4e75-ac4c-5779a21c6f7a";
+    const options = {
+      session: { info: { isLoggedIn: true }, fetch },
+      statisticsConfig: { enabled: true, eventsUrl: canonicalDownloadUrl },
+      questionId: CATALOG_SURVEY_QUESTION_IDS.datasetFindability,
+      rating: 5,
+      catalogSurface: CATALOG_SURFACES.standalone,
+      eventId,
+      occurredAt: "2026-07-22T08:09:10.000Z",
+    };
+
+    await expect(recordCatalogSurveyResponse(options)).resolves.toBe(true);
+    await expect(recordCatalogSurveyResponse(options)).resolves.toBe(true);
+
+    expect(fetch).toHaveBeenCalledTimes(2);
+    fetch.mock.calls.forEach(([url, request]) => {
+      expect(url).toBe(
+        "https://stats.example/statistics/events/catalog-instances/test/survey-responses/"
+      );
+      expect(request.headers.Slug).toBe(`${eventId}.ttl`);
+      expect(request.body).toContain('stats:questionId "dataset_findability"');
+      expect(request.body).not.toContain("webId");
+    });
+  });
+
+  test("fails closed when only a legacy statistics container is configured", async () => {
+    const fetch = jest.fn();
+    await expect(recordCatalogSurveyResponse({
+      session: { info: { isLoggedIn: true }, fetch },
+      statisticsConfig: {
+        enabled: true,
+        eventsUrl: "https://stats.example/statistics/events/downloads/",
+      },
+      questionId: CATALOG_SURVEY_QUESTION_IDS.datasetFindability,
+      rating: 5,
+      catalogSurface: CATALOG_SURFACES.standalone,
+    })).resolves.toBe(false);
+    expect(fetch).not.toHaveBeenCalled();
   });
 });
 
