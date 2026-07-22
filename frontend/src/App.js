@@ -522,7 +522,6 @@ const App = ({
 
   return renderWithI18n(
     <div>
-      {!embedded && <LanguageSelect className="language-select--standalone" />}
       {!embedded && (
         <HeaderBar
           onLoginStatusChange={setIsLoggedIn}
@@ -533,6 +532,7 @@ const App = ({
           }}
           activeTab={activeTab}
           setActiveTab={setActiveTab}
+          languageControl={<LanguageSelect className="language-select--header" />}
         />
       )}
 

@@ -4010,3 +4010,28 @@ div.network-navigation_wrapper {
   background: rgba(255, 255, 255, 0.92);
   box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);
 }
+
+.language-select--header {
+  flex: 0 0 auto;
+  padding: 5px 7px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #f8fafc;
+}
+
+.language-select--header select {
+  min-width: 104px;
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
+@media (max-width: 900px) {
+  .header-right {
+    flex-wrap: wrap;
+  }
+
+  .language-select--header {
+    align-self: flex-start;
+  }
+}

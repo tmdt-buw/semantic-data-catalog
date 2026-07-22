@@ -13749,7 +13749,8 @@ var HeaderBar = _ref => {
     onWebIdChange,
     onUserInfoChange,
     activeTab,
-    setActiveTab
+    setActiveTab,
+    languageControl
   } = _ref;
   var [showLoginModal, setShowLoginModal] = useState(false);
   var [userInfo, setUserInfo] = useState({
@@ -13882,7 +13883,7 @@ var HeaderBar = _ref => {
     className: "highlight"
   }, "Data"), " Catalog")))), /*#__PURE__*/React.createElement("div", {
     className: "header-right"
-  }, userInfo.loggedIn ? /*#__PURE__*/React.createElement("div", {
+  }, languageControl, userInfo.loggedIn ? /*#__PURE__*/React.createElement("div", {
     className: "header-user"
   }, userInfo.photo && /*#__PURE__*/React.createElement("img", {
     src: userInfo.photo,
@@ -13916,7 +13917,7 @@ var HeaderBar = _ref => {
   }));
 };
 
-var appVersion = "0.8.56";
+var appVersion = "0.8.57";
 
 var FooterBar = () => {
   return /*#__PURE__*/React.createElement("footer", {
@@ -16006,9 +16007,7 @@ var App = function App() {
       }
     })));
   }
-  return renderWithI18n(/*#__PURE__*/React.createElement("div", null, !embedded && /*#__PURE__*/React.createElement(LanguageSelect, {
-    className: "language-select--standalone"
-  }), !embedded && /*#__PURE__*/React.createElement(HeaderBar, {
+  return renderWithI18n(/*#__PURE__*/React.createElement("div", null, !embedded && /*#__PURE__*/React.createElement(HeaderBar, {
     onLoginStatusChange: setIsLoggedIn,
     onWebIdChange: setWebId,
     onUserInfoChange: _ref9 => {
@@ -16020,7 +16019,10 @@ var App = function App() {
       setUserEmail(email);
     },
     activeTab: activeTab,
-    setActiveTab: setActiveTab
+    setActiveTab: setActiveTab,
+    languageControl: /*#__PURE__*/React.createElement(LanguageSelect, {
+      className: "language-select--header"
+    })
   }), activeTab === 'dataset' && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     className: "catalog-shell"
   }, /*#__PURE__*/React.createElement("div", {

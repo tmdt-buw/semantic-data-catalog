@@ -11,7 +11,14 @@ import {
 import { FOAF, VCARD } from "@inrupt/vocab-common-rdf";
 import LoginIssuerModal from './LoginIssuerModal';
 
-const HeaderBar = ({ onLoginStatusChange, onWebIdChange, onUserInfoChange, activeTab, setActiveTab }) => {
+const HeaderBar = ({
+  onLoginStatusChange,
+  onWebIdChange,
+  onUserInfoChange,
+  activeTab,
+  setActiveTab,
+  languageControl,
+}) => {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [userInfo, setUserInfo] = useState({
     loggedIn: false,
@@ -137,6 +144,7 @@ const HeaderBar = ({ onLoginStatusChange, onWebIdChange, onUserInfoChange, activ
       </div>
 
       <div className="header-right">
+        {languageControl}
         {userInfo.loggedIn ? (
           <div className="header-user">
             {userInfo.photo && (
