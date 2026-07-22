@@ -653,6 +653,7 @@ const App = ({
       )}
       <CatalogSurvey
         session={session}
+        webId={webId}
         statisticsConfig={effectiveStatisticsConfig}
         catalogSurface={embedded ? CATALOG_SURFACES.embedded : CATALOG_SURFACES.standalone}
         authenticated={isLoggedIn && Boolean(webId)}

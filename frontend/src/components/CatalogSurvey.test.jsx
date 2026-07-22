@@ -18,8 +18,11 @@ const canonicalConfig = {
   eventsUrl: "https://stats.example/statistics/events/catalog-instances/test/downloads/",
 };
 
+const firstWebId = "https://pod.example/alice/profile/card#me";
+const secondWebId = "https://pod.example/bob/profile/card#me";
+
 const authenticatedSession = {
-  info: { isLoggedIn: true },
+  info: { isLoggedIn: true, webId: firstWebId },
   fetch: jest.fn(),
 };
 
@@ -27,20 +30,27 @@ const renderSurvey = async (props = {}) => {
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
-  await act(async () => {
-    root.render(
-      <CatalogSurvey
-        session={authenticatedSession}
-        statisticsConfig={canonicalConfig}
-        catalogSurface={CATALOG_SURFACES.embedded}
-        authenticated
-        {...props}
-      />
-    );
-    await Promise.resolve();
-  });
+  let currentProps = {
+    session: authenticatedSession,
+    webId: firstWebId,
+    statisticsConfig: canonicalConfig,
+    catalogSurface: CATALOG_SURFACES.embedded,
+    authenticated: true,
+    ...props,
+  };
+  const render = async () => {
+    await act(async () => {
+      root.render(<CatalogSurvey {...currentProps} />);
+      await Promise.resolve();
+    });
+  };
+  await render();
   return {
     container,
+    async rerender(nextProps = {}) {
+      currentProps = { ...currentProps, ...nextProps };
+      await render();
+    },
     async unmount() {
       await act(async () => root.unmount());
       container.remove();
@@ -92,6 +102,10 @@ describe("CatalogSurvey", () => {
     const available = await renderSurvey();
     expect(available.container.querySelector(".catalog-survey-launcher")).not.toBeNull();
     await available.unmount();
+
+    const mismatchedAccount = await renderSurvey({ webId: secondWebId });
+    expect(mismatchedAccount.container.querySelector(".catalog-survey-launcher")).toBeNull();
+    await mismatchedAccount.unmount();
   });
 
   test("uses monochrome Font Awesome icons instead of Unicode emoji", async () => {
@@ -176,6 +190,7 @@ describe("CatalogSurvey", () => {
       questionId: CATALOG_SURVEY_QUESTION_IDS.systemComprehensibility,
       rating: 4,
     });
+    expect(recordCatalogSurveyResponse.mock.calls[0][0]).not.toHaveProperty("webId");
     expect(view.container.textContent).toContain("How easy is it to find relevant datasets?");
 
     await click(view.container.querySelector('input[value="5"]'));
@@ -215,6 +230,75 @@ describe("CatalogSurvey", () => {
     expect(view.container.textContent).toContain("How easy is it to find relevant datasets?");
 
     consoleSpy.mockRestore();
+    await view.unmount();
+  });
+
+  test("keeps completion state separate when accounts switch in the same app session", async () => {
+    recordCatalogSurveyResponse.mockResolvedValue(true);
+    const secondSession = {
+      info: { isLoggedIn: true, webId: secondWebId },
+      fetch: jest.fn(),
+    };
+    const view = await renderSurvey();
+
+    await click(view.container.querySelector(".catalog-survey-launcher"));
+    await click(view.container.querySelector('input[value="4"]'));
+    await click(buttonWithText(view.container, "Next"));
+    await click(view.container.querySelector('input[value="5"]'));
+    await click(buttonWithText(view.container, "Submit"));
+    expect(view.container.textContent).toContain("Thank you for your feedback!");
+
+    await view.rerender({ session: secondSession, webId: secondWebId });
+    expect(view.container.querySelector(".catalog-survey-drawer")).toBeNull();
+    expect(view.container.textContent).toContain("Feedback");
+    expect(view.container.textContent).not.toContain("Feedback completed");
+    await click(view.container.querySelector(".catalog-survey-launcher"));
+    expect(view.container.textContent).toContain("How understandable is the system?");
+
+    await view.rerender({ session: authenticatedSession, webId: firstWebId });
+    expect(view.container.querySelector(".catalog-survey-drawer")).toBeNull();
+    expect(view.container.textContent).toContain("Feedback completed");
+    await click(view.container.querySelector(".catalog-survey-launcher"));
+    expect(view.container.textContent).toContain("Thank you for your feedback!");
+
+    await view.unmount();
+  });
+
+  test("does not apply an in-flight response to an account selected later", async () => {
+    let resolveFirstSave;
+    const firstSave = new Promise((resolve) => {
+      resolveFirstSave = resolve;
+    });
+    recordCatalogSurveyResponse.mockReturnValueOnce(firstSave);
+    const secondSession = {
+      info: { isLoggedIn: true, webId: secondWebId },
+      fetch: jest.fn(),
+    };
+    const view = await renderSurvey();
+
+    await click(view.container.querySelector(".catalog-survey-launcher"));
+    await click(view.container.querySelector('input[value="4"]'));
+    await click(buttonWithText(view.container, "Next"));
+    expect(recordCatalogSurveyResponse).toHaveBeenCalledTimes(1);
+
+    await view.rerender({ session: secondSession, webId: secondWebId });
+    expect(view.container.querySelector(".catalog-survey-drawer")).toBeNull();
+    await click(view.container.querySelector(".catalog-survey-launcher"));
+    expect(view.container.textContent).toContain("How understandable is the system?");
+
+    await act(async () => {
+      resolveFirstSave(true);
+      await firstSave;
+      await Promise.resolve();
+    });
+    expect(view.container.textContent).toContain("How understandable is the system?");
+    expect(view.container.textContent).not.toContain("How easy is it to find relevant datasets?");
+
+    await view.rerender({ session: authenticatedSession, webId: firstWebId });
+    expect(view.container.querySelector(".catalog-survey-drawer")).toBeNull();
+    await click(view.container.querySelector(".catalog-survey-launcher"));
+    expect(view.container.textContent).toContain("How easy is it to find relevant datasets?");
+
     await view.unmount();
   });
 });

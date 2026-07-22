@@ -19,6 +19,7 @@ import {
   recordCatalogSurveyResponse,
 } from "../statistics";
 import {
+  normalizeCatalogSurveyWebId,
   readCatalogSurveyQuestionState,
   writeCatalogSurveyQuestionState,
 } from "../catalogSurveyState";
@@ -51,7 +52,7 @@ const browserStorage = () => {
   }
 };
 
-const loadQuestionStates = (surveyEventsUrl) => {
+const loadQuestionStates = (surveyEventsUrl, webId) => {
   const storage = browserStorage();
   return Object.fromEntries(
     QUESTIONS.map(({ id }) => [
@@ -60,6 +61,7 @@ const loadQuestionStates = (surveyEventsUrl) => {
         storage,
         surveyEventsUrl,
         questionId: id,
+        webId,
       }),
     ])
   );
@@ -75,12 +77,14 @@ export default function CatalogSurvey({
   statisticsConfig,
   catalogSurface,
   authenticated = false,
+  webId,
 }) {
   const { t } = useI18n();
   const launcherRef = useRef(null);
   const drawerRef = useRef(null);
   const closeRef = useRef(null);
   const savingRef = useRef(false);
+  const activeScopeRef = useRef("");
   const normalizedConfig = useMemo(
     () => normalizeStatisticsConfig(statisticsConfig),
     [statisticsConfig]
@@ -89,15 +93,22 @@ export default function CatalogSurvey({
     () => deriveSurveyEventsUrl(normalizedConfig.eventsUrl),
     [normalizedConfig.eventsUrl]
   );
+  const accountWebId = normalizeCatalogSurveyWebId(webId);
+  const sessionWebId = normalizeCatalogSurveyWebId(session?.info?.webId);
   const available = Boolean(
     authenticated &&
+    accountWebId &&
+    sessionWebId === accountWebId &&
     normalizedConfig.enabled &&
     surveyEventsUrl &&
     session?.info?.isLoggedIn &&
     typeof session?.fetch === "function"
   );
+  const activeScope = available ? `${surveyEventsUrl}|${accountWebId}` : "";
+  activeScopeRef.current = activeScope;
 
   const [open, setOpen] = useState(false);
+  const [stateScope, setStateScope] = useState("");
   const [questionStates, setQuestionStates] = useState({});
   const [questionIndex, setQuestionIndex] = useState(0);
   const [selectedRating, setSelectedRating] = useState(null);
@@ -106,7 +117,7 @@ export default function CatalogSurvey({
   savingRef.current = saving;
 
   const refreshState = useCallback(() => {
-    const nextStates = loadQuestionStates(surveyEventsUrl);
+    const nextStates = loadQuestionStates(surveyEventsUrl, accountWebId);
     const nextIndex = firstOpenQuestionIndex(nextStates);
     setQuestionStates(nextStates);
     setQuestionIndex(nextIndex);
@@ -115,12 +126,19 @@ export default function CatalogSurvey({
         ? nextStates[QUESTIONS[nextIndex].id]?.event?.rating ?? null
         : null
     );
+    setStateScope(activeScope);
     return nextStates;
-  }, [surveyEventsUrl]);
+  }, [accountWebId, activeScope, surveyEventsUrl]);
 
   useEffect(() => {
+    setOpen(false);
+    setSaving(false);
+    setError("");
     if (!available) {
-      setOpen(false);
+      setStateScope("");
+      setQuestionStates({});
+      setQuestionIndex(0);
+      setSelectedRating(null);
       return;
     }
     refreshState();
@@ -166,7 +184,7 @@ export default function CatalogSurvey({
     };
   }, [open]);
 
-  if (!available) return null;
+  if (!available || stateScope !== activeScope) return null;
 
   const completed = questionIndex >= QUESTIONS.length;
   const question = completed ? null : QUESTIONS[questionIndex];
@@ -192,6 +210,9 @@ export default function CatalogSurvey({
 
     setSaving(true);
     setError("");
+    const submissionWebId = accountWebId;
+    const submissionScope = activeScope;
+    const isCurrentScope = () => activeScopeRef.current === submissionScope;
     const event = pendingEvent || createCatalogSurveyEvent({
       questionId: question.id,
       rating: selectedRating,
@@ -210,6 +231,7 @@ export default function CatalogSurvey({
       storage: browserStorage(),
       surveyEventsUrl,
       questionId: question.id,
+      webId: submissionWebId,
       state: pendingState,
     });
 
@@ -230,8 +252,10 @@ export default function CatalogSurvey({
         storage: browserStorage(),
         surveyEventsUrl,
         questionId: question.id,
+        webId: submissionWebId,
         state: submittedState,
       });
+      if (!isCurrentScope()) return;
       const nextStates = { ...statesWithPending, [question.id]: submittedState };
       const nextIndex = firstOpenQuestionIndex(nextStates);
       setQuestionStates(nextStates);
@@ -243,9 +267,11 @@ export default function CatalogSurvey({
       );
     } catch (saveError) {
       console.warn("Catalog survey response could not be stored.", saveError);
-      setError(t("Feedback could not be saved. Please try again."));
+      if (isCurrentScope()) {
+        setError(t("Feedback could not be saved. Please try again."));
+      }
     } finally {
-      setSaving(false);
+      if (isCurrentScope()) setSaving(false);
     }
   };
 

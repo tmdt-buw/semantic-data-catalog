@@ -13959,7 +13959,7 @@ var HeaderBar = _ref => {
   }));
 };
 
-var appVersion = "0.8.59";
+var appVersion = "0.8.60";
 
 var FooterBar = () => {
   return /*#__PURE__*/React.createElement("footer", {
@@ -15205,10 +15205,23 @@ function LanguageSelect() {
   }, "Deutsch")));
 }
 
-var STORAGE_PREFIX = "semantic-data-catalog:survey";
+var LEGACY_STORAGE_PREFIX = "semantic-data-catalog:survey";
+var STORAGE_PREFIX = "".concat(LEGACY_STORAGE_PREFIX, ":v2");
 var VALID_STATUSES = new Set(["pending", "submitted"]);
 var UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-var buildCatalogSurveyStorageKey = function buildCatalogSurveyStorageKey() {
+var normalizeCatalogSurveyWebId = webId => {
+  var raw = String(webId || "").trim();
+  if (!raw) return "";
+  try {
+    var parsed = new URL(raw);
+    if (!["http:", "https:"].includes(parsed.protocol)) return "";
+    if (parsed.username || parsed.password) return "";
+    return parsed.href;
+  } catch (_unused) {
+    return "";
+  }
+};
+var buildLegacyCatalogSurveyStorageKey = function buildLegacyCatalogSurveyStorageKey() {
   var {
     surveyEventsUrl,
     questionId,
@@ -15218,22 +15231,49 @@ var buildCatalogSurveyStorageKey = function buildCatalogSurveyStorageKey() {
   var question = String(questionId || "").trim();
   var version = String(surveyVersion || "").trim();
   if (!endpoint || !question || !version) return "";
-  return "".concat(STORAGE_PREFIX, ":").concat(encodeURIComponent(endpoint), ":").concat(encodeURIComponent(version), ":").concat(encodeURIComponent(question));
+  return "".concat(LEGACY_STORAGE_PREFIX, ":").concat(encodeURIComponent(endpoint), ":").concat(encodeURIComponent(version), ":").concat(encodeURIComponent(question));
+};
+var buildCatalogSurveyStorageKey = function buildCatalogSurveyStorageKey() {
+  var {
+    surveyEventsUrl,
+    questionId,
+    webId,
+    surveyVersion = CATALOG_SURVEY_VERSION
+  } = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+  var endpoint = String(surveyEventsUrl || "").trim();
+  var question = String(questionId || "").trim();
+  var accountWebId = normalizeCatalogSurveyWebId(webId);
+  var version = String(surveyVersion || "").trim();
+  if (!endpoint || !question || !accountWebId || !version) return "";
+  return "".concat(STORAGE_PREFIX, ":").concat(encodeURIComponent(endpoint), ":").concat(encodeURIComponent(version), ":").concat(encodeURIComponent(accountWebId), ":").concat(encodeURIComponent(question));
 };
 var readCatalogSurveyQuestionState = function readCatalogSurveyQuestionState() {
   var {
     storage,
     surveyEventsUrl,
     questionId,
+    webId,
     surveyVersion = CATALOG_SURVEY_VERSION
   } = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
   var key = buildCatalogSurveyStorageKey({
     surveyEventsUrl,
     questionId,
+    webId,
     surveyVersion
   });
   if (!key || !(storage !== null && storage !== void 0 && storage.getItem)) return null;
   try {
+    // Legacy markers were browser-wide and cannot be assigned safely to any
+    // particular account. Remove them instead of copying them into v2.
+    var legacyKey = buildLegacyCatalogSurveyStorageKey({
+      surveyEventsUrl,
+      questionId,
+      surveyVersion
+    });
+    if (legacyKey && storage.getItem(legacyKey) !== null) {
+      var _storage$removeItem;
+      (_storage$removeItem = storage.removeItem) === null || _storage$removeItem === void 0 || _storage$removeItem.call(storage, legacyKey);
+    }
     var value = JSON.parse(storage.getItem(key) || "null");
     if (!value || !VALID_STATUSES.has(value.status)) return null;
     if (value.status === "submitted") {
@@ -15244,7 +15284,7 @@ var readCatalogSurveyQuestionState = function readCatalogSurveyQuestionState() {
       return null;
     }
     return value;
-  } catch (_unused) {
+  } catch (_unused2) {
     return null;
   }
 };
@@ -15253,19 +15293,21 @@ var writeCatalogSurveyQuestionState = function writeCatalogSurveyQuestionState()
     storage,
     surveyEventsUrl,
     questionId,
+    webId,
     surveyVersion = CATALOG_SURVEY_VERSION,
     state
   } = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
   var key = buildCatalogSurveyStorageKey({
     surveyEventsUrl,
     questionId,
+    webId,
     surveyVersion
   });
   if (!key || !(storage !== null && storage !== void 0 && storage.setItem) || !state || !VALID_STATUSES.has(state.status)) return false;
   try {
     storage.setItem(key, JSON.stringify(state));
     return true;
-  } catch (_unused2) {
+  } catch (_unused3) {
     return false;
   }
 };
@@ -15305,7 +15347,7 @@ var browserStorage = () => {
     return null;
   }
 };
-var loadQuestionStates = surveyEventsUrl => {
+var loadQuestionStates = (surveyEventsUrl, webId) => {
   var storage = browserStorage();
   return Object.fromEntries(QUESTIONS.map(_ref => {
     var {
@@ -15314,7 +15356,8 @@ var loadQuestionStates = surveyEventsUrl => {
     return [id, readCatalogSurveyQuestionState({
       storage,
       surveyEventsUrl,
-      questionId: id
+      questionId: id,
+      webId
     })];
   }));
 };
@@ -15329,12 +15372,13 @@ var firstOpenQuestionIndex = states => {
   return index < 0 ? QUESTIONS.length : index;
 };
 function CatalogSurvey(_ref3) {
-  var _session$info, _questionStates$quest;
+  var _session$info, _session$info2, _questionStates$quest;
   var {
     session,
     statisticsConfig,
     catalogSurface,
-    authenticated = false
+    authenticated = false,
+    webId
   } = _ref3;
   var {
     t
@@ -15343,10 +15387,16 @@ function CatalogSurvey(_ref3) {
   var drawerRef = React.useRef(null);
   var closeRef = React.useRef(null);
   var savingRef = React.useRef(false);
+  var activeScopeRef = React.useRef("");
   var normalizedConfig = React.useMemo(() => normalizeStatisticsConfig(statisticsConfig), [statisticsConfig]);
   var surveyEventsUrl = React.useMemo(() => deriveSurveyEventsUrl(normalizedConfig.eventsUrl), [normalizedConfig.eventsUrl]);
-  var available = Boolean(authenticated && normalizedConfig.enabled && surveyEventsUrl && (session === null || session === void 0 || (_session$info = session.info) === null || _session$info === void 0 ? void 0 : _session$info.isLoggedIn) && typeof (session === null || session === void 0 ? void 0 : session.fetch) === "function");
+  var accountWebId = normalizeCatalogSurveyWebId(webId);
+  var sessionWebId = normalizeCatalogSurveyWebId(session === null || session === void 0 || (_session$info = session.info) === null || _session$info === void 0 ? void 0 : _session$info.webId);
+  var available = Boolean(authenticated && accountWebId && sessionWebId === accountWebId && normalizedConfig.enabled && surveyEventsUrl && (session === null || session === void 0 || (_session$info2 = session.info) === null || _session$info2 === void 0 ? void 0 : _session$info2.isLoggedIn) && typeof (session === null || session === void 0 ? void 0 : session.fetch) === "function");
+  var activeScope = available ? "".concat(surveyEventsUrl, "|").concat(accountWebId) : "";
+  activeScopeRef.current = activeScope;
   var [open, setOpen] = React.useState(false);
+  var [stateScope, setStateScope] = React.useState("");
   var [questionStates, setQuestionStates] = React.useState({});
   var [questionIndex, setQuestionIndex] = React.useState(0);
   var [selectedRating, setSelectedRating] = React.useState(null);
@@ -15355,16 +15405,23 @@ function CatalogSurvey(_ref3) {
   savingRef.current = saving;
   var refreshState = React.useCallback(() => {
     var _nextStates$QUESTIONS, _nextStates$QUESTIONS2;
-    var nextStates = loadQuestionStates(surveyEventsUrl);
+    var nextStates = loadQuestionStates(surveyEventsUrl, accountWebId);
     var nextIndex = firstOpenQuestionIndex(nextStates);
     setQuestionStates(nextStates);
     setQuestionIndex(nextIndex);
     setSelectedRating(nextIndex < QUESTIONS.length ? (_nextStates$QUESTIONS = (_nextStates$QUESTIONS2 = nextStates[QUESTIONS[nextIndex].id]) === null || _nextStates$QUESTIONS2 === void 0 || (_nextStates$QUESTIONS2 = _nextStates$QUESTIONS2.event) === null || _nextStates$QUESTIONS2 === void 0 ? void 0 : _nextStates$QUESTIONS2.rating) !== null && _nextStates$QUESTIONS !== void 0 ? _nextStates$QUESTIONS : null : null);
+    setStateScope(activeScope);
     return nextStates;
-  }, [surveyEventsUrl]);
+  }, [accountWebId, activeScope, surveyEventsUrl]);
   React.useEffect(() => {
+    setOpen(false);
+    setSaving(false);
+    setError("");
     if (!available) {
-      setOpen(false);
+      setStateScope("");
+      setQuestionStates({});
+      setQuestionIndex(0);
+      setSelectedRating(null);
       return;
     }
     refreshState();
@@ -15407,7 +15464,7 @@ function CatalogSurvey(_ref3) {
       if (previouslyFocused !== null && previouslyFocused !== void 0 && previouslyFocused.focus) previouslyFocused.focus();else (_launcherRef$current = launcherRef.current) === null || _launcherRef$current === void 0 || _launcherRef$current.focus();
     };
   }, [open]);
-  if (!available) return null;
+  if (!available || stateScope !== activeScope) return null;
   var completed = questionIndex >= QUESTIONS.length;
   var question = completed ? null : QUESTIONS[questionIndex];
   var pendingEvent = question ? (_questionStates$quest = questionStates[question.id]) === null || _questionStates$quest === void 0 ? void 0 : _questionStates$quest.event : null;
@@ -15429,6 +15486,9 @@ function CatalogSurvey(_ref3) {
       }
       setSaving(true);
       setError("");
+      var submissionWebId = accountWebId;
+      var submissionScope = activeScope;
+      var isCurrentScope = () => activeScopeRef.current === submissionScope;
       var event = pendingEvent || createCatalogSurveyEvent({
         questionId: question.id,
         rating: selectedRating,
@@ -15451,6 +15511,7 @@ function CatalogSurvey(_ref3) {
         storage: browserStorage(),
         surveyEventsUrl,
         questionId: question.id,
+        webId: submissionWebId,
         state: pendingState
       });
       try {
@@ -15469,8 +15530,10 @@ function CatalogSurvey(_ref3) {
           storage: browserStorage(),
           surveyEventsUrl,
           questionId: question.id,
+          webId: submissionWebId,
           state: submittedState
         });
+        if (!isCurrentScope()) return;
         var nextStates = _objectSpread2$2(_objectSpread2$2({}, statesWithPending), {}, {
           [question.id]: submittedState
         });
@@ -15480,9 +15543,11 @@ function CatalogSurvey(_ref3) {
         setSelectedRating(nextIndex < QUESTIONS.length ? (_nextStates$QUESTIONS3 = (_nextStates$QUESTIONS4 = nextStates[QUESTIONS[nextIndex].id]) === null || _nextStates$QUESTIONS4 === void 0 || (_nextStates$QUESTIONS4 = _nextStates$QUESTIONS4.event) === null || _nextStates$QUESTIONS4 === void 0 ? void 0 : _nextStates$QUESTIONS4.rating) !== null && _nextStates$QUESTIONS3 !== void 0 ? _nextStates$QUESTIONS3 : null : null);
       } catch (saveError) {
         console.warn("Catalog survey response could not be stored.", saveError);
-        setError(t("Feedback could not be saved. Please try again."));
+        if (isCurrentScope()) {
+          setError(t("Feedback could not be saved. Please try again."));
+        }
       } finally {
-        setSaving(false);
+        if (isCurrentScope()) setSaving(false);
       }
     });
     return function handleSave() {
@@ -16159,6 +16224,7 @@ var App = function App() {
     fetchDatasets: _fetchDatasets
   }), /*#__PURE__*/React.createElement(CatalogSurvey, {
     session: session,
+    webId: webId,
     statisticsConfig: effectiveStatisticsConfig,
     catalogSurface: embedded ? CATALOG_SURFACES.embedded : CATALOG_SURFACES.standalone,
     authenticated: isLoggedIn && Boolean(webId)
