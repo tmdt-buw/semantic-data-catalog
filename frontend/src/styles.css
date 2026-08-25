@@ -1456,20 +1456,31 @@ button {
   color: #fff !important;
 }
 .profile-picture {
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
   object-fit: cover;
-  margin-right: 10px;
+  margin: 0;
   border-radius: 50%;
   border: 1px solid rgba(255, 255, 255, 0.35);
 }
 .header-user {
   display: inline-flex;
   align-items: center;
+  align-content: center;
   gap: 10px;
   min-width: 0;
+  min-height: 36px;
+  line-height: 1;
+}
+.header-user > * {
+  align-self: center;
 }
 .header-user-name {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  line-height: 1.2;
   font-weight: 700;
   color: #f8fafc;
   white-space: nowrap;
@@ -1481,9 +1492,18 @@ button {
   color: rgba(248, 250, 252, 0.9);
 }
 .header-logout {
+  height: 36px;
+  min-height: 36px;
+  max-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 999px;
   padding: 6px 12px;
   font-weight: 700;
+  line-height: 1;
+  box-sizing: border-box;
+  margin: 0 !important;
 }
 
 .catalog-shell {

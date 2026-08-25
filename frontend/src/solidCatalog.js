@@ -8,6 +8,7 @@ import {
   getSolidDatasetWithAcl,
   getContainedResourceUrlAll,
   getFileWithAcl,
+  getPublicResourceAccess,
   getStringNoLocale,
   getStringWithLocaleAll,
   getThing,
@@ -31,6 +32,7 @@ import {
 import { DCAT, DCTERMS, FOAF, LDP, RDF, VCARD } from "@inrupt/vocab-common-rdf";
 import Parser from "n3/lib/N3Parser";
 import Writer from "n3/lib/N3Writer";
+import { deleteCatalogDatasetDocuments } from "./catalogDeletion";
 
 const CATALOG_CONTAINER = "catalog/";
 const DATASET_CONTAINER = "catalog/ds/";
@@ -76,6 +78,8 @@ export const REGISTRY_PRESETS = [
 const SDM_CHANGELOG = `${SDM_NS}changeLog`;
 const SDM_CHANGE_EVENT = `${SDM_NS}ChangeEvent`;
 const LEGACY_DCAT_CONFORMS_TO = "http://www.w3.org/ns/dcat#conformsTo";
+const VCARD_HAS_URL = VCARD.hasURL || "http://www.w3.org/2006/vcard/ns#hasURL";
+const VCARD_URL = VCARD.url || "http://www.w3.org/2006/vcard/ns#url";
 
 const resolveUrl = (value, base) => {
   if (!value) return "";
@@ -185,68 +189,194 @@ const buildCatalogTurtle = ({
   return lines.join("\n");
 };
 
-const resolveRecordRefs = async (session) => {
-  const webId = session?.info?.webId;
-  if (!webId) return [];
-  const recordsContainerUrl = `${getPodRoot(webId)}${RECORDS_CONTAINER}`;
-  let recordDocs = [];
-  try {
-    const recordsContainer = await getSolidDataset(recordsContainerUrl, { fetch: session.fetch });
-    recordDocs = getContainedResourceUrlAll(recordsContainer);
-  } catch {
-    return [];
-  }
+const CATALOG_CAS_MAX_ATTEMPTS = 4;
+const CATALOG_CONFLICT_STATUSES = new Set([409, 412]);
 
-  const recordRefs = [];
-  for (const recordDocUrl of recordDocs) {
-    try {
-      const recordDataset = await getSolidDataset(recordDocUrl, { fetch: session.fetch });
-      getThingAll(recordDataset).forEach((thing) => {
-        const types = getUrlAll(thing, RDF.type);
-        if (types.includes(DCAT.CatalogRecord)) {
-          recordRefs.push(thing.url);
-        }
-      });
-    } catch {
-      // Skip unreadable record docs.
-    }
+const responseHeader = (response, name) =>
+  response?.headers && typeof response.headers.get === "function"
+    ? response.headers.get(name)
+    : null;
+
+const isStrongEtag = (value) =>
+  typeof value === "string" &&
+  /^"[\x21\x23-\x7e\x80-\xff]*"$/.test(value.trim());
+
+const assertExactCatalogResponse = (response, catalogDocUrl, operation) => {
+  const actualUrl = response?.url;
+  let expected;
+  let actual;
+  try {
+    expected = new URL(catalogDocUrl).href;
+    actual = actualUrl ? new URL(actualUrl).href : "";
+  } catch {
+    throw new Error(`Catalog ${operation} did not use a valid exact resource URL.`);
   }
-  return recordRefs;
+  if (response?.redirected || actual !== expected) {
+    throw new Error(`Catalog ${operation} did not use the exact resource URL.`);
+  }
 };
 
-const writeCatalogDoc = async (session, catalogDocUrl, datasetRefs) => {
-  let title = "Solid Dataspace Catalog";
-  let description = "";
-  let contactPoint = "";
+const parseCatalogSnapshot = (turtle, catalogDocUrl) => {
+  let quads;
   try {
-    const catalogDataset = await getSolidDataset(catalogDocUrl, { fetch: session.fetch });
-    const catalogThing = getThing(catalogDataset, `${catalogDocUrl}#it`);
-    if (catalogThing) {
-      title = getAnyString(catalogThing, DCTERMS.title) || title;
-      description = getAnyString(catalogThing, DCTERMS.description) || "";
-      contactPoint = getUrl(catalogThing, DCAT.contactPoint) || "";
+    quads = new Parser({ baseIRI: catalogDocUrl }).parse(turtle);
+  } catch (error) {
+    throw new Error("Catalog document contains invalid Turtle.", { cause: error });
+  }
+
+  const catalogResourceUrl = `${catalogDocUrl}#it`;
+  const values = (predicate) =>
+    quads
+      .filter(
+        (quad) =>
+          quad.subject.value === catalogResourceUrl &&
+          quad.predicate.value === predicate
+      )
+      .map((quad) => quad.object.value);
+  const types = values(RDF.type);
+  if (!types.includes(DCAT.Catalog)) {
+    throw new Error("Catalog document does not contain the expected dcat:Catalog resource.");
+  }
+
+  return {
+    title: values(DCTERMS.title)[0] || "Solid Dataspace Catalog",
+    description: values(DCTERMS.description)[0] || "",
+    contactPoint: values(DCAT.contactPoint)[0] || "",
+    datasetRefs: Array.from(
+      new Set(
+        values(DCAT.dataset).map((url) =>
+          toCatalogDatasetRef(catalogDocUrl, url)
+        )
+      )
+    ),
+    recordRefs: Array.from(
+      new Set(
+        values(DCAT.record).map((url) =>
+          toCatalogDatasetRef(catalogDocUrl, url)
+        )
+      )
+    ),
+  };
+};
+
+const readCatalogSnapshot = async (fetch, catalogDocUrl) => {
+  const response = await fetch(catalogDocUrl, {
+    method: "GET",
+    headers: {
+      Accept: "text/turtle",
+      "Cache-Control": "no-store",
+    },
+    cache: "no-store",
+    redirect: "error",
+  });
+  assertExactCatalogResponse(response, catalogDocUrl, "read");
+
+  if (response.status === 404) {
+    return {
+      exists: false,
+      etag: "",
+      title: "Solid Dataspace Catalog",
+      description: "",
+      contactPoint: "",
+      datasetRefs: [],
+      recordRefs: [],
+    };
+  }
+  if (!response.ok) {
+    throw new Error(`Failed to read catalog document (${response.status}).`);
+  }
+
+  const etag = (responseHeader(response, "ETag") || "").trim();
+  if (!isStrongEtag(etag)) {
+    throw new Error("Catalog document is missing a strong ETag.");
+  }
+  const turtle = await response.text();
+  return {
+    exists: true,
+    etag,
+    ...parseCatalogSnapshot(turtle, catalogDocUrl),
+  };
+};
+
+const mutateCatalogDocument = async (
+  session,
+  catalogDocUrl,
+  mutateDatasetRefs,
+  metadata = {}
+) => {
+  if (!session || typeof session.fetch !== "function") {
+    throw new Error("An authenticated Solid session is required.");
+  }
+
+  for (let attempt = 0; attempt < CATALOG_CAS_MAX_ATTEMPTS; attempt += 1) {
+    const snapshot = await readCatalogSnapshot(session.fetch, catalogDocUrl);
+    const currentRefs = new Set(snapshot.datasetRefs);
+    const updatedRefs = mutateDatasetRefs
+      ? mutateDatasetRefs(currentRefs, snapshot)
+      : currentRefs;
+    const datasetRefs = Array.from(updatedRefs || currentRefs);
+    const turtle = buildCatalogTurtle({
+      title:
+        metadata.title !== undefined
+          ? metadata.title || "Solid Dataspace Catalog"
+          : snapshot.title,
+      description:
+        metadata.description !== undefined
+          ? metadata.description || ""
+          : snapshot.description,
+      modified: safeNow(),
+      datasetRefs,
+      recordRefs: snapshot.recordRefs,
+      contactPoint:
+        metadata.contactPoint !== undefined
+          ? metadata.contactPoint || ""
+          : snapshot.contactPoint,
+    });
+
+    const response = await session.fetch(catalogDocUrl, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "text/turtle",
+        ...(snapshot.exists
+          ? { "If-Match": snapshot.etag }
+          : { "If-None-Match": "*" }),
+      },
+      body: turtle,
+      redirect: "error",
+    });
+    assertExactCatalogResponse(response, catalogDocUrl, "write");
+    if (response.ok) {
+      return { datasetRefs, created: !snapshot.exists };
     }
-  } catch {
-    // Use defaults.
+    if (!CATALOG_CONFLICT_STATUSES.has(response.status)) {
+      throw new Error(`Failed to write catalog document (${response.status}).`);
+    }
   }
 
-  const turtle = buildCatalogTurtle({
-    title,
-    description,
-    modified: safeNow(),
-    datasetRefs,
-    recordRefs: await resolveRecordRefs(session),
-    contactPoint,
+  const conflict = new Error(
+    `Catalog document changed during all ${CATALOG_CAS_MAX_ATTEMPTS} write attempts.`
+  );
+  conflict.status = 412;
+  throw conflict;
+};
+
+export const ensureCatalogDocument = async (
+  session,
+  catalogDocUrl,
+  { title, description, contactPoint } = {}
+) =>
+  mutateCatalogDocument(session, catalogDocUrl, (datasetRefs) => datasetRefs, {
+    title: title || "Solid Dataspace Catalog",
+    description: description || "",
+    contactPoint: contactPoint || "",
   });
 
-  const res = await session.fetch(catalogDocUrl, {
-    method: "PUT",
-    headers: { "Content-Type": "text/turtle" },
-    body: turtle,
-  });
-  if (!res.ok) {
-    throw new Error(`Failed to write catalog document (${res.status})`);
-  }
+const writeCatalogDoc = async (session, catalogDocUrl, datasetRefs) => {
+  await mutateCatalogDocument(
+    session,
+    catalogDocUrl,
+    () => new Set(datasetRefs || [])
+  );
   await makePublicReadable(catalogDocUrl, session.fetch);
 };
 
@@ -713,40 +843,11 @@ export const ensureCatalogStructure = async (
   const catalogDocUrl = getCatalogDocUrl(webId);
   const catalogResourceUrl = getCatalogResourceUrl(webId);
 
-  let catalogDataset;
-  try {
-    catalogDataset = await getSolidDataset(catalogDocUrl, { fetch });
-  } catch (err) {
-    if (err?.statusCode === 404 || err?.response?.status === 404) {
-      catalogDataset = createSolidDataset();
-    } else {
-      throw err;
-    }
-  }
-
-  let catalogThing = getThing(catalogDataset, catalogResourceUrl);
-  if (!catalogThing) {
-    catalogThing = createThing({ url: catalogResourceUrl });
-  }
-  catalogThing = removeAll(catalogThing, RDF.type);
-  catalogThing = addUrl(catalogThing, RDF.type, DCAT.Catalog);
-  catalogThing = removeAll(catalogThing, DCAT.contactPoint);
-  catalogThing = setUrl(catalogThing, DCAT.contactPoint, webId);
-  catalogThing = removeAll(catalogThing, DCTERMS.title);
-  catalogThing = setLocaleString(
-    catalogThing,
-    DCTERMS.title,
-    title || "Solid Dataspace Catalog"
-  );
-  catalogThing = removeAll(catalogThing, DCTERMS.description);
-  if (description) {
-    catalogThing = setLocaleString(catalogThing, DCTERMS.description, description);
-  }
-  catalogThing = removeAll(catalogThing, DCTERMS.modified);
-  catalogThing = setDatetime(catalogThing, DCTERMS.modified, new Date());
-
-  catalogDataset = setThing(catalogDataset, catalogThing);
-  await saveSolidDatasetAt(catalogDocUrl, catalogDataset, { fetch });
+  await ensureCatalogDocument(session, catalogDocUrl, {
+    title: title || "Solid Dataspace Catalog",
+    description: description || "",
+    contactPoint: webId,
+  });
 
   await makePublicReadable(catalogDocUrl, fetch);
   await makePublicReadable(`${podRoot}${CATALOG_CONTAINER}`, fetch);
@@ -855,7 +956,7 @@ const loadRegistryMembers = async (webId, fetch) => {
   return Array.from(members);
 };
 
-const parseDatasetFromDoc = (datasetDoc, datasetUrl) => {
+export const parseDatasetFromDoc = (datasetDoc, datasetUrl) => {
   const datasetThing = resolveDatasetThing(datasetDoc, datasetUrl);
   if (!datasetThing) return null;
 
@@ -875,20 +976,19 @@ const parseDatasetFromDoc = (datasetDoc, datasetUrl) => {
   const issued = getDatetime(datasetThing, DCTERMS.issued);
   const modified = getDatetime(datasetThing, DCTERMS.modified);
   const publisherLiteral = getAnyString(datasetThing, DCTERMS.publisher) || "";
+  const publisherRef = getUrl(datasetThing, DCTERMS.publisher) || "";
   let publisher = publisherLiteral;
-  if (!publisher) {
-    const publisherRef = getUrl(datasetThing, DCTERMS.publisher) || "";
-    if (publisherRef) {
-      const publisherThing = getThing(datasetDoc, publisherRef);
-      if (publisherThing) {
-        publisher =
-          getAnyString(publisherThing, FOAF.name) ||
-          getAnyString(publisherThing, VCARD.fn) ||
-          getAnyString(publisherThing, DCTERMS.title) ||
-          "";
-      }
+  if (!publisher && publisherRef) {
+    const publisherThing = getThing(datasetDoc, publisherRef);
+    if (publisherThing) {
+      publisher =
+        getAnyString(publisherThing, FOAF.name) ||
+        getAnyString(publisherThing, VCARD.fn) ||
+        getAnyString(publisherThing, DCTERMS.title) ||
+        "";
     }
   }
+  if (!publisher) publisher = publisherRef;
   const creator = getUrl(datasetThing, DCTERMS.creator) || "";
   let theme =
     getStringNoLocale(datasetThing, DCAT.theme) || getUrl(datasetThing, DCAT.theme) || "";
@@ -903,6 +1003,13 @@ const parseDatasetFromDoc = (datasetDoc, datasetUrl) => {
     getAnyString(datasetThing, DCAT.contactPoint) ||
     "";
   let contact = stripMailto(contactLiteral);
+  let contactType = contact
+    ? contactLiteral.startsWith("mailto:") || contact.includes("@")
+      ? "email"
+      : isValidUrl(contact)
+        ? "url"
+        : "text"
+    : "";
   if (!contact && contactRef) {
     const contactThing = getThing(datasetDoc, contactRef);
     if (contactThing) {
@@ -916,9 +1023,21 @@ const parseDatasetFromDoc = (datasetDoc, datasetUrl) => {
         "";
       if (mailto) {
         contact = stripMailto(mailto);
+        contactType = "email";
       } else {
-        contact = getAnyString(contactThing, VCARD.fn) || "";
+        const contactUrl =
+          getUrl(contactThing, VCARD_HAS_URL) || getUrl(contactThing, VCARD_URL) || "";
+        if (contactUrl) {
+          contact = contactUrl;
+          contactType = "url";
+        } else {
+          contact = getAnyString(contactThing, VCARD.fn) || "";
+          contactType = contact ? "text" : "";
+        }
       }
+    } else if (isValidUrl(contactRef)) {
+      contact = contactRef;
+      contactType = "url";
     }
   }
 
@@ -968,7 +1087,9 @@ const parseDatasetFromDoc = (datasetDoc, datasetUrl) => {
     issued: issued ? issued.toISOString() : "",
     modified: modified ? modified.toISOString() : "",
     publisher,
+    publisher_url: publisherRef,
     contact_point: contact,
+    contact_point_type: contactType,
     access_url_dataset: accessUrlDataset,
     access_url_semantic_model: accessUrlModel,
     file_format: fileFormat,
@@ -1126,7 +1247,7 @@ const isValidUrl = (value) => {
   }
 };
 
-const buildDatasetResource = (datasetDocUrl, input) => {
+export const buildDatasetResource = (datasetDocUrl, input) => {
   const datasetUrl = `${datasetDocUrl}#it`;
   let datasetThing = createThing({ url: datasetUrl });
   datasetThing = addUrl(datasetThing, RDF.type, DCAT.Dataset);
@@ -1141,7 +1262,11 @@ const buildDatasetResource = (datasetDocUrl, input) => {
   datasetThing = removeAll(datasetThing, DCTERMS.modified);
   datasetThing = setDatetime(datasetThing, DCTERMS.modified, new Date(safeNow()));
   datasetThing = removeAll(datasetThing, DCTERMS.publisher);
-  datasetThing = setLocaleString(datasetThing, DCTERMS.publisher, input.publisher || "");
+  if (input.publisher_url) {
+    datasetThing = setUrl(datasetThing, DCTERMS.publisher, input.publisher_url);
+  } else if (input.publisher) {
+    datasetThing = setLocaleString(datasetThing, DCTERMS.publisher, input.publisher);
+  }
   datasetThing = removeAll(datasetThing, DCTERMS.creator);
   if (input.webid) {
     datasetThing = setUrl(datasetThing, DCTERMS.creator, input.webid);
@@ -1193,7 +1318,9 @@ const buildSeriesResource = (seriesDocUrl, input) => {
   seriesThing = removeAll(seriesThing, DCTERMS.modified);
   seriesThing = setDatetime(seriesThing, DCTERMS.modified, new Date(safeNow()));
   seriesThing = removeAll(seriesThing, DCTERMS.publisher);
-  if (input.publisher) {
+  if (input.publisher_url) {
+    seriesThing = setUrl(seriesThing, DCTERMS.publisher, input.publisher_url);
+  } else if (input.publisher) {
     seriesThing = setLocaleString(seriesThing, DCTERMS.publisher, input.publisher);
   }
   seriesThing = removeAll(seriesThing, DCTERMS.creator);
@@ -1201,14 +1328,13 @@ const buildSeriesResource = (seriesDocUrl, input) => {
     seriesThing = setUrl(seriesThing, DCTERMS.creator, input.webid);
   }
   seriesThing = removeAll(seriesThing, DCAT.contactPoint);
-  if (input.contact_point) {
-    const contactUrl = `${seriesDocUrl}#contact`;
-    let contactThing = createThing({ url: contactUrl });
-    contactThing = setLocaleString(contactThing, VCARD.fn, input.publisher || "");
-    contactThing = removeAll(contactThing, VCARD.hasEmail);
-    contactThing = setUrl(contactThing, VCARD.hasEmail, `mailto:${input.contact_point}`);
+  if (input.contact_point || input.contact_url) {
+    const contactThing = buildContactThing(seriesDocUrl, input);
     input.__contactThing = contactThing;
-    seriesThing = setUrl(seriesThing, DCAT.contactPoint, contactUrl);
+    seriesThing = setUrl(seriesThing, DCAT.contactPoint, contactThing.url);
+  }
+  if (input.publisher_url && input.publisher) {
+    input.__publisherThing = buildPublisherThing(input);
   }
   seriesThing = removeAll(seriesThing, DCAT.theme);
   if (input.theme) {
@@ -1225,14 +1351,31 @@ const buildSeriesResource = (seriesDocUrl, input) => {
   return seriesThing;
 };
 
-const buildContactThing = (datasetDocUrl, input) => {
-  if (!input.contact_point) return null;
+export const buildContactThing = (datasetDocUrl, input) => {
+  if (!input.contact_point && !input.contact_url) return null;
   const contactUrl = `${datasetDocUrl}#contact`;
   let contactThing = createThing({ url: contactUrl });
-  contactThing = setLocaleString(contactThing, VCARD.fn, input.publisher || "");
+  contactThing = addUrl(contactThing, RDF.type, VCARD.Individual);
+  if (input.publisher) {
+    contactThing = setLocaleString(contactThing, VCARD.fn, input.publisher);
+  }
   contactThing = removeAll(contactThing, VCARD.hasEmail);
-  contactThing = setUrl(contactThing, VCARD.hasEmail, `mailto:${input.contact_point}`);
+  if (input.contact_point) {
+    contactThing = setUrl(contactThing, VCARD.hasEmail, `mailto:${input.contact_point}`);
+  }
+  contactThing = removeAll(contactThing, VCARD_HAS_URL);
+  if (input.contact_url) {
+    contactThing = setUrl(contactThing, VCARD_HAS_URL, input.contact_url);
+  }
   return contactThing;
+};
+
+export const buildPublisherThing = (input) => {
+  if (!input.publisher_url || !input.publisher) return null;
+  let publisherThing = createThing({ url: input.publisher_url });
+  publisherThing = addUrl(publisherThing, RDF.type, FOAF.Agent);
+  publisherThing = setLocaleString(publisherThing, FOAF.name, input.publisher);
+  return publisherThing;
 };
 
 const buildDistributionThing = (
@@ -1286,16 +1429,47 @@ const isLocalPodResource = (webId, targetUrl) => {
   }
 };
 
+export const ensureRestrictedResourceAccess = async (session, resourceUrl) => {
+  if (!session?.info?.webId || typeof session.fetch !== "function") {
+    throw new Error("An authenticated Solid session is required.");
+  }
+  if (!isLocalPodResource(session.info.webId, resourceUrl)) {
+    throw new Error("Restricted programmatic datasets must use a resource in the owner's Pod.");
+  }
+
+  await setPublicReadAccess(resourceUrl, session.fetch, false);
+  const { resourceAcl } = await getResourceAndAcl(resourceUrl, session.fetch);
+  const publicAccess = getPublicResourceAccess(resourceAcl);
+  if (
+    publicAccess.read ||
+    publicAccess.append ||
+    publicAccess.write ||
+    publicAccess.control
+  ) {
+    throw new Error(`Resource still has public access after ACL update: ${resourceUrl}`);
+  }
+};
+
 const syncLinkedResourceAccess = async (session, input) => {
   const urls = [input.access_url_dataset, input.access_url_semantic_model].filter(Boolean);
   for (const url of urls) {
-    if (!isLocalPodResource(session?.info?.webId, url)) continue;
+    if (!isLocalPodResource(session?.info?.webId, url)) {
+      if (input.strict_restricted_acl && !input.is_public) {
+        throw new Error(`Restricted linked resource is outside the owner's Pod: ${url}`);
+      }
+      continue;
+    }
     try {
-      await setPublicReadAccess(url, session.fetch, Boolean(input.is_public));
+      if (input.strict_restricted_acl && !input.is_public) {
+        await ensureRestrictedResourceAccess(session, url);
+      } else {
+        await setPublicReadAccess(url, session.fetch, Boolean(input.is_public));
+      }
     } catch (err) {
       console.warn("Failed to sync linked resource ACL for", url, err);
-      if (input.is_public) {
-        throw new Error(`Failed to make linked resource public: ${url}`);
+      if (input.is_public || input.strict_restricted_acl) {
+        const accessLabel = input.is_public ? "public" : "restricted";
+        throw new Error(`Failed to make linked resource ${accessLabel}: ${url}`);
       }
     }
   }
@@ -1314,6 +1488,11 @@ const writeDatasetDocument = async (session, datasetDocUrl, input) => {
   }
 
   let datasetThing = buildDatasetResource(datasetDocUrl, input);
+
+  const publisherThing = buildPublisherThing(input);
+  if (publisherThing) {
+    solidDataset = setThing(solidDataset, publisherThing);
+  }
 
   const contactThing = buildContactThing(datasetDocUrl, input);
   if (contactThing) {
@@ -1369,6 +1548,9 @@ const writeSeriesDocument = async (session, seriesDocUrl, input) => {
   }
 
   const seriesThing = buildSeriesResource(seriesDocUrl, input);
+  if (input.__publisherThing) {
+    solidDataset = setThing(solidDataset, input.__publisherThing);
+  }
   if (input.__contactThing) {
     solidDataset = setThing(solidDataset, input.__contactThing);
   }
@@ -1381,25 +1563,22 @@ const writeSeriesDocument = async (session, seriesDocUrl, input) => {
   // Skip ACL update here to avoid noisy 404s on servers without WAC ACL support.
 };
 
-const updateCatalogDatasets = async (session, catalogDocUrl, datasetUrl, { remove } = {}) => {
-  let current = new Set();
-  try {
-    const catalogDataset = await getSolidDataset(catalogDocUrl, { fetch: session.fetch });
-    const catalogThing = getThing(catalogDataset, `${catalogDocUrl}#it`);
-    const existing = catalogThing ? getUrlAll(catalogThing, DCAT.dataset) : [];
-    current = new Set(existing.map((url) => toCatalogDatasetRef(catalogDocUrl, url)));
-  } catch {
-    current = new Set();
-  }
-
+export const updateCatalogDatasets = async (
+  session,
+  catalogDocUrl,
+  datasetUrl,
+  { remove } = {}
+) => {
   const datasetRef = toCatalogDatasetRef(catalogDocUrl, datasetUrl);
-  if (remove) {
-    current.delete(datasetRef);
-  } else {
-    current.add(datasetRef);
-  }
-
-  await writeCatalogDoc(session, catalogDocUrl, Array.from(current));
+  await mutateCatalogDocument(session, catalogDocUrl, (current) => {
+    if (remove) {
+      current.delete(datasetRef);
+    } else {
+      current.add(datasetRef);
+    }
+    return current;
+  });
+  await makePublicReadable(catalogDocUrl, session.fetch);
 };
 
 const linkDatasetToSeries = async (session, datasetUrl, seriesUrl) => {
@@ -1640,27 +1819,25 @@ export const deleteSeriesEntry = async (session, seriesUrl, identifier) => {
   clearCache();
 };
 
-
 export const deleteDatasetEntry = async (session, datasetUrl, identifier) => {
   if (!datasetUrl) return;
   const datasetDocUrl = getDocumentUrl(datasetUrl);
-  await updateCatalogDatasets(session, getCatalogDocUrl(session.info.webId), datasetUrl, {
-    remove: true,
-  });
   try {
-    await deleteFile(datasetDocUrl, { fetch: session.fetch });
-  } catch (err) {
-    console.warn("Failed to delete dataset doc", datasetDocUrl, err);
+    const recordDocUrl = identifier
+      ? `${getPodRoot(session.info.webId)}${RECORDS_CONTAINER}${identifier}.ttl`
+      : "";
+    await updateCatalogDatasets(session, getCatalogDocUrl(session.info.webId), datasetUrl, {
+      remove: true,
+    });
+    await deleteCatalogDatasetDocuments({
+      datasetDocUrl,
+      recordDocUrl,
+      fetch: session.fetch,
+      deleteResource: deleteFile,
+    });
+  } finally {
+    clearCache();
   }
-  if (identifier) {
-    const recordDocUrl = `${getPodRoot(session.info.webId)}${RECORDS_CONTAINER}${identifier}.ttl`;
-    try {
-      await deleteFile(recordDocUrl, { fetch: session.fetch });
-    } catch (err) {
-      console.warn("Failed to delete record doc", recordDocUrl, err);
-    }
-  }
-  clearCache();
 };
 
 export const cleanupCatalogSeriesLinks = async (session) => {
@@ -1711,7 +1888,11 @@ export const cleanupCatalogSeriesLinks = async (session) => {
     }
   }
 
-  await writeCatalogDoc(session, catalogDocUrl, Array.from(finalRefs));
+  await mutateCatalogDocument(session, catalogDocUrl, (current) => {
+    finalRefs.forEach((ref) => current.add(ref));
+    return current;
+  });
+  await makePublicReadable(catalogDocUrl, session.fetch);
   clearCache();
 };
 

@@ -9,9 +9,9 @@ import {
   getAgentAccess,
   getSolidDataset,
   getThing,
+  getThingAll,
   getStringNoLocale,
   getUrl,
-  getUrlAll,
 } from "@inrupt/solid-client";
 import { FOAF, VCARD } from "@inrupt/vocab-common-rdf";
 import {
@@ -20,6 +20,11 @@ import {
   openDatasetAccess,
 } from "../catalogActions";
 import { CATALOG_EVENT_TYPES } from "../statistics";
+import {
+  getCatalogWebHref,
+  getContactPointHref,
+} from "../catalogContact";
+import { getSolidProfileEmail } from "../solidProfileContact";
 import "./DatasetDetailModal.css";
 
 const getPodRootFromWebId = (webId) => {
@@ -267,7 +272,12 @@ const DatasetDetailModal = ({
 
     const fallbackProfile = {
       name: dataset?.publisher || "Solid Pod User",
-      email: dataset?.contact_point || "No email provided",
+      email: getContactPointHref(
+        dataset?.contact_point,
+        dataset?.contact_point_type
+      ).startsWith("mailto:")
+        ? dataset.contact_point
+        : "No email provided",
       photo: "",
       webId: ownerWebId,
     };
@@ -281,7 +291,9 @@ const DatasetDetailModal = ({
       try {
         const profileDocUrl = ownerWebId.split("#")[0] || ownerWebId;
         const profileDataset = await getSolidDataset(profileDocUrl, { fetch: session.fetch });
-        const profile = getThing(profileDataset, ownerWebId);
+        const profile =
+          getThing(profileDataset, ownerWebId) ||
+          getThingAll(profileDataset).find((thing) => thing.url === ownerWebId);
         if (!profile) {
           if (!cancelled) setOwnerProfile(fallbackProfile);
           return;
@@ -291,13 +303,7 @@ const DatasetDetailModal = ({
           getStringNoLocale(profile, FOAF.name) ||
           getStringNoLocale(profile, VCARD.fn) ||
           fallbackProfile.name;
-        const emailNode = getUrlAll(profile, VCARD.hasEmail)[0];
-        let email = fallbackProfile.email;
-        if (emailNode) {
-          const emailThing = getThing(profileDataset, emailNode);
-          const emailValue = emailThing ? getStringNoLocale(emailThing, VCARD.value) : "";
-          email = emailValue ? emailValue.replace(/^mailto:/, "") : email;
-        }
+        const email = getSolidProfileEmail(profileDataset, profile) || fallbackProfile.email;
         const photoRef = getUrl(profile, VCARD.hasPhoto) || getUrl(profile, FOAF.img);
         let photo = "";
         if (photoRef) {
@@ -371,15 +377,36 @@ const DatasetDetailModal = ({
     : hasUserAccess
       ? "Restricted (you have access)"
       : "Restricted";
+  const contactPointHref = getContactPointHref(
+    dataset.contact_point,
+    dataset.contact_point_type
+  );
+  const contactPointIsWeb = contactPointHref.startsWith("http");
+  const publisherHref = getCatalogWebHref(dataset.publisher_url);
   const detailRows = [
     { predicate: "dct:identifier", value: dataset.identifier },
     { predicate: "dct:issued", value: formatDate(dataset.issued) },
     { predicate: "dct:modified", value: formatDate(dataset.modified) },
-    { predicate: "dct:publisher", value: dataset.publisher },
+    {
+      predicate: "dct:publisher",
+      value: publisherHref ? (
+        <a href={publisherHref} target="_blank" rel="noopener noreferrer">
+          {dataset.publisher || publisherHref}
+        </a>
+      ) : dataset.publisher,
+    },
     {
       predicate: "dcat:contactPoint",
       value: dataset.contact_point ? (
-        <a href={`mailto:${dataset.contact_point}`}>{dataset.contact_point}</a>
+        contactPointHref ? (
+          <a
+            href={contactPointHref}
+            target={contactPointIsWeb ? "_blank" : undefined}
+            rel={contactPointIsWeb ? "noopener noreferrer" : undefined}
+          >
+            {dataset.contact_point}
+          </a>
+        ) : dataset.contact_point
       ) : null,
     },
     {

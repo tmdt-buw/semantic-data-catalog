@@ -1,6 +1,9 @@
 import React from "react";
 import { Box } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
+import { getContactPointHref } from "../catalogContact";
+
+export const renderPublisherCell = (params) => params.value || "";
 
 const DatasetTable = ({ datasets, onRowClick, searchQuery }) => {
   const formatDate = (dateString) => {
@@ -84,6 +87,7 @@ const DatasetTable = ({ datasets, onRowClick, searchQuery }) => {
       flex: 1,
       minWidth: 180,
       cellClassName: "grid-cell-meta",
+      renderCell: renderPublisherCell,
     },
     {
       field: "contact_point",
@@ -91,6 +95,24 @@ const DatasetTable = ({ datasets, onRowClick, searchQuery }) => {
       flex: 1,
       minWidth: 200,
       cellClassName: "grid-cell-meta",
+      renderCell: (params) => {
+        const href = getContactPointHref(
+          params.value,
+          params.row?.contact_point_type
+        );
+        if (!href) return params.value || "";
+        const isWeb = href.startsWith("http");
+        return (
+          <a
+            href={href}
+            target={isWeb ? "_blank" : undefined}
+            rel={isWeb ? "noopener noreferrer" : undefined}
+            onClick={(event) => event.stopPropagation()}
+          >
+            {params.value}
+          </a>
+        );
+      },
     },
     {
       field: "access",

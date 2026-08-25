@@ -49,6 +49,7 @@ FOAF_NAME = URIRef(f"{FOAF}name")
 PIM_STORAGE = URIRef(f"{PIM}storage")
 SDP_CATALOG = URIRef(f"{SDP}catalog")
 VCARD_HAS_EMAIL = URIRef(f"{VCARD}hasEmail")
+VCARD_HAS_URL = URIRef(f"{VCARD}hasURL")
 VCARD_EMAIL = URIRef(f"{VCARD}email")
 VCARD_VALUE = URIRef(f"{VCARD}value")
 
@@ -365,7 +366,8 @@ def _email_value(graph: Graph, contact_subject: URIRef) -> str:
 def _contact_point_value(graph: Graph, dataset_subject: URIRef) -> str:
     contact = _first_object(graph, dataset_subject, DCAT_CONTACT_POINT)
     if isinstance(contact, URIRef):
-        return _email_value(graph, contact) or str(contact)
+        contact_url = _first_uri(graph, contact, VCARD_HAS_URL)
+        return _email_value(graph, contact) or contact_url or str(contact)
     if isinstance(contact, Literal):
         return str(contact)
     publisher = _first_object(graph, dataset_subject, DCTERMS_PUBLISHER)

@@ -45,6 +45,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
 }
 
 .login-hero-icon {
@@ -288,7 +289,7 @@
   justify-content: flex-end;
   align-items: center;
   gap: 10px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   margin-top: 16px;
 }
 
@@ -296,9 +297,12 @@
 .login-primary {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.55rem;
+  height: 42px;
+  box-sizing: border-box;
   border: none;
-  padding: 0.75rem 1.3rem;
+  padding: 0 1.3rem;
   border-radius: 14px;
   font-weight: 800;
   cursor: pointer;
@@ -339,6 +343,10 @@
 }
 
 @media (max-width: 560px) {
+  .login-hero {
+    gap: 12px;
+  }
+
   .login-visual-band {
     height: 312px;
     margin: 12px;
@@ -346,13 +354,11 @@
   }
 
   .login-footer {
-    align-items: stretch;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
   }
 
-  .login-primary,
-  .login-secondary {
-    justify-content: center;
-    width: 100%;
+  .login-primary {
+    min-width: 108px;
   }
 }

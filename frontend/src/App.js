@@ -506,10 +506,10 @@ const App = ({
     const ActiveLoginScreen = LoginScreenComponent;
     return renderWithI18n(
       <div className="standalone-login-page">
-        <LanguageSelect className="language-select--standalone" />
         {ActiveLoginScreen && (
           <ActiveLoginScreen
             defaultIssuer={issuer}
+            languageControl={<LanguageSelect className="language-select--login" />}
             onLogin={(nextIssuer) => {
               setIssuer(nextIssuer);
               loginToSolid(nextIssuer);

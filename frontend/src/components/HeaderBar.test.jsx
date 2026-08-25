@@ -1,6 +1,7 @@
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import HeaderBar from "./HeaderBar";
+import { session } from "../solidSession";
 
 jest.mock("@inrupt/solid-client", () => ({
   getSolidDataset: jest.fn(),
@@ -37,6 +38,7 @@ describe("HeaderBar", () => {
   afterEach(() => {
     document.body.innerHTML = "";
     window.localStorage.clear();
+    session.info = { isLoggedIn: false, webId: "" };
   });
 
   test("keeps the standalone language selector inside the header actions", async () => {
@@ -66,6 +68,43 @@ describe("HeaderBar", () => {
       headerActions.querySelector(".language-select--header")
     ).not.toBeNull();
     expect(container.querySelector(".language-select--standalone")).toBeNull();
+
+    await act(async () => root.unmount());
+    container.remove();
+  });
+
+  test("places the language selector immediately before logout for a logged-in user", async () => {
+    session.info = {
+      isLoggedIn: true,
+      webId: "https://solid.example/profile/card#me",
+    };
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <HeaderBar
+          languageControl={(
+            <label className="language-select language-select--header">
+              <select aria-label="Language" defaultValue="en">
+                <option value="en">English</option>
+                <option value="de">Deutsch</option>
+              </select>
+            </label>
+          )}
+        />
+      );
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const user = container.querySelector(".header-user");
+    const language = user?.querySelector(".language-select--header");
+    const logout = user?.querySelector(".header-logout");
+    expect(language).not.toBeNull();
+    expect(logout).not.toBeNull();
+    expect(language?.nextElementSibling).toBe(logout);
 
     await act(async () => root.unmount());
     container.remove();

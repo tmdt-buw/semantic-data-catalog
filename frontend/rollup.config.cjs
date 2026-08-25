@@ -15,28 +15,16 @@ const external = (id) =>
   id.startsWith("@mui/") ||
   id.startsWith("@emotion/");
 
-module.exports = {
-  input: "src/embed/index.js",
-  output: [
-    {
-      file: "dist/embed/index.js",
-      format: "es",
-      sourcemap: true,
-    },
-    {
-      file: "dist/embed/index.cjs",
-      format: "cjs",
-      sourcemap: true,
-      exports: "named",
-    },
-  ],
-  external,
-  plugins: [
+const createPlugins = ({ css = false } = {}) => [
     resolve({ extensions }),
-    postcss({
-      extract: "embed.css",
-      minimize: false,
-    }),
+    ...(css
+      ? [
+          postcss({
+            extract: "embed.css",
+            minimize: false,
+          }),
+        ]
+      : []),
     babel({
       babelHelpers: "bundled",
       extensions,
@@ -46,5 +34,28 @@ module.exports = {
       ],
     }),
     commonjs({ include: /node_modules/ }),
+];
+
+const library = ({ input, directory, css = false }) => ({
+  input,
+  output: [
+    {
+      file: `dist/${directory}/index.js`,
+      format: "es",
+      sourcemap: true,
+    },
+    {
+      file: `dist/${directory}/index.cjs`,
+      format: "cjs",
+      sourcemap: true,
+      exports: "named",
+    },
   ],
-};
+  external,
+  plugins: createPlugins({ css }),
+});
+
+module.exports = [
+  library({ input: "src/embed/index.js", directory: "embed", css: true }),
+  library({ input: "src/catalog-api/index.js", directory: "catalog-api" }),
+];

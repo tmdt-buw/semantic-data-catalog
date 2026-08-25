@@ -3983,12 +3983,15 @@ div.network-navigation_wrapper {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  margin: 0;
   color: inherit;
   font-weight: 700;
+  line-height: 1;
 }
 
 .language-select__label {
   font-size: 0.82rem;
+  line-height: 1;
 }
 
 .language-select select {
@@ -4008,31 +4011,59 @@ div.network-navigation_wrapper {
   outline-offset: 2px;
 }
 
-.language-select--standalone {
-  position: fixed;
-  right: 18px;
-  top: 18px;
-  z-index: 20;
-  padding: 8px 10px;
-  border: 1px solid rgba(226, 232, 240, 0.9);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);
+.language-select--login {
+  flex: 0 0 auto;
+  height: 42px;
+  min-height: 42px;
+  max-height: 42px;
+  padding: 0 5px 0 12px;
+  box-sizing: border-box;
+  border: 1px solid #dbe8ff;
+  border-radius: 14px;
+  background: #f8fbff;
+  color: #0f172a;
+}
+
+.language-select--login select {
+  min-width: 112px;
+  height: 34px;
+  padding-block: 5px;
+  border-color: transparent;
+  border-radius: 10px;
 }
 
 .language-select--header {
   flex: 0 0 auto;
-  padding: 5px 7px;
+  height: 36px;
+  min-height: 36px;
+  max-height: 36px;
+  padding: 0 5px 0 11px;
+  box-sizing: border-box;
   border: 1px solid rgba(255, 255, 255, 0.24);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.15);
   color: #f8fafc;
 }
 
 .language-select--header select {
+  appearance: none;
   min-width: 104px;
-  padding-top: 6px;
-  padding-bottom: 6px;
+  height: 34px;
+  min-height: 34px;
+  max-height: 34px;
+  padding: 4px 28px 4px 10px;
+  border: 0;
+  border-radius: 999px;
+  color: #ffffff;
+  background-color: transparent;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='m1 1.5 5 5 5-5' fill='none' stroke='%23fff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 9px center;
+}
+
+.language-select--header select option {
+  color: #0f172a;
+  background: #ffffff;
 }
 
 @media (max-width: 900px) {
@@ -4041,6 +4072,20 @@ div.network-navigation_wrapper {
   }
 
   .language-select--header {
-    align-self: flex-start;
+    align-self: center;
+  }
+}
+
+@media (max-width: 560px) {
+  .language-select--login {
+    width: 100%;
+    justify-content: space-between;
+    min-width: 0;
+  }
+
+  .language-select--login select {
+    flex: 1 1 auto;
+    min-width: 0;
+    width: 100%;
   }
 }

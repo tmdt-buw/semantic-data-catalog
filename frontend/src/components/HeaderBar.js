@@ -144,7 +144,6 @@ const HeaderBar = ({
       </div>
 
       <div className="header-right header-right--catalog">
-        {languageControl}
         {userInfo.loggedIn ? (
           <div className="header-user">
             {userInfo.photo && (
@@ -158,12 +157,14 @@ const HeaderBar = ({
               <strong>{userInfo.name || "Solid User"}</strong>{' '}
               <span className="header-user-webid">({userInfo.webId})</span>
             </span>
+            {languageControl}
             <button className="btn btn-light btn-sm header-logout" onClick={handleLogout}>
               <i className="fa-solid fa-right-from-bracket mr-1"></i> Logout
             </button>
           </div>
         ) : (
           <div className="d-flex align-items-center">
+            {languageControl}
             <span className="mr-3"><strong>Not logged in</strong></span>
             <button
               className="btn btn-outline-primary btn-sm"

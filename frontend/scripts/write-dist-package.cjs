@@ -18,7 +18,16 @@ const distPkg = {
       require: "./embed/index.cjs",
     },
     "./embed.css": "./embed/embed.css",
+    "./catalog-api": {
+      import: "./catalog-api/index.js",
+      require: "./catalog-api/index.cjs",
+    },
   },
+  dependencies: Object.fromEntries(
+    ["@inrupt/solid-client", "@inrupt/vocab-common-rdf", "n3"]
+      .filter((name) => pkg.dependencies?.[name])
+      .map((name) => [name, pkg.dependencies[name]])
+  ),
   peerDependencies: pkg.peerDependencies || {
     react: "^18.0.0 || ^19.0.0",
     "react-dom": "^18.0.0 || ^19.0.0",

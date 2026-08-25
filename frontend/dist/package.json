@@ -1,6 +1,6 @@
 {
   "name": "@hoelk-f/semantic-data-catalog",
-  "version": "0.8.61",
+  "version": "0.8.63",
   "main": "./embed/index.cjs",
   "module": "./embed/index.js",
   "exports": {
@@ -8,7 +8,16 @@
       "import": "./embed/index.js",
       "require": "./embed/index.cjs"
     },
-    "./embed.css": "./embed/embed.css"
+    "./embed.css": "./embed/embed.css",
+    "./catalog-api": {
+      "import": "./catalog-api/index.js",
+      "require": "./catalog-api/index.cjs"
+    }
+  },
+  "dependencies": {
+    "@inrupt/solid-client": "^1.30.2",
+    "@inrupt/vocab-common-rdf": "^1.0.5",
+    "n3": "^1.23.1"
   },
   "peerDependencies": {
     "react": "^18.0.0 || ^19.0.0",

@@ -11,7 +11,7 @@ const providers = [
   { label: 'Solid Community', url: 'https://solidcommunity.net', note: 'Public community server' },
 ];
 
-const LoginScreen = ({ onLogin, defaultIssuer }) => {
+const LoginScreen = ({ onLogin, defaultIssuer, languageControl = null }) => {
   const [selected, setSelected] = useState(defaultIssuer || providers[0].url);
   const [customIssuer, setCustomIssuer] = useState('');
   const useCustom = customIssuer.trim().length > 0;
@@ -88,6 +88,7 @@ const LoginScreen = ({ onLogin, defaultIssuer }) => {
           </div>
 
           <div className="login-footer">
+            {languageControl}
             <button
               type="button"
               className="login-primary"

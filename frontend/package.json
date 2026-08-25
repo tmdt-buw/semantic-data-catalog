@@ -1,6 +1,6 @@
 {
   "name": "@hoelk-f/semantic-data-catalog",
-  "version": "0.8.61",
+  "version": "0.8.63",
   "license": "Apache-2.0",
   "private": false,
   "homepage": "/semantic-data-catalog",
@@ -62,7 +62,11 @@
       "import": "./dist/embed/index.js",
       "require": "./dist/embed/index.cjs"
     },
-    "./embed.css": "./dist/embed/embed.css"
+    "./embed.css": "./dist/embed/embed.css",
+    "./catalog-api": {
+      "import": "./dist/catalog-api/index.js",
+      "require": "./dist/catalog-api/index.cjs"
+    }
   },
   "files": [
     "dist"

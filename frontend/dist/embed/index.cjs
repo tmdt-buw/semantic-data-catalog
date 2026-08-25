@@ -107,6 +107,28 @@ var SearchBar = _ref => {
   }));
 };
 
+var httpContactUrl = value => {
+  try {
+    var url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:" ? url.href : "";
+  } catch (_unused) {
+    return "";
+  }
+};
+var getCatalogWebHref = value => httpContactUrl(String(value || "").trim());
+var getContactPointHref = function getContactPointHref(value) {
+  var type = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : "";
+  var contact = String(value || "").trim();
+  if (!contact) return "";
+  var webUrl = getCatalogWebHref(contact);
+  if (type === "url" || webUrl) return webUrl;
+  if (type === "email" || contact.includes("@") && !contact.includes(":")) {
+    return "mailto:".concat(contact.replace(/^mailto:/, ""));
+  }
+  return "";
+};
+
+var renderPublisherCell = params => params.value || "";
 var DatasetTable = _ref => {
   var {
     datasets,
@@ -184,13 +206,26 @@ var DatasetTable = _ref => {
     headerName: "Publisher",
     flex: 1,
     minWidth: 180,
-    cellClassName: "grid-cell-meta"
+    cellClassName: "grid-cell-meta",
+    renderCell: renderPublisherCell
   }, {
     field: "contact_point",
     headerName: "Contact",
     flex: 1,
     minWidth: 200,
-    cellClassName: "grid-cell-meta"
+    cellClassName: "grid-cell-meta",
+    renderCell: params => {
+      var _params$row;
+      var href = getContactPointHref(params.value, (_params$row = params.row) === null || _params$row === void 0 ? void 0 : _params$row.contact_point_type);
+      if (!href) return params.value || "";
+      var isWeb = href.startsWith("http");
+      return /*#__PURE__*/React.createElement("a", {
+        href: href,
+        target: isWeb ? "_blank" : undefined,
+        rel: isWeb ? "noopener noreferrer" : undefined,
+        onClick: event => event.stopPropagation()
+      }, params.value);
+    }
   }, {
     field: "access",
     headerName: "Access Rights",
@@ -255,9 +290,9 @@ var DatasetTable = _ref => {
       quickFilterValues: searchQuery ? [searchQuery] : []
     },
     getRowClassName: params => {
-      var _params$row;
+      var _params$row2;
       var base = params.indexRelativeToCurrentPage % 2 === 0 ? "grid-row-even" : "grid-row-odd";
-      return (_params$row = params.row) !== null && _params$row !== void 0 && _params$row.isStale ? "".concat(base, " grid-row-stale") : base;
+      return (_params$row2 = params.row) !== null && _params$row2 !== void 0 && _params$row2.isStale ? "".concat(base, " grid-row-stale") : base;
     },
     onRowClick: params => _onRowClick(params.row),
     sx: {
@@ -2946,6 +2981,70 @@ function requireN3Writer () {
 var N3WriterExports = /*@__PURE__*/ requireN3Writer();
 var Writer = /*@__PURE__*/getDefaultExportFromCjs(N3WriterExports);
 
+var isNotFound$1 = error => {
+  var _error$response, _error$response2;
+  return (error === null || error === void 0 ? void 0 : error.statusCode) === 404 || (error === null || error === void 0 ? void 0 : error.status) === 404 || (error === null || error === void 0 || (_error$response = error.response) === null || _error$response === void 0 ? void 0 : _error$response.status) === 404 || (error === null || error === void 0 || (_error$response2 = error.response) === null || _error$response2 === void 0 ? void 0 : _error$response2.statusCode) === 404;
+};
+var deleteCatalogDatasetDocuments = /*#__PURE__*/function () {
+  var _ref2 = _asyncToGenerator(function* (_ref) {
+    var {
+      datasetDocUrl,
+      recordDocUrl = "",
+      fetch,
+      deleteResource
+    } = _ref;
+    var targets = [{
+      label: "dataset document",
+      url: datasetDocUrl
+    }, ...(recordDocUrl ? [{
+      label: "catalog record",
+      url: recordDocUrl
+    }] : [])];
+    var failures = [];
+    for (var target of targets) {
+      try {
+        yield deleteResource(target.url, {
+          fetch
+        });
+      } catch (error) {
+        // A previous partial reset may already have removed this resource. Treating
+        // 404 as success makes the operation safe to retry without hiding real
+        // authorization, availability, or server failures.
+        if (!isNotFound$1(error)) failures.push(_objectSpread2$2(_objectSpread2$2({}, target), {}, {
+          error
+        }));
+      }
+    }
+    if (failures.length) {
+      var detail = failures.map(_ref3 => {
+        var {
+          label,
+          url
+        } = _ref3;
+        return "".concat(label, " (").concat(url, ")");
+      }).join(", ");
+      var error = new AggregateError(failures.map(failure => failure.error), "Catalog dataset deletion incomplete: ".concat(detail, "."));
+      error.failures = failures.map(_ref4 => {
+        var _cause$response, _cause$response2;
+        var {
+          label,
+          url,
+          error: cause
+        } = _ref4;
+        return {
+          label,
+          url,
+          status: (cause === null || cause === void 0 ? void 0 : cause.statusCode) || (cause === null || cause === void 0 ? void 0 : cause.status) || (cause === null || cause === void 0 || (_cause$response = cause.response) === null || _cause$response === void 0 ? void 0 : _cause$response.status) || (cause === null || cause === void 0 || (_cause$response2 = cause.response) === null || _cause$response2 === void 0 ? void 0 : _cause$response2.statusCode) || null
+        };
+      });
+      throw error;
+    }
+  });
+  return function deleteCatalogDatasetDocuments(_x) {
+    return _ref2.apply(this, arguments);
+  };
+}();
+
 var CATALOG_CONTAINER = "catalog/";
 var DATASET_CONTAINER = "catalog/ds/";
 var SERIES_CONTAINER = "catalog/series/";
@@ -2965,6 +3064,8 @@ var SDM_PRIVATE_REGISTRY = "".concat(SDM_NS$1, "privateRegistry");
 var SDM_CHANGELOG = "".concat(SDM_NS$1, "changeLog");
 var SDM_CHANGE_EVENT = "".concat(SDM_NS$1, "ChangeEvent");
 var LEGACY_DCAT_CONFORMS_TO = "http://www.w3.org/ns/dcat#conformsTo";
+var VCARD_HAS_URL = vocabCommonRdf.VCARD.hasURL || "http://www.w3.org/2006/vcard/ns#hasURL";
+var VCARD_URL = vocabCommonRdf.VCARD.url || "http://www.w3.org/2006/vcard/ns#url";
 var resolveUrl = (value, base) => {
   if (!value) return "";
   try {
@@ -3045,83 +3146,154 @@ var buildCatalogTurtle = _ref => {
   }
   return lines.join("\n");
 };
-var resolveRecordRefs = /*#__PURE__*/function () {
-  var _ref2 = _asyncToGenerator(function* (session) {
-    var _session$info;
-    var webId = session === null || session === void 0 || (_session$info = session.info) === null || _session$info === void 0 ? void 0 : _session$info.webId;
-    if (!webId) return [];
-    var recordsContainerUrl = "".concat(getPodRoot$1(webId)).concat(RECORDS_CONTAINER);
-    var recordDocs = [];
-    try {
-      var recordsContainer = yield solidClient.getSolidDataset(recordsContainerUrl, {
-        fetch: session.fetch
-      });
-      recordDocs = solidClient.getContainedResourceUrlAll(recordsContainer);
-    } catch (_unused3) {
-      return [];
+var CATALOG_CAS_MAX_ATTEMPTS = 4;
+var CATALOG_CONFLICT_STATUSES = new Set([409, 412]);
+var responseHeader = (response, name) => response !== null && response !== void 0 && response.headers && typeof response.headers.get === "function" ? response.headers.get(name) : null;
+var isStrongEtag = value => typeof value === "string" && /^"[\x21\x23-\x7e\x80-\xff]*"$/.test(value.trim());
+var assertExactCatalogResponse = (response, catalogDocUrl, operation) => {
+  var actualUrl = response === null || response === void 0 ? void 0 : response.url;
+  var expected;
+  var actual;
+  try {
+    expected = new URL(catalogDocUrl).href;
+    actual = actualUrl ? new URL(actualUrl).href : "";
+  } catch (_unused3) {
+    throw new Error("Catalog ".concat(operation, " did not use a valid exact resource URL."));
+  }
+  if (response !== null && response !== void 0 && response.redirected || actual !== expected) {
+    throw new Error("Catalog ".concat(operation, " did not use the exact resource URL."));
+  }
+};
+var parseCatalogSnapshot = (turtle, catalogDocUrl) => {
+  var quads;
+  try {
+    quads = new Parser({
+      baseIRI: catalogDocUrl
+    }).parse(turtle);
+  } catch (error) {
+    throw new Error("Catalog document contains invalid Turtle.", {
+      cause: error
+    });
+  }
+  var catalogResourceUrl = "".concat(catalogDocUrl, "#it");
+  var values = predicate => quads.filter(quad => quad.subject.value === catalogResourceUrl && quad.predicate.value === predicate).map(quad => quad.object.value);
+  var types = values(vocabCommonRdf.RDF.type);
+  if (!types.includes(vocabCommonRdf.DCAT.Catalog)) {
+    throw new Error("Catalog document does not contain the expected dcat:Catalog resource.");
+  }
+  return {
+    title: values(vocabCommonRdf.DCTERMS.title)[0] || "Solid Dataspace Catalog",
+    description: values(vocabCommonRdf.DCTERMS.description)[0] || "",
+    contactPoint: values(vocabCommonRdf.DCAT.contactPoint)[0] || "",
+    datasetRefs: Array.from(new Set(values(vocabCommonRdf.DCAT.dataset).map(url => toCatalogDatasetRef(catalogDocUrl, url)))),
+    recordRefs: Array.from(new Set(values(vocabCommonRdf.DCAT.record).map(url => toCatalogDatasetRef(catalogDocUrl, url))))
+  };
+};
+var readCatalogSnapshot = /*#__PURE__*/function () {
+  var _ref2 = _asyncToGenerator(function* (fetch, catalogDocUrl) {
+    var response = yield fetch(catalogDocUrl, {
+      method: "GET",
+      headers: {
+        Accept: "text/turtle",
+        "Cache-Control": "no-store"
+      },
+      cache: "no-store",
+      redirect: "error"
+    });
+    assertExactCatalogResponse(response, catalogDocUrl, "read");
+    if (response.status === 404) {
+      return {
+        exists: false,
+        etag: "",
+        title: "Solid Dataspace Catalog",
+        description: "",
+        contactPoint: "",
+        datasetRefs: [],
+        recordRefs: []
+      };
     }
-    var recordRefs = [];
-    for (var recordDocUrl of recordDocs) {
-      try {
-        var recordDataset = yield solidClient.getSolidDataset(recordDocUrl, {
-          fetch: session.fetch
-        });
-        solidClient.getThingAll(recordDataset).forEach(thing => {
-          var types = solidClient.getUrlAll(thing, vocabCommonRdf.RDF.type);
-          if (types.includes(vocabCommonRdf.DCAT.CatalogRecord)) {
-            recordRefs.push(thing.url);
-          }
-        });
-      } catch (_unused4) {
-        // Skip unreadable record docs.
-      }
+    if (!response.ok) {
+      throw new Error("Failed to read catalog document (".concat(response.status, ")."));
     }
-    return recordRefs;
+    var etag = (responseHeader(response, "ETag") || "").trim();
+    if (!isStrongEtag(etag)) {
+      throw new Error("Catalog document is missing a strong ETag.");
+    }
+    var turtle = yield response.text();
+    return _objectSpread2$2({
+      exists: true,
+      etag
+    }, parseCatalogSnapshot(turtle, catalogDocUrl));
   });
-  return function resolveRecordRefs(_x) {
+  return function readCatalogSnapshot(_x, _x2) {
     return _ref2.apply(this, arguments);
   };
 }();
-var writeCatalogDoc = /*#__PURE__*/function () {
-  var _ref3 = _asyncToGenerator(function* (session, catalogDocUrl, datasetRefs) {
-    var title = "Solid Dataspace Catalog";
-    var description = "";
-    var contactPoint = "";
-    try {
-      var catalogDataset = yield solidClient.getSolidDataset(catalogDocUrl, {
-        fetch: session.fetch
-      });
-      var catalogThing = solidClient.getThing(catalogDataset, "".concat(catalogDocUrl, "#it"));
-      if (catalogThing) {
-        title = getAnyString(catalogThing, vocabCommonRdf.DCTERMS.title) || title;
-        description = getAnyString(catalogThing, vocabCommonRdf.DCTERMS.description) || "";
-        contactPoint = solidClient.getUrl(catalogThing, vocabCommonRdf.DCAT.contactPoint) || "";
-      }
-    } catch (_unused5) {
-      // Use defaults.
+var mutateCatalogDocument = /*#__PURE__*/function () {
+  var _ref3 = _asyncToGenerator(function* (session, catalogDocUrl, mutateDatasetRefs) {
+    var metadata = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : {};
+    if (!session || typeof session.fetch !== "function") {
+      throw new Error("An authenticated Solid session is required.");
     }
-    var turtle = buildCatalogTurtle({
+    for (var attempt = 0; attempt < CATALOG_CAS_MAX_ATTEMPTS; attempt += 1) {
+      var snapshot = yield readCatalogSnapshot(session.fetch, catalogDocUrl);
+      var currentRefs = new Set(snapshot.datasetRefs);
+      var updatedRefs = mutateDatasetRefs ? mutateDatasetRefs(currentRefs, snapshot) : currentRefs;
+      var datasetRefs = Array.from(updatedRefs || currentRefs);
+      var turtle = buildCatalogTurtle({
+        title: metadata.title !== undefined ? metadata.title || "Solid Dataspace Catalog" : snapshot.title,
+        description: metadata.description !== undefined ? metadata.description || "" : snapshot.description,
+        modified: safeNow(),
+        datasetRefs,
+        recordRefs: snapshot.recordRefs,
+        contactPoint: metadata.contactPoint !== undefined ? metadata.contactPoint || "" : snapshot.contactPoint
+      });
+      var response = yield session.fetch(catalogDocUrl, {
+        method: "PUT",
+        headers: _objectSpread2$2({
+          "Content-Type": "text/turtle"
+        }, snapshot.exists ? {
+          "If-Match": snapshot.etag
+        } : {
+          "If-None-Match": "*"
+        }),
+        body: turtle,
+        redirect: "error"
+      });
+      assertExactCatalogResponse(response, catalogDocUrl, "write");
+      if (response.ok) {
+        return {
+          datasetRefs,
+          created: !snapshot.exists
+        };
+      }
+      if (!CATALOG_CONFLICT_STATUSES.has(response.status)) {
+        throw new Error("Failed to write catalog document (".concat(response.status, ")."));
+      }
+    }
+    var conflict = new Error("Catalog document changed during all ".concat(CATALOG_CAS_MAX_ATTEMPTS, " write attempts."));
+    conflict.status = 412;
+    throw conflict;
+  });
+  return function mutateCatalogDocument(_x3, _x4, _x5) {
+    return _ref3.apply(this, arguments);
+  };
+}();
+var ensureCatalogDocument = /*#__PURE__*/function () {
+  var _ref4 = _asyncToGenerator(function* (session, catalogDocUrl) {
+    var {
       title,
       description,
-      modified: safeNow(),
-      datasetRefs,
-      recordRefs: yield resolveRecordRefs(session),
       contactPoint
+    } = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
+    return mutateCatalogDocument(session, catalogDocUrl, datasetRefs => datasetRefs, {
+      title: title || "Solid Dataspace Catalog",
+      description: description || "",
+      contactPoint: contactPoint || ""
     });
-    var res = yield session.fetch(catalogDocUrl, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "text/turtle"
-      },
-      body: turtle
-    });
-    if (!res.ok) {
-      throw new Error("Failed to write catalog document (".concat(res.status, ")"));
-    }
-    yield makePublicReadable(catalogDocUrl, session.fetch);
   });
-  return function writeCatalogDoc(_x2, _x3, _x4) {
-    return _ref3.apply(this, arguments);
+  return function ensureCatalogDocument(_x6, _x7) {
+    return _ref4.apply(this, arguments);
   };
 }();
 var getPodRoot$1 = webId => {
@@ -3142,7 +3314,7 @@ var normalizeContainerUrl$2 = value => {
   try {
     var url = new URL(value);
     return url.href.endsWith("/") ? url.href : "".concat(url.href, "/");
-  } catch (_unused6) {
+  } catch (_unused4) {
     return value.endsWith("/") ? value : "".concat(value, "/");
   }
 };
@@ -3179,7 +3351,7 @@ var getAnyString = (thing, predicate) => {
     var values = normalizeLocaleValues(solidClient.getStringWithLocaleAll(thing, predicate));
     if (!values || values.length === 0) return "";
     return values[0] || "";
-  } catch (_unused7) {
+  } catch (_unused5) {
     return "";
   }
 };
@@ -3222,7 +3394,7 @@ var clearCache = () => {
   window.localStorage.removeItem(CACHE_KEY);
 };
 var ensureContainer = /*#__PURE__*/function () {
-  var _ref4 = _asyncToGenerator(function* (containerUrl, fetch) {
+  var _ref6 = _asyncToGenerator(function* (containerUrl, fetch) {
     try {
       var res = yield fetch(containerUrl, {
         method: "GET",
@@ -3232,7 +3404,7 @@ var ensureContainer = /*#__PURE__*/function () {
       });
       if (res.ok) return;
       if (res.status !== 404) return;
-    } catch (_unused8) {
+    } catch (_unused6) {
       // Continue and attempt creation.
     }
     try {
@@ -3248,12 +3420,12 @@ var ensureContainer = /*#__PURE__*/function () {
       throw err;
     }
   });
-  return function ensureContainer(_x5, _x6) {
-    return _ref4.apply(this, arguments);
+  return function ensureContainer(_x11, _x12) {
+    return _ref6.apply(this, arguments);
   };
 }();
 var getResourceWithAcl = /*#__PURE__*/function () {
-  var _ref5 = _asyncToGenerator(function* (url, fetch) {
+  var _ref7 = _asyncToGenerator(function* (url, fetch) {
     try {
       return yield solidClient.getSolidDatasetWithAcl(url, {
         fetch
@@ -3268,12 +3440,12 @@ var getResourceWithAcl = /*#__PURE__*/function () {
       }
     }
   });
-  return function getResourceWithAcl(_x7, _x8) {
-    return _ref5.apply(this, arguments);
+  return function getResourceWithAcl(_x13, _x14) {
+    return _ref7.apply(this, arguments);
   };
 }();
 var getResourceAndAcl = /*#__PURE__*/function () {
-  var _ref6 = _asyncToGenerator(function* (url, fetch) {
+  var _ref8 = _asyncToGenerator(function* (url, fetch) {
     var resource = yield getResourceWithAcl(url, fetch);
     var resourceAcl;
     if (!solidClient.hasResourceAcl(resource)) {
@@ -3289,12 +3461,12 @@ var getResourceAndAcl = /*#__PURE__*/function () {
       resourceAcl
     };
   });
-  return function getResourceAndAcl(_x9, _x10) {
-    return _ref6.apply(this, arguments);
+  return function getResourceAndAcl(_x15, _x16) {
+    return _ref8.apply(this, arguments);
   };
 }();
 var setPublicReadAccess = /*#__PURE__*/function () {
-  var _ref7 = _asyncToGenerator(function* (url, fetch, read) {
+  var _ref9 = _asyncToGenerator(function* (url, fetch, read) {
     var {
       resource,
       resourceAcl
@@ -3309,24 +3481,24 @@ var setPublicReadAccess = /*#__PURE__*/function () {
       fetch
     });
   });
-  return function setPublicReadAccess(_x11, _x12, _x13) {
-    return _ref7.apply(this, arguments);
+  return function setPublicReadAccess(_x17, _x18, _x19) {
+    return _ref9.apply(this, arguments);
   };
 }();
 var makePublicReadable = /*#__PURE__*/function () {
-  var _ref8 = _asyncToGenerator(function* (url, fetch) {
+  var _ref10 = _asyncToGenerator(function* (url, fetch) {
     try {
       yield setPublicReadAccess(url, fetch, true);
     } catch (err) {
       console.warn("Failed to set public read ACL for", url, err);
     }
   });
-  return function makePublicReadable(_x14, _x15) {
-    return _ref8.apply(this, arguments);
+  return function makePublicReadable(_x20, _x21) {
+    return _ref10.apply(this, arguments);
   };
 }();
 var setCatalogLinkInProfile = /*#__PURE__*/function () {
-  var _ref9 = _asyncToGenerator(function* (webId, catalogUrl, fetch) {
+  var _ref11 = _asyncToGenerator(function* (webId, catalogUrl, fetch) {
     if (!webId || !catalogUrl) return;
     var profileDocUrl = webId.split("#")[0];
     var profileDataset = yield solidClient.getSolidDataset(profileDocUrl, {
@@ -3346,12 +3518,12 @@ var setCatalogLinkInProfile = /*#__PURE__*/function () {
       fetch
     });
   });
-  return function setCatalogLinkInProfile(_x16, _x17, _x18) {
-    return _ref9.apply(this, arguments);
+  return function setCatalogLinkInProfile(_x22, _x23, _x24) {
+    return _ref11.apply(this, arguments);
   };
 }();
 var loadRegistryConfig = /*#__PURE__*/function () {
-  var _ref10 = _asyncToGenerator(function* (webId, fetch) {
+  var _ref12 = _asyncToGenerator(function* (webId, fetch) {
     if (!webId || !fetch) {
       return {
         mode: "research",
@@ -3382,12 +3554,12 @@ var loadRegistryConfig = /*#__PURE__*/function () {
       };
     }
   });
-  return function loadRegistryConfig(_x19, _x20) {
-    return _ref10.apply(this, arguments);
+  return function loadRegistryConfig(_x25, _x26) {
+    return _ref12.apply(this, arguments);
   };
 }();
 var saveRegistryConfig = /*#__PURE__*/function () {
-  var _ref11 = _asyncToGenerator(function* (webId, fetch, config) {
+  var _ref13 = _asyncToGenerator(function* (webId, fetch, config) {
     if (!webId || !fetch) return;
     var profileDocUrl = webId.split("#")[0];
     var profileDataset = yield solidClient.getSolidDataset(profileDocUrl, {
@@ -3417,33 +3589,33 @@ var saveRegistryConfig = /*#__PURE__*/function () {
       fetch
     });
   });
-  return function saveRegistryConfig(_x21, _x22, _x23) {
-    return _ref11.apply(this, arguments);
+  return function saveRegistryConfig(_x27, _x28, _x29) {
+    return _ref13.apply(this, arguments);
   };
 }();
 var ensureRegistryContainer = /*#__PURE__*/function () {
-  var _ref12 = _asyncToGenerator(function* (containerUrl, fetch) {
+  var _ref14 = _asyncToGenerator(function* (containerUrl, fetch) {
     yield ensureContainer(containerUrl, fetch);
     yield makePublicReadable(containerUrl, fetch);
   });
-  return function ensureRegistryContainer(_x24, _x25) {
-    return _ref12.apply(this, arguments);
+  return function ensureRegistryContainer(_x30, _x31) {
+    return _ref14.apply(this, arguments);
   };
 }();
 var ensurePrivateRegistryContainer = /*#__PURE__*/function () {
-  var _ref13 = _asyncToGenerator(function* (webId, fetch, privateRegistryUrl) {
+  var _ref15 = _asyncToGenerator(function* (webId, fetch, privateRegistryUrl) {
     if (!webId || !fetch) return "";
     var target = normalizeContainerUrl$2(privateRegistryUrl || buildDefaultPrivateRegistry(webId));
     if (!target) return "";
     yield ensureRegistryContainer(target, fetch);
     return target;
   });
-  return function ensurePrivateRegistryContainer(_x26, _x27, _x28) {
-    return _ref13.apply(this, arguments);
+  return function ensurePrivateRegistryContainer(_x32, _x33, _x34) {
+    return _ref15.apply(this, arguments);
   };
 }();
 var resolveRegistryConfig = /*#__PURE__*/function () {
-  var _ref14 = _asyncToGenerator(function* (webId, fetch, override) {
+  var _ref16 = _asyncToGenerator(function* (webId, fetch, override) {
     var base = override || (yield loadRegistryConfig(webId, fetch));
     var mode = (base === null || base === void 0 ? void 0 : base.mode) === "private" ? "private" : "research";
     var registries = ((base === null || base === void 0 ? void 0 : base.registries) || []).filter(Boolean);
@@ -3454,12 +3626,12 @@ var resolveRegistryConfig = /*#__PURE__*/function () {
       privateRegistry
     };
   });
-  return function resolveRegistryConfig(_x29, _x30, _x31) {
-    return _ref14.apply(this, arguments);
+  return function resolveRegistryConfig(_x35, _x36, _x37) {
+    return _ref16.apply(this, arguments);
   };
 }();
 var registerWebIdInRegistryContainer = /*#__PURE__*/function () {
-  var _ref15 = _asyncToGenerator(function* (containerUrl, fetch, memberWebId) {
+  var _ref17 = _asyncToGenerator(function* (containerUrl, fetch, memberWebId) {
     var {
       allowCreate
     } = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : {};
@@ -3480,7 +3652,7 @@ var registerWebIdInRegistryContainer = /*#__PURE__*/function () {
         var memberThing = solidClient.getThing(memberDataset, "".concat(resourceUrl, "#it")) || solidClient.getThingAll(memberDataset)[0];
         var existingWebId = memberThing ? solidClient.getUrl(memberThing, vocabCommonRdf.FOAF.member) : "";
         if (existingWebId === memberWebId) return;
-      } catch (_unused9) {
+      } catch (_unused7) {
         // Ignore malformed entries.
       }
     }
@@ -3497,12 +3669,12 @@ var registerWebIdInRegistryContainer = /*#__PURE__*/function () {
       throw new Error("Failed to write registry (".concat(normalizedUrl, "): ").concat(res.status));
     }
   });
-  return function registerWebIdInRegistryContainer(_x32, _x33, _x34) {
-    return _ref15.apply(this, arguments);
+  return function registerWebIdInRegistryContainer(_x38, _x39, _x40) {
+    return _ref17.apply(this, arguments);
   };
 }();
 var registerWebIdInRegistries = /*#__PURE__*/function () {
-  var _ref16 = _asyncToGenerator(function* (webId, fetch, registryConfig) {
+  var _ref18 = _asyncToGenerator(function* (webId, fetch, registryConfig) {
     if (!webId) return;
     var config = yield resolveRegistryConfig(webId, fetch, registryConfig);
     var containers = [];
@@ -3525,12 +3697,12 @@ var registerWebIdInRegistries = /*#__PURE__*/function () {
       }
     }
   });
-  return function registerWebIdInRegistries(_x35, _x36, _x37) {
-    return _ref16.apply(this, arguments);
+  return function registerWebIdInRegistries(_x41, _x42, _x43) {
+    return _ref18.apply(this, arguments);
   };
 }();
 var loadRegistryMembersFromContainer = /*#__PURE__*/function () {
-  var _ref17 = _asyncToGenerator(function* (containerUrl, fetch) {
+  var _ref19 = _asyncToGenerator(function* (containerUrl, fetch) {
     var normalizedUrl = normalizeContainerUrl$2(containerUrl);
     if (!normalizedUrl || !fetch) return [];
     try {
@@ -3547,7 +3719,7 @@ var loadRegistryMembersFromContainer = /*#__PURE__*/function () {
           var memberThing = solidClient.getThing(memberDataset, "".concat(resourceUrl, "#it")) || solidClient.getThingAll(memberDataset)[0];
           var memberWebId = memberThing ? solidClient.getUrl(memberThing, vocabCommonRdf.FOAF.member) : "";
           if (memberWebId) members.add(memberWebId);
-        } catch (_unused10) {
+        } catch (_unused8) {
           // Ignore malformed entries.
         }
       }
@@ -3560,12 +3732,12 @@ var loadRegistryMembersFromContainer = /*#__PURE__*/function () {
       return [];
     }
   });
-  return function loadRegistryMembersFromContainer(_x38, _x39) {
-    return _ref17.apply(this, arguments);
+  return function loadRegistryMembersFromContainer(_x44, _x45) {
+    return _ref19.apply(this, arguments);
   };
 }();
 var syncRegistryMembersInContainer = /*#__PURE__*/function () {
-  var _ref18 = _asyncToGenerator(function* (containerUrl, fetch, members) {
+  var _ref20 = _asyncToGenerator(function* (containerUrl, fetch, members) {
     var {
       allowCreate
     } = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : {};
@@ -3590,7 +3762,7 @@ var syncRegistryMembersInContainer = /*#__PURE__*/function () {
         if (memberWebId) {
           existing.set(memberWebId, resourceUrl);
         }
-      } catch (_unused11) {
+      } catch (_unused9) {
         // Ignore malformed entries.
       }
     }
@@ -3610,19 +3782,19 @@ var syncRegistryMembersInContainer = /*#__PURE__*/function () {
       }
     }
   });
-  return function syncRegistryMembersInContainer(_x40, _x41, _x42) {
-    return _ref18.apply(this, arguments);
+  return function syncRegistryMembersInContainer(_x46, _x47, _x48) {
+    return _ref20.apply(this, arguments);
   };
 }();
 var ensureCatalogStructure = /*#__PURE__*/function () {
-  var _ref19 = _asyncToGenerator(function* (session) {
-    var _session$info2;
+  var _ref21 = _asyncToGenerator(function* (session) {
+    var _session$info;
     var {
       title,
       description,
       registryConfig
     } = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-    if (!(session !== null && session !== void 0 && (_session$info2 = session.info) !== null && _session$info2 !== void 0 && _session$info2.webId)) {
+    if (!(session !== null && session !== void 0 && (_session$info = session.info) !== null && _session$info !== void 0 && _session$info.webId)) {
       throw new Error("No Solid WebID available.");
     }
     var webId = session.info.webId;
@@ -3637,40 +3809,10 @@ var ensureCatalogStructure = /*#__PURE__*/function () {
 
     var catalogDocUrl = getCatalogDocUrl(webId);
     var catalogResourceUrl = getCatalogResourceUrl(webId);
-    var catalogDataset;
-    try {
-      catalogDataset = yield solidClient.getSolidDataset(catalogDocUrl, {
-        fetch
-      });
-    } catch (err) {
-      var _err$response5;
-      if ((err === null || err === void 0 ? void 0 : err.statusCode) === 404 || (err === null || err === void 0 || (_err$response5 = err.response) === null || _err$response5 === void 0 ? void 0 : _err$response5.status) === 404) {
-        catalogDataset = solidClient.createSolidDataset();
-      } else {
-        throw err;
-      }
-    }
-    var catalogThing = solidClient.getThing(catalogDataset, catalogResourceUrl);
-    if (!catalogThing) {
-      catalogThing = solidClient.createThing({
-        url: catalogResourceUrl
-      });
-    }
-    catalogThing = solidClient.removeAll(catalogThing, vocabCommonRdf.RDF.type);
-    catalogThing = solidClient.addUrl(catalogThing, vocabCommonRdf.RDF.type, vocabCommonRdf.DCAT.Catalog);
-    catalogThing = solidClient.removeAll(catalogThing, vocabCommonRdf.DCAT.contactPoint);
-    catalogThing = solidClient.setUrl(catalogThing, vocabCommonRdf.DCAT.contactPoint, webId);
-    catalogThing = solidClient.removeAll(catalogThing, vocabCommonRdf.DCTERMS.title);
-    catalogThing = setLocaleString(catalogThing, vocabCommonRdf.DCTERMS.title, title || "Solid Dataspace Catalog");
-    catalogThing = solidClient.removeAll(catalogThing, vocabCommonRdf.DCTERMS.description);
-    if (description) {
-      catalogThing = setLocaleString(catalogThing, vocabCommonRdf.DCTERMS.description, description);
-    }
-    catalogThing = solidClient.removeAll(catalogThing, vocabCommonRdf.DCTERMS.modified);
-    catalogThing = solidClient.setDatetime(catalogThing, vocabCommonRdf.DCTERMS.modified, new Date());
-    catalogDataset = solidClient.setThing(catalogDataset, catalogThing);
-    yield solidClient.saveSolidDatasetAt(catalogDocUrl, catalogDataset, {
-      fetch
+    yield ensureCatalogDocument(session, catalogDocUrl, {
+      title: title || "Solid Dataspace Catalog",
+      description: description || "",
+      contactPoint: webId
     });
     yield makePublicReadable(catalogDocUrl, fetch);
     yield makePublicReadable("".concat(podRoot).concat(CATALOG_CONTAINER), fetch);
@@ -3684,12 +3826,12 @@ var ensureCatalogStructure = /*#__PURE__*/function () {
       catalogUrl: catalogResourceUrl
     };
   });
-  return function ensureCatalogStructure(_x43) {
-    return _ref19.apply(this, arguments);
+  return function ensureCatalogStructure(_x49) {
+    return _ref21.apply(this, arguments);
   };
 }();
 var resolveCatalogUrlFromWebId = /*#__PURE__*/function () {
-  var _ref22 = _asyncToGenerator(function* (webId, fetch) {
+  var _ref24 = _asyncToGenerator(function* (webId, fetch) {
     if (!webId || !fetch) return getCatalogResourceUrl(webId);
     try {
       var profileDocUrl = webId.split("#")[0];
@@ -3704,12 +3846,12 @@ var resolveCatalogUrlFromWebId = /*#__PURE__*/function () {
     }
     return getCatalogResourceUrl(webId);
   });
-  return function resolveCatalogUrlFromWebId(_x47, _x48) {
-    return _ref22.apply(this, arguments);
+  return function resolveCatalogUrlFromWebId(_x53, _x54) {
+    return _ref24.apply(this, arguments);
   };
 }();
 var loadRegistryMembers = /*#__PURE__*/function () {
-  var _ref23 = _asyncToGenerator(function* (webId, fetch) {
+  var _ref25 = _asyncToGenerator(function* (webId, fetch) {
     var members = new Set();
     if (webId) members.add(webId);
     var config = yield loadRegistryConfig(webId, fetch);
@@ -3735,7 +3877,7 @@ var loadRegistryMembers = /*#__PURE__*/function () {
             var memberThing = solidClient.getThing(memberDataset, "".concat(resourceUrl, "#it")) || solidClient.getThingAll(memberDataset)[0];
             var memberWebId = memberThing ? solidClient.getUrl(memberThing, vocabCommonRdf.FOAF.member) : "";
             if (memberWebId) members.add(memberWebId);
-          } catch (_unused12) {
+          } catch (_unused10) {
             // Ignore malformed registry entries.
           }
         }
@@ -3745,8 +3887,8 @@ var loadRegistryMembers = /*#__PURE__*/function () {
     }
     return Array.from(members);
   });
-  return function loadRegistryMembers(_x49, _x50) {
-    return _ref23.apply(this, arguments);
+  return function loadRegistryMembers(_x55, _x56) {
+    return _ref25.apply(this, arguments);
   };
 }();
 var parseDatasetFromDoc = (datasetDoc, datasetUrl) => {
@@ -3763,16 +3905,15 @@ var parseDatasetFromDoc = (datasetDoc, datasetUrl) => {
   var issued = solidClient.getDatetime(datasetThing, vocabCommonRdf.DCTERMS.issued);
   var modified = solidClient.getDatetime(datasetThing, vocabCommonRdf.DCTERMS.modified);
   var publisherLiteral = getAnyString(datasetThing, vocabCommonRdf.DCTERMS.publisher) || "";
+  var publisherRef = solidClient.getUrl(datasetThing, vocabCommonRdf.DCTERMS.publisher) || "";
   var publisher = publisherLiteral;
-  if (!publisher) {
-    var publisherRef = solidClient.getUrl(datasetThing, vocabCommonRdf.DCTERMS.publisher) || "";
-    if (publisherRef) {
-      var publisherThing = solidClient.getThing(datasetDoc, publisherRef);
-      if (publisherThing) {
-        publisher = getAnyString(publisherThing, vocabCommonRdf.FOAF.name) || getAnyString(publisherThing, vocabCommonRdf.VCARD.fn) || getAnyString(publisherThing, vocabCommonRdf.DCTERMS.title) || "";
-      }
+  if (!publisher && publisherRef) {
+    var publisherThing = solidClient.getThing(datasetDoc, publisherRef);
+    if (publisherThing) {
+      publisher = getAnyString(publisherThing, vocabCommonRdf.FOAF.name) || getAnyString(publisherThing, vocabCommonRdf.VCARD.fn) || getAnyString(publisherThing, vocabCommonRdf.DCTERMS.title) || "";
     }
   }
+  if (!publisher) publisher = publisherRef;
   var creator = solidClient.getUrl(datasetThing, vocabCommonRdf.DCTERMS.creator) || "";
   var theme = solidClient.getStringNoLocale(datasetThing, vocabCommonRdf.DCAT.theme) || solidClient.getUrl(datasetThing, vocabCommonRdf.DCAT.theme) || "";
   if (!theme) {
@@ -3782,15 +3923,27 @@ var parseDatasetFromDoc = (datasetDoc, datasetUrl) => {
   var contactRef = solidClient.getUrl(datasetThing, vocabCommonRdf.DCAT.contactPoint) || "";
   var contactLiteral = solidClient.getStringNoLocale(datasetThing, vocabCommonRdf.DCAT.contactPoint) || getAnyString(datasetThing, vocabCommonRdf.DCAT.contactPoint) || "";
   var contact = stripMailto(contactLiteral);
+  var contactType = contact ? contactLiteral.startsWith("mailto:") || contact.includes("@") ? "email" : isValidUrl(contact) ? "url" : "text" : "";
   if (!contact && contactRef) {
     var contactThing = solidClient.getThing(datasetDoc, contactRef);
     if (contactThing) {
       var mailto = solidClient.getUrl(contactThing, vocabCommonRdf.VCARD.hasEmail) || solidClient.getUrl(contactThing, vocabCommonRdf.VCARD.value) || solidClient.getStringNoLocale(contactThing, vocabCommonRdf.VCARD.hasEmail) || solidClient.getStringNoLocale(contactThing, vocabCommonRdf.VCARD.value) || solidClient.getUrl(contactThing, vocabCommonRdf.FOAF.mbox) || solidClient.getStringNoLocale(contactThing, vocabCommonRdf.FOAF.mbox) || "";
       if (mailto) {
         contact = stripMailto(mailto);
+        contactType = "email";
       } else {
-        contact = getAnyString(contactThing, vocabCommonRdf.VCARD.fn) || "";
+        var contactUrl = solidClient.getUrl(contactThing, VCARD_HAS_URL) || solidClient.getUrl(contactThing, VCARD_URL) || "";
+        if (contactUrl) {
+          contact = contactUrl;
+          contactType = "url";
+        } else {
+          contact = getAnyString(contactThing, vocabCommonRdf.VCARD.fn) || "";
+          contactType = contact ? "text" : "";
+        }
       }
+    } else if (isValidUrl(contactRef)) {
+      contact = contactRef;
+      contactType = "url";
     }
   }
   var conformsTo = solidClient.getUrl(datasetThing, vocabCommonRdf.DCTERMS.conformsTo) || solidClient.getUrl(datasetThing, LEGACY_DCAT_CONFORMS_TO) || "";
@@ -3826,7 +3979,9 @@ var parseDatasetFromDoc = (datasetDoc, datasetUrl) => {
     issued: issued ? issued.toISOString() : "",
     modified: modified ? modified.toISOString() : "",
     publisher,
+    publisher_url: publisherRef,
     contact_point: contact,
+    contact_point_type: contactType,
     access_url_dataset: accessUrlDataset,
     access_url_semantic_model: accessUrlModel,
     file_format: fileFormat,
@@ -3841,7 +3996,7 @@ var parseDatasetFromDoc = (datasetDoc, datasetUrl) => {
   };
 };
 var loadCatalogDatasets = /*#__PURE__*/function () {
-  var _ref24 = _asyncToGenerator(function* (catalogUrl, fetch) {
+  var _ref26 = _asyncToGenerator(function* (catalogUrl, fetch) {
     var catalogDocUrl = getDocumentUrl(catalogUrl);
     var catalogDataset = yield solidClient.getSolidDataset(catalogDocUrl, {
       fetch
@@ -3850,7 +4005,7 @@ var loadCatalogDatasets = /*#__PURE__*/function () {
     var datasetUrls = catalogThing ? safeGetUrlAll(catalogThing, vocabCommonRdf.DCAT.dataset) : [];
     var resolvedUrls = Array.from(new Set(datasetUrls)).map(url => resolveUrl(url, catalogDocUrl)).filter(Boolean);
     var datasets = yield Promise.all(resolvedUrls.map(/*#__PURE__*/function () {
-      var _ref25 = _asyncToGenerator(function* (datasetUrl) {
+      var _ref27 = _asyncToGenerator(function* (datasetUrl) {
         try {
           var datasetDoc = yield solidClient.getSolidDataset(getDocumentUrl(datasetUrl), {
             fetch
@@ -3861,14 +4016,14 @@ var loadCatalogDatasets = /*#__PURE__*/function () {
           return null;
         }
       });
-      return function (_x53) {
-        return _ref25.apply(this, arguments);
+      return function (_x59) {
+        return _ref27.apply(this, arguments);
       };
     }()));
     return datasets.filter(Boolean);
   });
-  return function loadCatalogDatasets(_x51, _x52) {
-    return _ref24.apply(this, arguments);
+  return function loadCatalogDatasets(_x57, _x58) {
+    return _ref26.apply(this, arguments);
   };
 }();
 var mergeDatasets = lists => {
@@ -3890,9 +4045,9 @@ var mergeDatasets = lists => {
   return Array.from(map.values());
 };
 var loadAggregatedDatasets = /*#__PURE__*/function () {
-  var _ref26 = _asyncToGenerator(function* (session, fetchOverride) {
-    var _session$info4;
-    var webId = (session === null || session === void 0 || (_session$info4 = session.info) === null || _session$info4 === void 0 ? void 0 : _session$info4.webId) || "";
+  var _ref28 = _asyncToGenerator(function* (session, fetchOverride) {
+    var _session$info3;
+    var webId = (session === null || session === void 0 || (_session$info3 = session.info) === null || _session$info3 === void 0 ? void 0 : _session$info3.webId) || "";
     var fetch = fetchOverride || (session === null || session === void 0 ? void 0 : session.fetch) || (typeof window !== "undefined" ? window.fetch.bind(window) : fetchOverride);
     if (!fetch) return {
       datasets: [],
@@ -3909,7 +4064,7 @@ var loadAggregatedDatasets = /*#__PURE__*/function () {
       catalogs: _objectSpread2$2({}, cache.catalogs)
     });
     var fetchCatalog = /*#__PURE__*/function () {
-      var _ref27 = _asyncToGenerator(function* (catalogUrl) {
+      var _ref29 = _asyncToGenerator(function* (catalogUrl) {
         try {
           var datasets = yield loadCatalogDatasets(catalogUrl, fetch);
           updatedCache.catalogs[catalogUrl] = {
@@ -3938,8 +4093,8 @@ var loadAggregatedDatasets = /*#__PURE__*/function () {
           };
         }
       });
-      return function fetchCatalog(_x56) {
-        return _ref27.apply(this, arguments);
+      return function fetchCatalog(_x62) {
+        return _ref29.apply(this, arguments);
       };
     }();
     for (var catalogUrl of uniqueCatalogUrls) {
@@ -3976,8 +4131,8 @@ var loadAggregatedDatasets = /*#__PURE__*/function () {
       catalogs: uniqueCatalogUrls
     };
   });
-  return function loadAggregatedDatasets(_x54, _x55) {
-    return _ref26.apply(this, arguments);
+  return function loadAggregatedDatasets(_x60, _x61) {
+    return _ref28.apply(this, arguments);
   };
 }();
 var DEFAULT_THEME_NS = "https://w3id.org/solid-dataspace-manager/theme/";
@@ -3995,7 +4150,7 @@ var isValidUrl = value => {
   try {
     new URL(value);
     return true;
-  } catch (_unused13) {
+  } catch (_unused11) {
     return false;
   }
 };
@@ -4016,7 +4171,11 @@ var buildDatasetResource = (datasetDocUrl, input) => {
   datasetThing = solidClient.removeAll(datasetThing, vocabCommonRdf.DCTERMS.modified);
   datasetThing = solidClient.setDatetime(datasetThing, vocabCommonRdf.DCTERMS.modified, new Date(safeNow()));
   datasetThing = solidClient.removeAll(datasetThing, vocabCommonRdf.DCTERMS.publisher);
-  datasetThing = setLocaleString(datasetThing, vocabCommonRdf.DCTERMS.publisher, input.publisher || "");
+  if (input.publisher_url) {
+    datasetThing = solidClient.setUrl(datasetThing, vocabCommonRdf.DCTERMS.publisher, input.publisher_url);
+  } else if (input.publisher) {
+    datasetThing = setLocaleString(datasetThing, vocabCommonRdf.DCTERMS.publisher, input.publisher);
+  }
   datasetThing = solidClient.removeAll(datasetThing, vocabCommonRdf.DCTERMS.creator);
   if (input.webid) {
     datasetThing = solidClient.setUrl(datasetThing, vocabCommonRdf.DCTERMS.creator, input.webid);
@@ -4064,7 +4223,9 @@ var buildSeriesResource = (seriesDocUrl, input) => {
   seriesThing = solidClient.removeAll(seriesThing, vocabCommonRdf.DCTERMS.modified);
   seriesThing = solidClient.setDatetime(seriesThing, vocabCommonRdf.DCTERMS.modified, new Date(safeNow()));
   seriesThing = solidClient.removeAll(seriesThing, vocabCommonRdf.DCTERMS.publisher);
-  if (input.publisher) {
+  if (input.publisher_url) {
+    seriesThing = solidClient.setUrl(seriesThing, vocabCommonRdf.DCTERMS.publisher, input.publisher_url);
+  } else if (input.publisher) {
     seriesThing = setLocaleString(seriesThing, vocabCommonRdf.DCTERMS.publisher, input.publisher);
   }
   seriesThing = solidClient.removeAll(seriesThing, vocabCommonRdf.DCTERMS.creator);
@@ -4072,16 +4233,13 @@ var buildSeriesResource = (seriesDocUrl, input) => {
     seriesThing = solidClient.setUrl(seriesThing, vocabCommonRdf.DCTERMS.creator, input.webid);
   }
   seriesThing = solidClient.removeAll(seriesThing, vocabCommonRdf.DCAT.contactPoint);
-  if (input.contact_point) {
-    var contactUrl = "".concat(seriesDocUrl, "#contact");
-    var contactThing = solidClient.createThing({
-      url: contactUrl
-    });
-    contactThing = setLocaleString(contactThing, vocabCommonRdf.VCARD.fn, input.publisher || "");
-    contactThing = solidClient.removeAll(contactThing, vocabCommonRdf.VCARD.hasEmail);
-    contactThing = solidClient.setUrl(contactThing, vocabCommonRdf.VCARD.hasEmail, "mailto:".concat(input.contact_point));
+  if (input.contact_point || input.contact_url) {
+    var contactThing = buildContactThing(seriesDocUrl, input);
     input.__contactThing = contactThing;
-    seriesThing = solidClient.setUrl(seriesThing, vocabCommonRdf.DCAT.contactPoint, contactUrl);
+    seriesThing = solidClient.setUrl(seriesThing, vocabCommonRdf.DCAT.contactPoint, contactThing.url);
+  }
+  if (input.publisher_url && input.publisher) {
+    input.__publisherThing = buildPublisherThing(input);
   }
   seriesThing = solidClient.removeAll(seriesThing, vocabCommonRdf.DCAT.theme);
   if (input.theme) {
@@ -4095,15 +4253,33 @@ var buildSeriesResource = (seriesDocUrl, input) => {
   return seriesThing;
 };
 var buildContactThing = (datasetDocUrl, input) => {
-  if (!input.contact_point) return null;
+  if (!input.contact_point && !input.contact_url) return null;
   var contactUrl = "".concat(datasetDocUrl, "#contact");
   var contactThing = solidClient.createThing({
     url: contactUrl
   });
-  contactThing = setLocaleString(contactThing, vocabCommonRdf.VCARD.fn, input.publisher || "");
+  contactThing = solidClient.addUrl(contactThing, vocabCommonRdf.RDF.type, vocabCommonRdf.VCARD.Individual);
+  if (input.publisher) {
+    contactThing = setLocaleString(contactThing, vocabCommonRdf.VCARD.fn, input.publisher);
+  }
   contactThing = solidClient.removeAll(contactThing, vocabCommonRdf.VCARD.hasEmail);
-  contactThing = solidClient.setUrl(contactThing, vocabCommonRdf.VCARD.hasEmail, "mailto:".concat(input.contact_point));
+  if (input.contact_point) {
+    contactThing = solidClient.setUrl(contactThing, vocabCommonRdf.VCARD.hasEmail, "mailto:".concat(input.contact_point));
+  }
+  contactThing = solidClient.removeAll(contactThing, VCARD_HAS_URL);
+  if (input.contact_url) {
+    contactThing = solidClient.setUrl(contactThing, VCARD_HAS_URL, input.contact_url);
+  }
   return contactThing;
+};
+var buildPublisherThing = input => {
+  if (!input.publisher_url || !input.publisher) return null;
+  var publisherThing = solidClient.createThing({
+    url: input.publisher_url
+  });
+  publisherThing = solidClient.addUrl(publisherThing, vocabCommonRdf.RDF.type, vocabCommonRdf.FOAF.Agent);
+  publisherThing = setLocaleString(publisherThing, vocabCommonRdf.FOAF.name, input.publisher);
+  return publisherThing;
 };
 var buildDistributionThing = (datasetDocUrl, slug, distributionUrl, mediaType, distributionAccessType) => {
   if (!distributionUrl) return null;
@@ -4127,7 +4303,7 @@ var addLdpTypeIfLocal = (solidDataset, webId, targetUrl) => {
   try {
     var podRoot = getPodRoot$1(webId);
     if (!targetUrl.startsWith(podRoot)) return solidDataset;
-  } catch (_unused14) {
+  } catch (_unused12) {
     return solidDataset;
   }
   var isContainer = targetUrl.endsWith("/");
@@ -4144,32 +4320,64 @@ var isLocalPodResource = (webId, targetUrl) => {
   if (!webId || !targetUrl) return false;
   try {
     return targetUrl.startsWith(getPodRoot$1(webId));
-  } catch (_unused15) {
+  } catch (_unused13) {
     return false;
   }
 };
+var ensureRestrictedResourceAccess = /*#__PURE__*/function () {
+  var _ref30 = _asyncToGenerator(function* (session, resourceUrl) {
+    var _session$info4;
+    if (!(session !== null && session !== void 0 && (_session$info4 = session.info) !== null && _session$info4 !== void 0 && _session$info4.webId) || typeof session.fetch !== "function") {
+      throw new Error("An authenticated Solid session is required.");
+    }
+    if (!isLocalPodResource(session.info.webId, resourceUrl)) {
+      throw new Error("Restricted programmatic datasets must use a resource in the owner's Pod.");
+    }
+    yield setPublicReadAccess(resourceUrl, session.fetch, false);
+    var {
+      resourceAcl
+    } = yield getResourceAndAcl(resourceUrl, session.fetch);
+    var publicAccess = solidClient.getPublicResourceAccess(resourceAcl);
+    if (publicAccess.read || publicAccess.append || publicAccess.write || publicAccess.control) {
+      throw new Error("Resource still has public access after ACL update: ".concat(resourceUrl));
+    }
+  });
+  return function ensureRestrictedResourceAccess(_x63, _x64) {
+    return _ref30.apply(this, arguments);
+  };
+}();
 var syncLinkedResourceAccess = /*#__PURE__*/function () {
-  var _ref28 = _asyncToGenerator(function* (session, input) {
+  var _ref31 = _asyncToGenerator(function* (session, input) {
     var urls = [input.access_url_dataset, input.access_url_semantic_model].filter(Boolean);
     for (var url of urls) {
       var _session$info5;
-      if (!isLocalPodResource(session === null || session === void 0 || (_session$info5 = session.info) === null || _session$info5 === void 0 ? void 0 : _session$info5.webId, url)) continue;
+      if (!isLocalPodResource(session === null || session === void 0 || (_session$info5 = session.info) === null || _session$info5 === void 0 ? void 0 : _session$info5.webId, url)) {
+        if (input.strict_restricted_acl && !input.is_public) {
+          throw new Error("Restricted linked resource is outside the owner's Pod: ".concat(url));
+        }
+        continue;
+      }
       try {
-        yield setPublicReadAccess(url, session.fetch, Boolean(input.is_public));
+        if (input.strict_restricted_acl && !input.is_public) {
+          yield ensureRestrictedResourceAccess(session, url);
+        } else {
+          yield setPublicReadAccess(url, session.fetch, Boolean(input.is_public));
+        }
       } catch (err) {
         console.warn("Failed to sync linked resource ACL for", url, err);
-        if (input.is_public) {
-          throw new Error("Failed to make linked resource public: ".concat(url));
+        if (input.is_public || input.strict_restricted_acl) {
+          var accessLabel = input.is_public ? "public" : "restricted";
+          throw new Error("Failed to make linked resource ".concat(accessLabel, ": ").concat(url));
         }
       }
     }
   });
-  return function syncLinkedResourceAccess(_x57, _x58) {
-    return _ref28.apply(this, arguments);
+  return function syncLinkedResourceAccess(_x65, _x66) {
+    return _ref31.apply(this, arguments);
   };
 }();
 var writeDatasetDocument = /*#__PURE__*/function () {
-  var _ref29 = _asyncToGenerator(function* (session, datasetDocUrl, input) {
+  var _ref32 = _asyncToGenerator(function* (session, datasetDocUrl, input) {
     var solidDataset;
     try {
       solidDataset = yield solidClient.getSolidDataset(datasetDocUrl, {
@@ -4183,6 +4391,10 @@ var writeDatasetDocument = /*#__PURE__*/function () {
       }
     }
     var datasetThing = buildDatasetResource(datasetDocUrl, input);
+    var publisherThing = buildPublisherThing(input);
+    if (publisherThing) {
+      solidDataset = solidClient.setThing(solidDataset, publisherThing);
+    }
     var contactThing = buildContactThing(datasetDocUrl, input);
     if (contactThing) {
       solidDataset = solidClient.setThing(solidDataset, contactThing);
@@ -4212,12 +4424,12 @@ var writeDatasetDocument = /*#__PURE__*/function () {
     yield makePublicReadable(datasetDocUrl, session.fetch);
     yield syncLinkedResourceAccess(session, input);
   });
-  return function writeDatasetDocument(_x59, _x60, _x61) {
-    return _ref29.apply(this, arguments);
+  return function writeDatasetDocument(_x67, _x68, _x69) {
+    return _ref32.apply(this, arguments);
   };
 }();
 var writeSeriesDocument = /*#__PURE__*/function () {
-  var _ref30 = _asyncToGenerator(function* (session, seriesDocUrl, input) {
+  var _ref33 = _asyncToGenerator(function* (session, seriesDocUrl, input) {
     var solidDataset;
     try {
       solidDataset = yield solidClient.getSolidDataset(seriesDocUrl, {
@@ -4231,6 +4443,9 @@ var writeSeriesDocument = /*#__PURE__*/function () {
       }
     }
     var seriesThing = buildSeriesResource(seriesDocUrl, input);
+    if (input.__publisherThing) {
+      solidDataset = solidClient.setThing(solidDataset, input.__publisherThing);
+    }
     if (input.__contactThing) {
       solidDataset = solidClient.setThing(solidDataset, input.__contactThing);
     }
@@ -4246,40 +4461,32 @@ var writeSeriesDocument = /*#__PURE__*/function () {
     }
     // Skip ACL update here to avoid noisy 404s on servers without WAC ACL support.
   });
-  return function writeSeriesDocument(_x62, _x63, _x64) {
-    return _ref30.apply(this, arguments);
+  return function writeSeriesDocument(_x70, _x71, _x72) {
+    return _ref33.apply(this, arguments);
   };
 }();
 var updateCatalogDatasets = /*#__PURE__*/function () {
-  var _ref31 = _asyncToGenerator(function* (session, catalogDocUrl, datasetUrl) {
+  var _ref34 = _asyncToGenerator(function* (session, catalogDocUrl, datasetUrl) {
     var {
       remove
     } = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : {};
-    var current = new Set();
-    try {
-      var catalogDataset = yield solidClient.getSolidDataset(catalogDocUrl, {
-        fetch: session.fetch
-      });
-      var catalogThing = solidClient.getThing(catalogDataset, "".concat(catalogDocUrl, "#it"));
-      var existing = catalogThing ? solidClient.getUrlAll(catalogThing, vocabCommonRdf.DCAT.dataset) : [];
-      current = new Set(existing.map(url => toCatalogDatasetRef(catalogDocUrl, url)));
-    } catch (_unused16) {
-      current = new Set();
-    }
     var datasetRef = toCatalogDatasetRef(catalogDocUrl, datasetUrl);
-    if (remove) {
-      current.delete(datasetRef);
-    } else {
-      current.add(datasetRef);
-    }
-    yield writeCatalogDoc(session, catalogDocUrl, Array.from(current));
+    yield mutateCatalogDocument(session, catalogDocUrl, current => {
+      if (remove) {
+        current.delete(datasetRef);
+      } else {
+        current.add(datasetRef);
+      }
+      return current;
+    });
+    yield makePublicReadable(catalogDocUrl, session.fetch);
   });
-  return function updateCatalogDatasets(_x65, _x66, _x67) {
-    return _ref31.apply(this, arguments);
+  return function updateCatalogDatasets(_x73, _x74, _x75) {
+    return _ref34.apply(this, arguments);
   };
 }();
 var linkDatasetToSeries = /*#__PURE__*/function () {
-  var _ref32 = _asyncToGenerator(function* (session, datasetUrl, seriesUrl) {
+  var _ref35 = _asyncToGenerator(function* (session, datasetUrl, seriesUrl) {
     if (!datasetUrl || !seriesUrl) return;
     var datasetDocUrl = getDocumentUrl(datasetUrl);
     var solidDataset;
@@ -4305,12 +4512,12 @@ var linkDatasetToSeries = /*#__PURE__*/function () {
     });
     yield makePublicReadable(datasetDocUrl, session.fetch);
   });
-  return function linkDatasetToSeries(_x68, _x69, _x70) {
-    return _ref32.apply(this, arguments);
+  return function linkDatasetToSeries(_x76, _x77, _x78) {
+    return _ref35.apply(this, arguments);
   };
 }();
 var unlinkDatasetFromSeries = /*#__PURE__*/function () {
-  var _ref33 = _asyncToGenerator(function* (session, datasetUrl, seriesUrl) {
+  var _ref36 = _asyncToGenerator(function* (session, datasetUrl, seriesUrl) {
     if (!datasetUrl || !seriesUrl) return;
     var datasetDocUrl = getDocumentUrl(datasetUrl);
     var solidDataset;
@@ -4337,12 +4544,12 @@ var unlinkDatasetFromSeries = /*#__PURE__*/function () {
       fetch: session.fetch
     });
   });
-  return function unlinkDatasetFromSeries(_x71, _x72, _x73) {
-    return _ref33.apply(this, arguments);
+  return function unlinkDatasetFromSeries(_x79, _x80, _x81) {
+    return _ref36.apply(this, arguments);
   };
 }();
 var writeRecordDocument = /*#__PURE__*/function () {
-  var _ref34 = _asyncToGenerator(function* (session, datasetDocUrl, identifier) {
+  var _ref37 = _asyncToGenerator(function* (session, datasetDocUrl, identifier) {
     var recordDocUrl = "".concat(getPodRoot$1(session.info.webId)).concat(RECORDS_CONTAINER).concat(identifier, ".ttl");
     var recordDataset;
     try {
@@ -4350,8 +4557,8 @@ var writeRecordDocument = /*#__PURE__*/function () {
         fetch: session.fetch
       });
     } catch (err) {
-      var _err$response7;
-      if ((err === null || err === void 0 ? void 0 : err.statusCode) === 404 || (err === null || err === void 0 || (_err$response7 = err.response) === null || _err$response7 === void 0 ? void 0 : _err$response7.status) === 404) {
+      var _err$response6;
+      if ((err === null || err === void 0 ? void 0 : err.statusCode) === 404 || (err === null || err === void 0 || (_err$response6 = err.response) === null || _err$response6 === void 0 ? void 0 : _err$response6.status) === 404) {
         recordDataset = solidClient.createSolidDataset();
       } else {
         throw err;
@@ -4397,8 +4604,8 @@ var writeRecordDocument = /*#__PURE__*/function () {
     });
     yield makePublicReadable(recordDocUrl, session.fetch);
   });
-  return function writeRecordDocument(_x74, _x75, _x76) {
-    return _ref34.apply(this, arguments);
+  return function writeRecordDocument(_x82, _x83, _x84) {
+    return _ref37.apply(this, arguments);
   };
 }();
 var generateIdentifier = () => {
@@ -4408,7 +4615,7 @@ var generateIdentifier = () => {
   return "dataset-".concat(Date.now());
 };
 var createDataset = /*#__PURE__*/function () {
-  var _ref35 = _asyncToGenerator(function* (session, input) {
+  var _ref38 = _asyncToGenerator(function* (session, input) {
     yield ensureCatalogStructure(session);
     validateDatasetInput(input);
     var identifier = input.identifier || generateIdentifier();
@@ -4427,12 +4634,12 @@ var createDataset = /*#__PURE__*/function () {
       identifier
     };
   });
-  return function createDataset(_x77, _x78) {
-    return _ref35.apply(this, arguments);
+  return function createDataset(_x85, _x86) {
+    return _ref38.apply(this, arguments);
   };
 }();
 var createDatasetSeries = /*#__PURE__*/function () {
-  var _ref36 = _asyncToGenerator(function* (session, input) {
+  var _ref39 = _asyncToGenerator(function* (session, input) {
     var _session$info8;
     if (!(session !== null && session !== void 0 && (_session$info8 = session.info) !== null && _session$info8 !== void 0 && _session$info8.webId)) throw new Error("No Solid WebID available.");
     yield ensureCatalogStructure(session);
@@ -4457,12 +4664,12 @@ var createDatasetSeries = /*#__PURE__*/function () {
       identifier
     };
   });
-  return function createDatasetSeries(_x79, _x80) {
-    return _ref36.apply(this, arguments);
+  return function createDatasetSeries(_x87, _x88) {
+    return _ref39.apply(this, arguments);
   };
 }();
 var updateDataset = /*#__PURE__*/function () {
-  var _ref37 = _asyncToGenerator(function* (session, input) {
+  var _ref40 = _asyncToGenerator(function* (session, input) {
     if (!input.datasetUrl) throw new Error("Missing dataset URL.");
     validateDatasetInput(input);
     var datasetDocUrl = getDocumentUrl(input.datasetUrl);
@@ -4475,12 +4682,12 @@ var updateDataset = /*#__PURE__*/function () {
     }
     clearCache();
   });
-  return function updateDataset(_x81, _x82) {
-    return _ref37.apply(this, arguments);
+  return function updateDataset(_x89, _x90) {
+    return _ref40.apply(this, arguments);
   };
 }();
 var updateDatasetSeries = /*#__PURE__*/function () {
-  var _ref38 = _asyncToGenerator(function* (session, input) {
+  var _ref41 = _asyncToGenerator(function* (session, input) {
     var seriesUrl = input.seriesUrl || input.datasetUrl;
     if (!seriesUrl) throw new Error("Missing series URL.");
     var seriesDocUrl = getDocumentUrl(seriesUrl);
@@ -4516,12 +4723,12 @@ var updateDatasetSeries = /*#__PURE__*/function () {
     }
     clearCache();
   });
-  return function updateDatasetSeries(_x83, _x84) {
-    return _ref38.apply(this, arguments);
+  return function updateDatasetSeries(_x91, _x92) {
+    return _ref41.apply(this, arguments);
   };
 }();
 var deleteSeriesEntry = /*#__PURE__*/function () {
-  var _ref39 = _asyncToGenerator(function* (session, seriesUrl, identifier) {
+  var _ref42 = _asyncToGenerator(function* (session, seriesUrl, identifier) {
     if (!seriesUrl) return;
     var seriesDocUrl = getDocumentUrl(seriesUrl);
     var memberUrls = [];
@@ -4551,42 +4758,35 @@ var deleteSeriesEntry = /*#__PURE__*/function () {
     }
     clearCache();
   });
-  return function deleteSeriesEntry(_x85, _x86, _x87) {
-    return _ref39.apply(this, arguments);
+  return function deleteSeriesEntry(_x93, _x94, _x95) {
+    return _ref42.apply(this, arguments);
   };
 }();
 var deleteDatasetEntry = /*#__PURE__*/function () {
-  var _ref40 = _asyncToGenerator(function* (session, datasetUrl, identifier) {
+  var _ref43 = _asyncToGenerator(function* (session, datasetUrl, identifier) {
     if (!datasetUrl) return;
     var datasetDocUrl = getDocumentUrl(datasetUrl);
-    yield updateCatalogDatasets(session, getCatalogDocUrl(session.info.webId), datasetUrl, {
-      remove: true
-    });
     try {
-      yield solidClient.deleteFile(datasetDocUrl, {
-        fetch: session.fetch
+      var recordDocUrl = identifier ? "".concat(getPodRoot$1(session.info.webId)).concat(RECORDS_CONTAINER).concat(identifier, ".ttl") : "";
+      yield updateCatalogDatasets(session, getCatalogDocUrl(session.info.webId), datasetUrl, {
+        remove: true
       });
-    } catch (err) {
-      console.warn("Failed to delete dataset doc", datasetDocUrl, err);
+      yield deleteCatalogDatasetDocuments({
+        datasetDocUrl,
+        recordDocUrl,
+        fetch: session.fetch,
+        deleteResource: solidClient.deleteFile
+      });
+    } finally {
+      clearCache();
     }
-    if (identifier) {
-      var recordDocUrl = "".concat(getPodRoot$1(session.info.webId)).concat(RECORDS_CONTAINER).concat(identifier, ".ttl");
-      try {
-        yield solidClient.deleteFile(recordDocUrl, {
-          fetch: session.fetch
-        });
-      } catch (err) {
-        console.warn("Failed to delete record doc", recordDocUrl, err);
-      }
-    }
-    clearCache();
   });
-  return function deleteDatasetEntry(_x88, _x89, _x90) {
-    return _ref40.apply(this, arguments);
+  return function deleteDatasetEntry(_x96, _x97, _x98) {
+    return _ref43.apply(this, arguments);
   };
 }();
 var cleanupCatalogSeriesLinks = /*#__PURE__*/function () {
-  var _ref41 = _asyncToGenerator(function* (session) {
+  var _ref44 = _asyncToGenerator(function* (session) {
     var _session$info9;
     if (!(session !== null && session !== void 0 && (_session$info9 = session.info) !== null && _session$info9 !== void 0 && _session$info9.webId)) throw new Error("No Solid WebID available.");
     var catalogDocUrl = getCatalogDocUrl(session.info.webId);
@@ -4628,15 +4828,19 @@ var cleanupCatalogSeriesLinks = /*#__PURE__*/function () {
         console.warn("Cleanup failed for resource", resourceUrl, err);
       }
     }
-    yield writeCatalogDoc(session, catalogDocUrl, Array.from(finalRefs));
+    yield mutateCatalogDocument(session, catalogDocUrl, current => {
+      finalRefs.forEach(ref => current.add(ref));
+      return current;
+    });
+    yield makePublicReadable(catalogDocUrl, session.fetch);
     clearCache();
   });
-  return function cleanupCatalogSeriesLinks(_x91) {
-    return _ref41.apply(this, arguments);
+  return function cleanupCatalogSeriesLinks(_x99) {
+    return _ref44.apply(this, arguments);
   };
 }();
 var parseTurtleIntoStore = /*#__PURE__*/function () {
-  var _ref42 = _asyncToGenerator(function* (store, turtle, baseIRI) {
+  var _ref45 = _asyncToGenerator(function* (store, turtle, baseIRI) {
     return new Promise((resolve, reject) => {
       var parser = new Parser({
         baseIRI
@@ -4654,8 +4858,8 @@ var parseTurtleIntoStore = /*#__PURE__*/function () {
       });
     });
   });
-  return function parseTurtleIntoStore(_x92, _x93, _x94) {
-    return _ref42.apply(this, arguments);
+  return function parseTurtleIntoStore(_x100, _x101, _x102) {
+    return _ref45.apply(this, arguments);
   };
 }();
 var createQuadStore = () => {
@@ -4666,7 +4870,7 @@ var createQuadStore = () => {
   };
 };
 var buildMergedCatalogDownload = /*#__PURE__*/function () {
-  var _ref43 = _asyncToGenerator(function* (session) {
+  var _ref46 = _asyncToGenerator(function* (session) {
     var {
       catalogs = [],
       datasets = []
@@ -4712,8 +4916,8 @@ var buildMergedCatalogDownload = /*#__PURE__*/function () {
       });
     });
   });
-  return function buildMergedCatalogDownload(_x95) {
-    return _ref43.apply(this, arguments);
+  return function buildMergedCatalogDownload(_x103) {
+    return _ref46.apply(this, arguments);
   };
 }();
 
@@ -6812,6 +7016,34 @@ var downloadCatalogResource = /*#__PURE__*/function () {
   };
 }();
 
+var normalizeSolidProfileEmail = value => {
+  var normalized = String(value || "").trim().replace(/^mailto:/i, "");
+  if (!normalized || normalized.includes(":") || /\s/.test(normalized)) return "";
+  var at = normalized.indexOf("@");
+  if (at <= 0 || at !== normalized.lastIndexOf("@") || at === normalized.length - 1) {
+    return "";
+  }
+  return normalized;
+};
+var getSolidProfileEmail = (profileDataset, profile) => {
+  if (!profileDataset || !profile) return "";
+  for (var emailReference of solidClient.getUrlAll(profile, vocabCommonRdf.VCARD.hasEmail) || []) {
+    if (emailReference.toLowerCase().startsWith("mailto:")) {
+      var _email = normalizeSolidProfileEmail(emailReference);
+      if (_email) return _email;
+      continue;
+    }
+    var emailThing = solidClient.getThing(profileDataset, emailReference);
+    var email = emailThing ? normalizeSolidProfileEmail(solidClient.getUrl(emailThing, vocabCommonRdf.VCARD.value) || "") : "";
+    if (email) return email;
+  }
+  for (var directEmail of solidClient.getUrlAll(profile, vocabCommonRdf.VCARD.email) || []) {
+    var _email2 = normalizeSolidProfileEmail(directEmail);
+    if (_email2) return _email2;
+  }
+  return "";
+};
+
 var getPodRootFromWebId = webId => {
   if (!webId) return "";
   try {
@@ -7055,7 +7287,7 @@ var DatasetDetailModal = _ref => {
     var ownerWebId = (dataset === null || dataset === void 0 ? void 0 : dataset.webid) || "";
     var fallbackProfile = {
       name: (dataset === null || dataset === void 0 ? void 0 : dataset.publisher) || "Solid Pod User",
-      email: (dataset === null || dataset === void 0 ? void 0 : dataset.contact_point) || "No email provided",
+      email: getContactPointHref(dataset === null || dataset === void 0 ? void 0 : dataset.contact_point, dataset === null || dataset === void 0 ? void 0 : dataset.contact_point_type).startsWith("mailto:") ? dataset.contact_point : "No email provided",
       photo: "",
       webId: ownerWebId
     };
@@ -7070,19 +7302,13 @@ var DatasetDetailModal = _ref => {
           var profileDataset = yield solidClient.getSolidDataset(profileDocUrl, {
             fetch: session.fetch
           });
-          var profile = solidClient.getThing(profileDataset, ownerWebId);
+          var profile = solidClient.getThing(profileDataset, ownerWebId) || solidClient.getThingAll(profileDataset).find(thing => thing.url === ownerWebId);
           if (!profile) {
             if (!cancelled) setOwnerProfile(fallbackProfile);
             return;
           }
           var name = solidClient.getStringNoLocale(profile, vocabCommonRdf.FOAF.name) || solidClient.getStringNoLocale(profile, vocabCommonRdf.VCARD.fn) || fallbackProfile.name;
-          var emailNode = solidClient.getUrlAll(profile, vocabCommonRdf.VCARD.hasEmail)[0];
-          var email = fallbackProfile.email;
-          if (emailNode) {
-            var emailThing = solidClient.getThing(profileDataset, emailNode);
-            var emailValue = emailThing ? solidClient.getStringNoLocale(emailThing, vocabCommonRdf.VCARD.value) : "";
-            email = emailValue ? emailValue.replace(/^mailto:/, "") : email;
-          }
+          var email = getSolidProfileEmail(profileDataset, profile) || fallbackProfile.email;
           var photoRef = solidClient.getUrl(profile, vocabCommonRdf.VCARD.hasPhoto) || solidClient.getUrl(profile, vocabCommonRdf.FOAF.img);
           var photo = "";
           if (photoRef) {
@@ -7148,6 +7374,9 @@ var DatasetDetailModal = _ref => {
   var descriptionValue = dataset.description || "No description provided.";
   var themeValues = String(dataset.theme || "").split(/[,;|]/).map(value => value.trim()).filter(Boolean);
   var accessRightsValue = dataset.is_public ? "Public" : hasUserAccess ? "Restricted (you have access)" : "Restricted";
+  var contactPointHref = getContactPointHref(dataset.contact_point, dataset.contact_point_type);
+  var contactPointIsWeb = contactPointHref.startsWith("http");
+  var publisherHref = getCatalogWebHref(dataset.publisher_url);
   var detailRows = [{
     predicate: "dct:identifier",
     value: dataset.identifier
@@ -7159,12 +7388,18 @@ var DatasetDetailModal = _ref => {
     value: formatDate(dataset.modified)
   }, {
     predicate: "dct:publisher",
-    value: dataset.publisher
+    value: publisherHref ? /*#__PURE__*/React.createElement("a", {
+      href: publisherHref,
+      target: "_blank",
+      rel: "noopener noreferrer"
+    }, dataset.publisher || publisherHref) : dataset.publisher
   }, {
     predicate: "dcat:contactPoint",
-    value: dataset.contact_point ? /*#__PURE__*/React.createElement("a", {
-      href: "mailto:".concat(dataset.contact_point)
-    }, dataset.contact_point) : null
+    value: dataset.contact_point ? contactPointHref ? /*#__PURE__*/React.createElement("a", {
+      href: contactPointHref,
+      target: contactPointIsWeb ? "_blank" : undefined,
+      rel: contactPointIsWeb ? "noopener noreferrer" : undefined
+    }, dataset.contact_point) : dataset.contact_point : null
   }, {
     predicate: "dct:creator",
     value: dataset.webid ? /*#__PURE__*/React.createElement("a", {
@@ -13925,7 +14160,7 @@ var HeaderBar = _ref => {
     className: "highlight"
   }, "Data"), " Catalog")))), /*#__PURE__*/React.createElement("div", {
     className: "header-right header-right--catalog"
-  }, languageControl, userInfo.loggedIn ? /*#__PURE__*/React.createElement("div", {
+  }, userInfo.loggedIn ? /*#__PURE__*/React.createElement("div", {
     className: "header-user"
   }, userInfo.photo && /*#__PURE__*/React.createElement("img", {
     src: userInfo.photo,
@@ -13935,14 +14170,14 @@ var HeaderBar = _ref => {
     className: "header-user-name"
   }, /*#__PURE__*/React.createElement("strong", null, userInfo.name || "Solid User"), ' ', /*#__PURE__*/React.createElement("span", {
     className: "header-user-webid"
-  }, "(", userInfo.webId, ")")), /*#__PURE__*/React.createElement("button", {
+  }, "(", userInfo.webId, ")")), languageControl, /*#__PURE__*/React.createElement("button", {
     className: "btn btn-light btn-sm header-logout",
     onClick: handleLogout
   }, /*#__PURE__*/React.createElement("i", {
     className: "fa-solid fa-right-from-bracket mr-1"
   }), " Logout")) : /*#__PURE__*/React.createElement("div", {
     className: "d-flex align-items-center"
-  }, /*#__PURE__*/React.createElement("span", {
+  }, languageControl, /*#__PURE__*/React.createElement("span", {
     className: "mr-3"
   }, /*#__PURE__*/React.createElement("strong", null, "Not logged in")), /*#__PURE__*/React.createElement("button", {
     className: "btn btn-outline-primary btn-sm",
@@ -13959,7 +14194,7 @@ var HeaderBar = _ref => {
   }));
 };
 
-var appVersion = "0.8.61";
+var appVersion = "0.8.63";
 
 var FooterBar = () => {
   return /*#__PURE__*/React.createElement("footer", {
@@ -16111,10 +16346,11 @@ var App = function App() {
     var ActiveLoginScreen = LoginScreenComponent;
     return renderWithI18n(/*#__PURE__*/React.createElement("div", {
       className: "standalone-login-page"
-    }, /*#__PURE__*/React.createElement(LanguageSelect, {
-      className: "language-select--standalone"
-    }), ActiveLoginScreen && /*#__PURE__*/React.createElement(ActiveLoginScreen, {
+    }, ActiveLoginScreen && /*#__PURE__*/React.createElement(ActiveLoginScreen, {
       defaultIssuer: issuer,
+      languageControl: /*#__PURE__*/React.createElement(LanguageSelect, {
+        className: "language-select--login"
+      }),
       onLogin: nextIssuer => {
         setIssuer(nextIssuer);
         loginToSolid(nextIssuer);
