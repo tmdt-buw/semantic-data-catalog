@@ -1,6 +1,8 @@
 @import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap");
 
 :root {
+    --semantic-catalog-standalone-scale: 0.7;
+    --dataspace-scaled-vh: 100vh;
     --primary: #1d4ed8;
     --primary-ghost: #eaf2ff;
     --text: #0f172a;
@@ -12,6 +14,12 @@
     --radius: 18px;
 }
 
+@supports (height: 100dvh) {
+    :root {
+        --dataspace-scaled-vh: 100dvh;
+    }
+}
+
 body {
     font-family: "Manrope", "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
     background-color: var(--bg);
@@ -19,11 +27,36 @@ body {
     padding: 0;
     color: var(--text);
     font-size: 15px;
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow-x: hidden;
 }
 
 @media (min-width: 900px) {
+    :root {
+        --dataspace-scaled-vh: calc(100vh / var(--semantic-catalog-standalone-scale));
+    }
+
     body {
-        zoom: 0.7;
+        zoom: var(--semantic-catalog-standalone-scale);
+    }
+
+    html.browser-safari {
+        --dataspace-scaled-vh: 100vh;
+    }
+
+    html.browser-safari body {
+        zoom: 1;
+    }
+
+    @supports (height: 100dvh) {
+        :root {
+            --dataspace-scaled-vh: calc(100dvh / var(--semantic-catalog-standalone-scale));
+        }
+
+        html.browser-safari {
+            --dataspace-scaled-vh: 100dvh;
+        }
     }
 }
 
@@ -176,6 +209,7 @@ table tbody tr:hover {
 
 .dataset-add-modal:not(.dataset-detail-modal) {
     background: rgba(15, 23, 42, 0.58);
+    -webkit-backdrop-filter: blur(2px);
     backdrop-filter: blur(2px);
     box-sizing: border-box;
     padding: 8px;
@@ -919,6 +953,7 @@ button {
   justify-content: center;
   padding: 24px;
   background: rgba(15, 23, 42, 0.5);
+  -webkit-backdrop-filter: blur(2px);
   backdrop-filter: blur(2px);
 }
 .pod-folder-modal {
@@ -1437,6 +1472,7 @@ button {
   border: 1px solid #e2e8f0;
   background: #ffffff;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
   flex-wrap: wrap;
   box-sizing: border-box;

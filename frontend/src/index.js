@@ -4,7 +4,10 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import LoginScreen from './components/LoginScreen';
 import { restoreSession } from './solidSession';
+import { markSafariBrowser } from './safariDetection';
 import './LoginScreen.css';
+
+markSafariBrowser();
 
 const rootElement = document.getElementById('root');
 

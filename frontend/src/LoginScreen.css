@@ -331,7 +331,7 @@
 }
 
 .standalone-login-page {
-  min-height: calc(100vh / 0.7);
+  min-height: var(--dataspace-scaled-vh, 100vh);
   display: flex;
   align-items: flex-start;
   justify-content: center;
