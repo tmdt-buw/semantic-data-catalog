@@ -1,8 +1,10 @@
 import {
+  assertCatalogDatasetDeletionTarget,
   createDataset,
   deleteDatasetEntry,
   ensureRestrictedResourceAccess,
   getPodRoot,
+  loadRegistryConfig,
 } from "./solidCatalog";
 
 const IDENTIFIER_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
@@ -30,6 +32,29 @@ const normalizeContactUrl = (value) => {
   }
 };
 
+const normalizePodRoot = (value) => {
+  if (value === undefined || value === null || value === "") return "";
+  if (typeof value !== "string" || value.trim() !== value) {
+    throw new Error("Pod root must be an absolute HTTP(S) container URL.");
+  }
+  let url;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error("Pod root must be an absolute HTTP(S) container URL.");
+  }
+  if (
+    (url.protocol !== "https:" && url.protocol !== "http:") ||
+    url.username ||
+    url.password ||
+    url.search ||
+    url.hash
+  ) {
+    throw new Error("Pod root must be an absolute HTTP(S) container URL.");
+  }
+  return url.href.endsWith("/") ? url.href : `${url.href}/`;
+};
+
 export function normalizeRestrictedDatasetInput(session, input = {}) {
   if (!session?.info?.webId || typeof session.fetch !== "function") {
     throw new Error("An authenticated Solid session is required.");
@@ -53,6 +78,7 @@ export function normalizeRestrictedDatasetInput(session, input = {}) {
     contactPoint;
 
   return {
+    podRoot: normalizePodRoot(input.podRoot || input.pod_root),
     identifier,
     title: String(input.title || "").trim(),
     description: String(input.description || "").trim(),
@@ -75,20 +101,46 @@ export function normalizeRestrictedDatasetInput(session, input = {}) {
     distribution_access_type: "download",
     is_public: false,
     strict_restricted_acl: true,
+    require_discoverable_registry:
+      input.requireDiscoverableRegistry === true ||
+      input.require_discoverable_registry === true,
   };
 }
 
 export async function publishRestrictedDataset(session, input = {}) {
   const normalized = normalizeRestrictedDatasetInput(session, input);
-  const podRoot = getPodRoot(session.info.webId);
+  const podRoot = normalized.podRoot || getPodRoot(session.info.webId);
   const datasetUrl = `${podRoot}catalog/ds/${normalized.identifier}.ttl#it`;
   const recordUrl = `${podRoot}catalog/records/${normalized.identifier}.ttl`;
 
-  await ensureRestrictedResourceAccess(session, normalized.access_url_dataset);
+  if (normalized.require_discoverable_registry) {
+    const registryConfig = await loadRegistryConfig(
+      session.info.webId,
+      session.fetch,
+      { podRoot }
+    );
+    if (
+      registryConfig?.mode !== "research" ||
+      !Array.isArray(registryConfig.registries) ||
+      registryConfig.registries.length === 0
+    ) {
+      const error = new Error(
+        "A public Dataspace registry must be configured before this dataset can be published."
+      );
+      error.code = "discoverable-registry-required";
+      throw error;
+    }
+    normalized.registryConfig = registryConfig;
+  }
+
+  await ensureRestrictedResourceAccess(session, normalized.access_url_dataset, {
+    podRoot,
+  });
   if (normalized.access_url_semantic_model) {
     await ensureRestrictedResourceAccess(
       session,
-      normalized.access_url_semantic_model
+      normalized.access_url_semantic_model,
+      { podRoot }
     );
   }
 
@@ -101,7 +153,7 @@ export async function publishRestrictedDataset(session, input = {}) {
     };
   } catch (error) {
     try {
-      await deleteDatasetEntry(session, datasetUrl, normalized.identifier);
+      await deleteDatasetEntry(session, datasetUrl, normalized.identifier, { podRoot });
     } catch (cleanupError) {
       console.warn("Failed to clean up incomplete restricted dataset metadata.", cleanupError);
     }
@@ -114,6 +166,8 @@ export async function removeDataset(session, reference = {}) {
     throw new Error("An authenticated Solid session is required.");
   }
   const input = typeof reference === "string" ? { datasetUrl: reference } : reference;
+  const explicitPodRoot = normalizePodRoot(input.podRoot || input.pod_root);
+  const podRoot = explicitPodRoot || getPodRoot(session.info.webId);
   const identifier = String(input.identifier || "").trim();
   if (identifier && !IDENTIFIER_PATTERN.test(identifier)) {
     throw new Error("Dataset identifier contains unsupported characters.");
@@ -121,11 +175,16 @@ export async function removeDataset(session, reference = {}) {
   const datasetUrl = String(
     input.datasetUrl ||
       (identifier
-        ? `${getPodRoot(session.info.webId)}catalog/ds/${identifier}.ttl#it`
+        ? `${podRoot}catalog/ds/${identifier}.ttl#it`
         : "")
   ).trim();
   if (!datasetUrl) throw new Error("datasetUrl or identifier is required.");
+  const safeDatasetUrl = assertCatalogDatasetDeletionTarget(
+    podRoot,
+    datasetUrl,
+    identifier
+  );
 
-  await deleteDatasetEntry(session, datasetUrl, identifier);
-  return { removed: true, datasetUrl, identifier };
+  await deleteDatasetEntry(session, safeDatasetUrl, identifier, { podRoot });
+  return { removed: true, datasetUrl: safeDatasetUrl, identifier };
 }

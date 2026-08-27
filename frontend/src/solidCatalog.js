@@ -39,6 +39,7 @@ const DATASET_CONTAINER = "catalog/ds/";
 const SERIES_CONTAINER = "catalog/series/";
 const RECORDS_CONTAINER = "catalog/records/";
 const CATALOG_DOC = "catalog/cat.ttl";
+const CATALOG_IDENTIFIER_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
 
 const CACHE_KEY = "sdm.catalog.cache.v1";
 const CACHE_TTL_MS = 0;
@@ -390,9 +391,9 @@ export const getPodRoot = (webId) => {
   return `${url.origin}${basePath}`;
 };
 
-export const buildDefaultPrivateRegistry = (webId) => {
-  if (!webId) return "";
-  return `${getPodRoot(webId)}registry/`;
+export const buildDefaultPrivateRegistry = (webId, podRoot = "") => {
+  if (!webId && !podRoot) return "";
+  return `${podRoot || getPodRoot(webId)}registry/`;
 };
 
 const normalizeContainerUrl = (value) => {
@@ -465,11 +466,86 @@ const setLocaleString = (thing, predicate, value) => {
   return setStringNoLocale(thing, predicate, value);
 };
 
-const getCatalogDocUrl = (webId) => `${getPodRoot(webId)}${CATALOG_DOC}`;
-const getCatalogResourceUrl = (webId) => `${getCatalogDocUrl(webId)}#it`;
+const getCatalogDocUrl = (webId, podRoot = "") =>
+  `${podRoot || getPodRoot(webId)}${CATALOG_DOC}`;
+const getCatalogResourceUrl = (webId, podRoot = "") =>
+  `${getCatalogDocUrl(webId, podRoot)}#it`;
 const getSeriesDocUrl = (webId, identifier) =>
   `${getPodRoot(webId)}${SERIES_CONTAINER}${identifier}.ttl`;
 const getSeriesResourceUrl = (seriesDocUrl) => `${seriesDocUrl}#it`;
+
+export const assertCatalogDatasetDeletionTarget = (
+  podRoot,
+  datasetUrl,
+  identifier = ""
+) => {
+  const fail = () => {
+    throw new Error(
+      "Dataset URL must identify a direct catalog/ds/{identifier}.ttl#it resource in the selected Pod."
+    );
+  };
+
+  if (
+    typeof podRoot !== "string" ||
+    !podRoot ||
+    podRoot.trim() !== podRoot ||
+    typeof datasetUrl !== "string" ||
+    !datasetUrl ||
+    datasetUrl.trim() !== datasetUrl
+  ) {
+    return fail();
+  }
+
+  let root;
+  let candidate;
+  try {
+    root = new URL(podRoot);
+    candidate = new URL(datasetUrl);
+  } catch {
+    return fail();
+  }
+  if (
+    (root.protocol !== "https:" && root.protocol !== "http:") ||
+    root.username ||
+    root.password ||
+    root.search ||
+    root.hash ||
+    (candidate.protocol !== "https:" && candidate.protocol !== "http:") ||
+    candidate.username ||
+    candidate.password ||
+    candidate.search ||
+    candidate.hash !== "#it"
+  ) {
+    return fail();
+  }
+
+  if (!root.pathname.endsWith("/")) root.pathname = `${root.pathname}/`;
+  const datasetContainer = new URL(DATASET_CONTAINER, root);
+  if (
+    candidate.origin !== datasetContainer.origin ||
+    !candidate.pathname.startsWith(datasetContainer.pathname)
+  ) {
+    return fail();
+  }
+  const fileName = candidate.pathname.slice(datasetContainer.pathname.length);
+  if (
+    !fileName ||
+    fileName.includes("/") ||
+    !fileName.endsWith(".ttl") ||
+    !CATALOG_IDENTIFIER_PATTERN.test(fileName.slice(0, -4))
+  ) {
+    return fail();
+  }
+
+  const normalizedIdentifier = String(identifier || "").trim();
+  if (normalizedIdentifier) {
+    if (!CATALOG_IDENTIFIER_PATTERN.test(normalizedIdentifier)) return fail();
+    const expected = new URL(`${normalizedIdentifier}.ttl#it`, datasetContainer).href;
+    if (candidate.href !== expected) return fail();
+  }
+  return candidate.href;
+};
+
 const DISTRIBUTION_ACCESS_TYPES = {
   download: "download",
   access: "access",
@@ -583,7 +659,7 @@ const setCatalogLinkInProfile = async (webId, catalogUrl, fetch) => {
   await saveSolidDatasetAt(profileDocUrl, updatedProfile, { fetch });
 };
 
-export const loadRegistryConfig = async (webId, fetch) => {
+export const loadRegistryConfig = async (webId, fetch, { podRoot = "" } = {}) => {
   if (!webId || !fetch) {
     return { mode: "research", registries: [], privateRegistry: "" };
   }
@@ -596,7 +672,8 @@ export const loadRegistryConfig = async (webId, fetch) => {
       .filter(Boolean)
       .map((url) => url.replace(/\/+$/, ""));
     const privateRegistry =
-      getUrl(profileThing, SDM_PRIVATE_REGISTRY) || buildDefaultPrivateRegistry(webId);
+      getUrl(profileThing, SDM_PRIVATE_REGISTRY) ||
+      buildDefaultPrivateRegistry(webId, podRoot);
     return {
       mode: mode === "private" ? "private" : "research",
       registries,
@@ -607,12 +684,17 @@ export const loadRegistryConfig = async (webId, fetch) => {
     return {
       mode: "research",
       registries: [],
-      privateRegistry: buildDefaultPrivateRegistry(webId),
+      privateRegistry: buildDefaultPrivateRegistry(webId, podRoot),
     };
   }
 };
 
-export const saveRegistryConfig = async (webId, fetch, config) => {
+export const saveRegistryConfig = async (
+  webId,
+  fetch,
+  config,
+  { podRoot = "" } = {}
+) => {
   if (!webId || !fetch) return;
   const profileDocUrl = webId.split("#")[0];
   const profileDataset = await getSolidDataset(profileDocUrl, { fetch });
@@ -625,7 +707,8 @@ export const saveRegistryConfig = async (webId, fetch, config) => {
   const registries = (config?.registries || [])
     .filter(Boolean)
     .map((url) => url.replace(/\/+$/, ""));
-  const privateRegistry = config?.privateRegistry || buildDefaultPrivateRegistry(webId);
+  const privateRegistry =
+    config?.privateRegistry || buildDefaultPrivateRegistry(webId, podRoot);
 
   profileThing = removeAll(profileThing, SDM_REGISTRY_MODE);
   profileThing = setStringNoLocale(profileThing, SDM_REGISTRY_MODE, mode);
@@ -650,22 +733,25 @@ const ensureRegistryContainer = async (containerUrl, fetch) => {
 export const ensurePrivateRegistryContainer = async (
   webId,
   fetch,
-  privateRegistryUrl
+  privateRegistryUrl,
+  { podRoot = "" } = {}
 ) => {
   if (!webId || !fetch) return "";
   const target =
-    normalizeContainerUrl(privateRegistryUrl || buildDefaultPrivateRegistry(webId));
+    normalizeContainerUrl(
+      privateRegistryUrl || buildDefaultPrivateRegistry(webId, podRoot)
+    );
   if (!target) return "";
   await ensureRegistryContainer(target, fetch);
   return target;
 };
 
-const resolveRegistryConfig = async (webId, fetch, override) => {
-  const base = override || (await loadRegistryConfig(webId, fetch));
+const resolveRegistryConfig = async (webId, fetch, override, podRoot = "") => {
+  const base = override || (await loadRegistryConfig(webId, fetch, { podRoot }));
   const mode = base?.mode === "private" ? "private" : "research";
   const registries = (base?.registries || []).filter(Boolean);
   const privateRegistry =
-    base?.privateRegistry || buildDefaultPrivateRegistry(webId);
+    base?.privateRegistry || buildDefaultPrivateRegistry(webId, podRoot);
   return { mode, registries, privateRegistry };
 };
 
@@ -719,9 +805,14 @@ const registerWebIdInRegistryContainer = async (
   }
 };
 
-const registerWebIdInRegistries = async (webId, fetch, registryConfig) => {
+const registerWebIdInRegistries = async (
+  webId,
+  fetch,
+  registryConfig,
+  podRoot = ""
+) => {
   if (!webId) return;
-  const config = await resolveRegistryConfig(webId, fetch, registryConfig);
+  const config = await resolveRegistryConfig(webId, fetch, registryConfig, podRoot);
   let containers = [];
   let allowCreate = false;
 
@@ -824,13 +915,13 @@ export const syncRegistryMembersInContainer = async (
 
 export const ensureCatalogStructure = async (
   session,
-  { title, description, registryConfig } = {}
+  { title, description, registryConfig, podRoot: podRootOverride } = {}
 ) => {
   if (!session?.info?.webId) {
     throw new Error("No Solid WebID available.");
   }
   const webId = session.info.webId;
-  const podRoot = getPodRoot(webId);
+  const podRoot = podRootOverride || getPodRoot(webId);
   const fetch = session.fetch;
 
   await ensureContainer(`${podRoot}${CATALOG_CONTAINER}`, fetch);
@@ -840,8 +931,8 @@ export const ensureCatalogStructure = async (
 
   // Legacy local registry.ttl is no longer used.
 
-  const catalogDocUrl = getCatalogDocUrl(webId);
-  const catalogResourceUrl = getCatalogResourceUrl(webId);
+  const catalogDocUrl = getCatalogDocUrl(webId, podRoot);
+  const catalogResourceUrl = getCatalogResourceUrl(webId, podRoot);
 
   await ensureCatalogDocument(session, catalogDocUrl, {
     title: title || "Solid Dataspace Catalog",
@@ -856,7 +947,7 @@ export const ensureCatalogStructure = async (
   await makePublicReadable(`${podRoot}${RECORDS_CONTAINER}`, fetch);
 
   await setCatalogLinkInProfile(webId, catalogResourceUrl, fetch);
-  await registerWebIdInRegistries(webId, fetch, registryConfig);
+  await registerWebIdInRegistries(webId, fetch, registryConfig, podRoot);
 
   return {
     catalogDocUrl,
@@ -916,11 +1007,11 @@ export const resolveCatalogUrlFromWebId = async (webId, fetch) => {
   return getCatalogResourceUrl(webId);
 };
 
-const loadRegistryMembers = async (webId, fetch) => {
+const loadRegistryMembers = async (webId, fetch, { podRoot = "" } = {}) => {
   const members = new Set();
   if (webId) members.add(webId);
 
-  const config = await loadRegistryConfig(webId, fetch);
+  const config = await loadRegistryConfig(webId, fetch, { podRoot });
   let containers = [];
   if (config.mode === "private") {
     containers = [config.privateRegistry];
@@ -1403,10 +1494,10 @@ const buildDistributionThing = (
   return distThing;
 };
 
-const addLdpTypeIfLocal = (solidDataset, webId, targetUrl) => {
+const addLdpTypeIfLocal = (solidDataset, webId, targetUrl, podRootOverride = "") => {
   if (!solidDataset || !webId || !targetUrl) return solidDataset;
   try {
-    const podRoot = getPodRoot(webId);
+    const podRoot = podRootOverride || getPodRoot(webId);
     if (!targetUrl.startsWith(podRoot)) return solidDataset;
   } catch {
     return solidDataset;
@@ -1420,20 +1511,24 @@ const addLdpTypeIfLocal = (solidDataset, webId, targetUrl) => {
   return setThing(solidDataset, resourceThing);
 };
 
-const isLocalPodResource = (webId, targetUrl) => {
+const isLocalPodResource = (webId, targetUrl, podRootOverride = "") => {
   if (!webId || !targetUrl) return false;
   try {
-    return targetUrl.startsWith(getPodRoot(webId));
+    return targetUrl.startsWith(podRootOverride || getPodRoot(webId));
   } catch {
     return false;
   }
 };
 
-export const ensureRestrictedResourceAccess = async (session, resourceUrl) => {
+export const ensureRestrictedResourceAccess = async (
+  session,
+  resourceUrl,
+  { podRoot = "" } = {}
+) => {
   if (!session?.info?.webId || typeof session.fetch !== "function") {
     throw new Error("An authenticated Solid session is required.");
   }
-  if (!isLocalPodResource(session.info.webId, resourceUrl)) {
+  if (!isLocalPodResource(session.info.webId, resourceUrl, podRoot)) {
     throw new Error("Restricted programmatic datasets must use a resource in the owner's Pod.");
   }
 
@@ -1453,7 +1548,7 @@ export const ensureRestrictedResourceAccess = async (session, resourceUrl) => {
 const syncLinkedResourceAccess = async (session, input) => {
   const urls = [input.access_url_dataset, input.access_url_semantic_model].filter(Boolean);
   for (const url of urls) {
-    if (!isLocalPodResource(session?.info?.webId, url)) {
+    if (!isLocalPodResource(session?.info?.webId, url, input.podRoot)) {
       if (input.strict_restricted_acl && !input.is_public) {
         throw new Error(`Restricted linked resource is outside the owner's Pod: ${url}`);
       }
@@ -1461,7 +1556,7 @@ const syncLinkedResourceAccess = async (session, input) => {
     }
     try {
       if (input.strict_restricted_acl && !input.is_public) {
-        await ensureRestrictedResourceAccess(session, url);
+        await ensureRestrictedResourceAccess(session, url, { podRoot: input.podRoot });
       } else {
         await setPublicReadAccess(url, session.fetch, Boolean(input.is_public));
       }
@@ -1513,7 +1608,8 @@ const writeDatasetDocument = async (session, datasetDocUrl, input) => {
     solidDataset = addLdpTypeIfLocal(
       solidDataset,
       session?.info?.webId,
-      input.access_url_dataset
+      input.access_url_dataset,
+      input.podRoot
     );
   }
 
@@ -1521,7 +1617,8 @@ const writeDatasetDocument = async (session, datasetDocUrl, input) => {
     solidDataset = addLdpTypeIfLocal(
       solidDataset,
       session?.info?.webId,
-      input.access_url_semantic_model
+      input.access_url_semantic_model,
+      input.podRoot
     );
   }
 
@@ -1630,8 +1727,14 @@ const unlinkDatasetFromSeries = async (session, datasetUrl, seriesUrl) => {
   await saveSolidDatasetAt(datasetDocUrl, solidDataset, { fetch: session.fetch });
 };
 
-const writeRecordDocument = async (session, datasetDocUrl, identifier) => {
-  const recordDocUrl = `${getPodRoot(session.info.webId)}${RECORDS_CONTAINER}${identifier}.ttl`;
+const writeRecordDocument = async (
+  session,
+  datasetDocUrl,
+  identifier,
+  podRootOverride = ""
+) => {
+  const podRoot = podRootOverride || getPodRoot(session.info.webId);
+  const recordDocUrl = `${podRoot}${RECORDS_CONTAINER}${identifier}.ttl`;
   let recordDataset;
   try {
     recordDataset = await getSolidDataset(recordDocUrl, { fetch: session.fetch });
@@ -1692,16 +1795,20 @@ const generateIdentifier = () => {
 };
 
 export const createDataset = async (session, input) => {
-  await ensureCatalogStructure(session);
+  const podRoot = input?.podRoot || getPodRoot(session?.info?.webId);
+  await ensureCatalogStructure(session, {
+    podRoot,
+    registryConfig: input?.registryConfig,
+  });
   validateDatasetInput(input);
   const identifier = input.identifier || generateIdentifier();
-  const datasetDocUrl = `${getPodRoot(session.info.webId)}${DATASET_CONTAINER}${identifier}.ttl`;
+  const datasetDocUrl = `${podRoot}${DATASET_CONTAINER}${identifier}.ttl`;
   const datasetUrl = `${datasetDocUrl}#it`;
   await writeDatasetDocument(session, datasetDocUrl, { ...input, identifier });
-  await updateCatalogDatasets(session, getCatalogDocUrl(session.info.webId), datasetUrl, {
+  await updateCatalogDatasets(session, getCatalogDocUrl(session.info.webId, podRoot), datasetUrl, {
     remove: false,
   });
-  await writeRecordDocument(session, datasetDocUrl, identifier);
+  await writeRecordDocument(session, datasetDocUrl, identifier, podRoot);
   clearCache();
   return { datasetUrl, identifier };
 };
@@ -1819,16 +1926,30 @@ export const deleteSeriesEntry = async (session, seriesUrl, identifier) => {
   clearCache();
 };
 
-export const deleteDatasetEntry = async (session, datasetUrl, identifier) => {
+export const deleteDatasetEntry = async (
+  session,
+  datasetUrl,
+  identifier,
+  { podRoot: podRootOverride = "" } = {}
+) => {
   if (!datasetUrl) return;
-  const datasetDocUrl = getDocumentUrl(datasetUrl);
+  const podRoot = podRootOverride || getPodRoot(session.info.webId);
+  const safeDatasetUrl = assertCatalogDatasetDeletionTarget(
+    podRoot,
+    datasetUrl,
+    identifier
+  );
+  const datasetDocUrl = getDocumentUrl(safeDatasetUrl);
   try {
     const recordDocUrl = identifier
-      ? `${getPodRoot(session.info.webId)}${RECORDS_CONTAINER}${identifier}.ttl`
+      ? `${podRoot}${RECORDS_CONTAINER}${identifier}.ttl`
       : "";
-    await updateCatalogDatasets(session, getCatalogDocUrl(session.info.webId), datasetUrl, {
-      remove: true,
-    });
+    await updateCatalogDatasets(
+      session,
+      getCatalogDocUrl(session.info.webId, podRoot),
+      safeDatasetUrl,
+      { remove: true }
+    );
     await deleteCatalogDatasetDocuments({
       datasetDocUrl,
       recordDocUrl,
