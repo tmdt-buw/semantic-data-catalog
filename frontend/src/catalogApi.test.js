@@ -2,14 +2,26 @@ import {
   assertCatalogDatasetDeletionTarget,
   createDataset,
   deleteDatasetEntry,
+  ensureCatalogStructure,
+  ensurePublicReadOnlyResourceAccess,
   ensureRestrictedResourceAccess,
   getPodRoot,
+  loadAggregatedDatasets,
   loadRegistryConfig,
+  saveRegistryConfig,
+  updateDataset,
 } from "./solidCatalog";
 import {
+  discoverPublicDatasets,
+  ensurePublicCatalogReadiness,
+  getCatalogReadiness,
+  getPublicRegistryPresets,
+  normalizePublicDatasetInput,
   normalizeRestrictedDatasetInput,
+  publishPublicDataset,
   publishRestrictedDataset,
   removeDataset,
+  updatePublicDataset,
 } from "./catalogApi";
 
 jest.mock("./solidCatalog", () => ({
@@ -18,9 +30,26 @@ jest.mock("./solidCatalog", () => ({
   ),
   createDataset: jest.fn(),
   deleteDatasetEntry: jest.fn(),
+  ensureCatalogStructure: jest.fn(),
+  ensurePublicReadOnlyResourceAccess: jest.fn(),
   ensureRestrictedResourceAccess: jest.fn(),
   getPodRoot: jest.fn(() => "https://pod.example/laura/"),
+  loadAggregatedDatasets: jest.fn(),
   loadRegistryConfig: jest.fn(),
+  REGISTRY_PRESETS: [
+    {
+      id: "test",
+      label: "Test",
+      url: "https://registry.example/public/test/",
+    },
+    {
+      id: "invalid",
+      label: "Invalid",
+      url: "javascript:alert(1)",
+    },
+  ],
+  saveRegistryConfig: jest.fn(),
+  updateDataset: jest.fn(),
 }));
 
 const session = {
@@ -43,24 +72,41 @@ const input = {
   includeCreator: false,
 };
 
+const publicInput = {
+  ...input,
+  identifier: "solid-tours-route-template-run-1",
+  title: "Public Wuppertal route",
+  description: "A reusable route template without activity data",
+  distributionUrl:
+    "https://pod.example/laura/solid-tours/public-routes/run-1.geojson",
+  theme: "https://w3id.org/solid-tours/theme/route-template",
+  includeCreator: true,
+};
+
 beforeEach(() => {
   jest.clearAllMocks();
   assertCatalogDatasetDeletionTarget.mockImplementation(
     (_podRoot, datasetUrl) => datasetUrl
   );
   getPodRoot.mockReturnValue("https://pod.example/laura/");
+  ensurePublicReadOnlyResourceAccess.mockResolvedValue(undefined);
   ensureRestrictedResourceAccess.mockResolvedValue(undefined);
+  ensureCatalogStructure.mockResolvedValue({
+    catalogUrl: "https://pod.example/laura/catalog/cat.ttl#it",
+  });
   loadRegistryConfig.mockResolvedValue({
     mode: "research",
     registries: ["https://registry.example/public/test"],
     privateRegistry: "",
   });
-  createDataset.mockResolvedValue({
-    datasetUrl:
-      "https://pod.example/laura/catalog/ds/solid-tours-activity-run-1.ttl#it",
-    identifier: input.identifier,
-  });
+  createDataset.mockImplementation(async (_session, dataset) => ({
+    datasetUrl: `https://pod.example/laura/catalog/ds/${dataset.identifier}.ttl#it`,
+    identifier: dataset.identifier,
+  }));
   deleteDatasetEntry.mockResolvedValue(undefined);
+  updateDataset.mockResolvedValue(undefined);
+  loadAggregatedDatasets.mockResolvedValue({ datasets: [], catalogs: [] });
+  saveRegistryConfig.mockResolvedValue(undefined);
 });
 
 test("normalizes the public API aliases into a fail-closed restricted dataset", () => {
@@ -86,6 +132,419 @@ test("keeps creator metadata by default for existing catalog callers", () => {
       includeCreator: undefined,
     }).webid
   ).toBe(session.info.webId);
+});
+
+test("normalizes the compatible aliases into a strict public dataset", () => {
+  expect(normalizePublicDatasetInput(session, publicInput)).toMatchObject({
+    identifier: publicInput.identifier,
+    title: publicInput.title,
+    description: publicInput.description,
+    access_url_dataset: publicInput.distributionUrl,
+    file_format: "application/geo+json",
+    theme: publicInput.theme,
+    webid: session.info.webId,
+    distribution_access_type: "download",
+    is_public: true,
+    strict_restricted_acl: false,
+    strict_public_acl: true,
+    require_discoverable_registry: true,
+  });
+});
+
+test.each([
+  ["title", { title: "" }],
+  ["media type", { mediaType: "" }],
+  ["theme", { theme: "" }],
+])("requires public dataset %s metadata", (_label, override) => {
+  expect(() =>
+    normalizePublicDatasetInput(session, { ...publicInput, ...override })
+  ).toThrow(/public dataset/i);
+});
+
+test("publishes public metadata only after the distribution ACL is verified read-only", async () => {
+  const result = await publishPublicDataset(session, publicInput);
+  const datasetUrl =
+    "https://pod.example/laura/catalog/ds/solid-tours-route-template-run-1.ttl#it";
+  const recordUrl =
+    "https://pod.example/laura/catalog/records/solid-tours-route-template-run-1.ttl";
+
+  expect(ensurePublicReadOnlyResourceAccess).toHaveBeenNthCalledWith(
+    1,
+    session,
+    publicInput.distributionUrl,
+    { podRoot: "https://pod.example/laura/" }
+  );
+  expect(ensurePublicReadOnlyResourceAccess.mock.invocationCallOrder[0]).toBeLessThan(
+    createDataset.mock.invocationCallOrder[0]
+  );
+  expect(createDataset).toHaveBeenCalledWith(
+    session,
+    expect.objectContaining({
+      is_public: true,
+      strict_public_acl: true,
+      registryConfig: expect.objectContaining({
+        mode: "research",
+        registries: ["https://registry.example/public/test"],
+      }),
+    })
+  );
+  expect(ensurePublicReadOnlyResourceAccess).toHaveBeenNthCalledWith(
+    2,
+    session,
+    datasetUrl,
+    { podRoot: "https://pod.example/laura/" }
+  );
+  expect(ensurePublicReadOnlyResourceAccess).toHaveBeenNthCalledWith(
+    3,
+    session,
+    recordUrl,
+    { podRoot: "https://pod.example/laura/" }
+  );
+  expect(ensurePublicReadOnlyResourceAccess).toHaveBeenNthCalledWith(
+    4,
+    session,
+    "https://pod.example/laura/catalog/cat.ttl",
+    { podRoot: "https://pod.example/laura/" }
+  );
+  expect(result).toEqual({
+    datasetUrl,
+    identifier: publicInput.identifier,
+    recordUrl,
+    distributionUrl: publicInput.distributionUrl,
+  });
+});
+
+test("requires a configured research registry for every public publication", async () => {
+  loadRegistryConfig.mockResolvedValueOnce({
+    mode: "private",
+    registries: ["https://registry.example/public/test"],
+    privateRegistry: "https://pod.example/laura/registry/",
+  });
+
+  await expect(publishPublicDataset(session, publicInput)).rejects.toMatchObject({
+    code: "discoverable-registry-required",
+  });
+  expect(ensurePublicReadOnlyResourceAccess).not.toHaveBeenCalled();
+  expect(createDataset).not.toHaveBeenCalled();
+});
+
+test("fails before catalog publication when public ACL verification fails", async () => {
+  ensurePublicReadOnlyResourceAccess.mockRejectedValueOnce(
+    new Error("ACL unavailable")
+  );
+  await expect(publishPublicDataset(session, publicInput)).rejects.toThrow(
+    "ACL unavailable"
+  );
+  expect(createDataset).not.toHaveBeenCalled();
+});
+
+test("cleans public metadata when post-publication ACL verification fails", async () => {
+  ensurePublicReadOnlyResourceAccess
+    .mockResolvedValueOnce(undefined)
+    .mockRejectedValueOnce(new Error("dataset metadata ACL unavailable"));
+
+  await expect(publishPublicDataset(session, publicInput)).rejects.toThrow(
+    "dataset metadata ACL unavailable"
+  );
+  expect(deleteDatasetEntry).toHaveBeenCalledWith(
+    session,
+    "https://pod.example/laura/catalog/ds/solid-tours-route-template-run-1.ttl#it",
+    publicInput.identifier,
+    { podRoot: "https://pod.example/laura/" }
+  );
+});
+
+test("updates an existing public dataset at its deterministic URL without recreating it", async () => {
+  const podRoot = "https://storage.example/alex/";
+  const datasetUrl = `${podRoot}catalog/ds/${publicInput.identifier}.ttl#it`;
+  const recordUrl = `${podRoot}catalog/records/${publicInput.identifier}.ttl`;
+  const distributionUrl = `${podRoot}solid-tours/public-routes/run-1.geojson`;
+  const issued = "2026-08-20T14:00:00.000Z";
+  const operationId = "69020722-f94e-4d99-9aac-37b33d5607c7";
+
+  await expect(
+    updatePublicDataset(session, {
+      ...publicInput,
+      podRoot,
+      datasetUrl,
+      distributionUrl,
+      issued,
+      operationId,
+      title: "Updated public Wuppertal route",
+    })
+  ).resolves.toEqual({
+    identifier: publicInput.identifier,
+    datasetUrl,
+    recordUrl,
+    distributionUrl,
+  });
+
+  expect(assertCatalogDatasetDeletionTarget).toHaveBeenCalledWith(
+    podRoot,
+    datasetUrl,
+    publicInput.identifier
+  );
+  expect(ensurePublicReadOnlyResourceAccess).toHaveBeenNthCalledWith(
+    1,
+    session,
+    distributionUrl,
+    { podRoot }
+  );
+  expect(ensurePublicReadOnlyResourceAccess.mock.invocationCallOrder[0]).toBeLessThan(
+    updateDataset.mock.invocationCallOrder[0]
+  );
+  expect(updateDataset).toHaveBeenCalledWith(
+    session,
+    expect.objectContaining({
+      identifier: publicInput.identifier,
+      title: "Updated public Wuppertal route",
+      podRoot,
+      datasetUrl,
+      access_url_dataset: distributionUrl,
+      issued,
+      operation_id: operationId,
+      is_public: true,
+      strict_public_acl: true,
+    })
+  );
+  expect(ensurePublicReadOnlyResourceAccess).toHaveBeenNthCalledWith(
+    2,
+    session,
+    datasetUrl,
+    { podRoot }
+  );
+  expect(ensurePublicReadOnlyResourceAccess).toHaveBeenNthCalledWith(
+    3,
+    session,
+    recordUrl,
+    { podRoot }
+  );
+  expect(ensurePublicReadOnlyResourceAccess).toHaveBeenNthCalledWith(
+    4,
+    session,
+    `${podRoot}catalog/cat.ttl`,
+    { podRoot }
+  );
+  expect(createDataset).not.toHaveBeenCalled();
+  expect(deleteDatasetEntry).not.toHaveBeenCalled();
+});
+
+test.each([
+  " update-route-run-1",
+  "update-route-run-1 ",
+  "update/route/run-1",
+  "update#route-run-1",
+  "update route run 1",
+])("rejects an unsafe public update operation ID %p", async (operationId) => {
+  const datasetUrl = `https://pod.example/laura/catalog/ds/${publicInput.identifier}.ttl#it`;
+
+  await expect(
+    updatePublicDataset(session, {
+      ...publicInput,
+      datasetUrl,
+      operationId,
+    })
+  ).rejects.toThrow("Operation ID contains unsupported characters.");
+
+  expect(ensurePublicReadOnlyResourceAccess).not.toHaveBeenCalled();
+  expect(updateDataset).not.toHaveBeenCalled();
+  expect(deleteDatasetEntry).not.toHaveBeenCalled();
+});
+
+test("rejects a public update whose dataset URL is not the deterministic identifier target", async () => {
+  await expect(
+    updatePublicDataset(session, {
+      ...publicInput,
+      datasetUrl:
+        "https://pod.example/laura/catalog/ds/another-route.ttl#it",
+    })
+  ).rejects.toThrow(/deterministic catalog URL/);
+
+  expect(ensurePublicReadOnlyResourceAccess).not.toHaveBeenCalled();
+  expect(updateDataset).not.toHaveBeenCalled();
+  expect(deleteDatasetEntry).not.toHaveBeenCalled();
+});
+
+test("never deletes the existing entry when a public dataset update fails", async () => {
+  const datasetUrl = `https://pod.example/laura/catalog/ds/${publicInput.identifier}.ttl#it`;
+  updateDataset.mockRejectedValueOnce(new Error("catalog update failed"));
+
+  await expect(
+    updatePublicDataset(session, { ...publicInput, datasetUrl })
+  ).rejects.toThrow("catalog update failed");
+
+  expect(updateDataset).toHaveBeenCalledTimes(1);
+  expect(createDataset).not.toHaveBeenCalled();
+  expect(deleteDatasetEntry).not.toHaveBeenCalled();
+});
+
+test("requires the existing deterministic catalog reference for a public update", async () => {
+  await expect(updatePublicDataset(session, publicInput)).rejects.toThrow(
+    "existing catalog dataset URL"
+  );
+  expect(updateDataset).not.toHaveBeenCalled();
+  expect(deleteDatasetEntry).not.toHaveBeenCalled();
+});
+
+test("reports catalog readiness only for safe public research registries", async () => {
+  loadRegistryConfig.mockResolvedValueOnce({
+    mode: "research",
+    registries: [
+      "https://registry.example/public/test/",
+      "http://registry.example/public/insecure",
+      "javascript:alert(1)",
+      "https://user:secret@registry.example/private",
+    ],
+    privateRegistry: "",
+  });
+
+  await expect(getCatalogReadiness(session)).resolves.toEqual({
+    catalogConfigured: true,
+    publicRegistries: ["https://registry.example/public/test"],
+  });
+});
+
+test("exposes only normalized safe public registry presets", () => {
+  expect(getPublicRegistryPresets()).toEqual([
+    {
+      id: "test",
+      label: "Test",
+      url: "https://registry.example/public/test",
+    },
+  ]);
+});
+
+test("configures and verifies an explicitly selected public research registry", async () => {
+  loadRegistryConfig
+    .mockResolvedValueOnce({
+      mode: "private",
+      registries: [],
+      privateRegistry: "https://pod.example/laura/registry/",
+    })
+    .mockResolvedValueOnce({
+      mode: "research",
+      registries: ["https://registry.example/public/test"],
+      privateRegistry: "https://pod.example/laura/registry/",
+    });
+
+  await expect(
+    ensurePublicCatalogReadiness(session, {
+      podRoot: "https://pod.example/laura/",
+      registryUrl: "https://registry.example/public/test/",
+      catalogTitle: "Solid Tours Catalog",
+    })
+  ).resolves.toEqual({
+    catalogConfigured: true,
+    publicRegistries: ["https://registry.example/public/test"],
+    selectedRegistry: "https://registry.example/public/test",
+  });
+
+  const expectedConfig = {
+    mode: "research",
+    registries: ["https://registry.example/public/test"],
+    privateRegistry: "https://pod.example/laura/registry/",
+  };
+  expect(saveRegistryConfig).toHaveBeenCalledWith(
+    session.info.webId,
+    session.fetch,
+    expectedConfig,
+    { podRoot: "https://pod.example/laura/" }
+  );
+  expect(ensureCatalogStructure).toHaveBeenCalledWith(session, {
+    podRoot: "https://pod.example/laura/",
+    registryConfig: expectedConfig,
+    title: "Solid Tours Catalog",
+  });
+});
+
+test("does not mutate profile or Catalog for an unapproved registry URL", async () => {
+  loadRegistryConfig.mockResolvedValueOnce({
+    mode: "private",
+    registries: [],
+    privateRegistry: "https://pod.example/laura/registry/",
+  });
+
+  await expect(
+    ensurePublicCatalogReadiness(session, {
+      registryUrl: "https://attacker.example/public/registry",
+    })
+  ).rejects.toThrow(/not an available preset/);
+  expect(saveRegistryConfig).not.toHaveBeenCalled();
+  expect(ensureCatalogStructure).not.toHaveBeenCalled();
+});
+
+test("discovers only valid public datasets from configured research registries", async () => {
+  const valid = {
+    identifier: publicInput.identifier,
+    title: publicInput.title,
+    description: publicInput.description,
+    publisher: "Hannah Mueller",
+    webid: session.info.webId,
+    datasetUrl:
+      "https://pod.example/laura/catalog/ds/solid-tours-route-template-run-1.ttl#it",
+    access_url_dataset: publicInput.distributionUrl,
+    file_format: "application/geo+json",
+    theme: publicInput.theme,
+    is_public: true,
+    datasetType: "dataset",
+  };
+  loadAggregatedDatasets.mockResolvedValueOnce({
+    datasets: [
+      valid,
+      { ...valid, identifier: "restricted", is_public: false },
+      {
+        ...valid,
+        identifier: "solid-tours-route-template-unsafe",
+        access_url_dataset: "https://user:secret@pod.example/route.geojson",
+      },
+      {
+        ...valid,
+        identifier: "solid-tours-route-template-series",
+        datasetType: "series",
+      },
+      {
+        ...valid,
+        identifier: "solid-tours-route-template-other",
+        theme: "https://example.org/theme/other",
+      },
+    ],
+    catalogs: [],
+  });
+
+  const result = await discoverPublicDatasets(session, {
+    identifierPrefix: "solid-tours-route-template-",
+    mediaType: "application/geo+json",
+    theme: publicInput.theme,
+  });
+
+  expect(loadAggregatedDatasets).toHaveBeenCalledWith(session, undefined, {
+    researchRegistries: ["https://registry.example/public/test"],
+  });
+  expect(result).toEqual([
+    {
+      identifier: publicInput.identifier,
+      title: publicInput.title,
+      description: publicInput.description,
+      publisher: "Hannah Mueller",
+      creatorWebId: session.info.webId,
+      datasetUrl: valid.datasetUrl,
+      distributionUrl: publicInput.distributionUrl,
+      mediaType: "application/geo+json",
+      theme: publicInput.theme,
+    },
+  ]);
+});
+
+test("fails discovery before registry reads without research readiness", async () => {
+  loadRegistryConfig.mockResolvedValueOnce({
+    mode: "research",
+    registries: [],
+    privateRegistry: "",
+  });
+  await expect(discoverPublicDatasets(session)).rejects.toMatchObject({
+    code: "discoverable-registry-required",
+  });
+  expect(loadAggregatedDatasets).not.toHaveBeenCalled();
 });
 
 test("publishes only after the distribution ACL was verified restricted", async () => {

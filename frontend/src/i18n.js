@@ -28,9 +28,8 @@ const enToDe = {
   Search: "Suchen",
   Download: "Herunterladen",
   "Loading...": "Wird geladen...",
-  "Checking profile": "Profil wird geprüft",
-  "We are verifying your Solid profile and catalog configuration.":
-    "Wir prüfen dein Solid-Profil und die Katalogkonfiguration.",
+  "Loading your personal catalog workspace …":
+    "Dein persönlicher Katalogbereich wird geladen …",
   "Semantic Data Catalog": "Semantischer Datenkatalog",
   "All datasets & dataset series": "Alle Datensätze und Datensatzreihen",
   "Add Dataset": "Datensatz hinzufügen",
@@ -156,7 +155,6 @@ Object.assign(enToDe, {
   "Series Theme (IRI)": "Reihenthema (IRI)",
   "Series Title": "Titel der Reihe",
   "your file here": "deine Datei hier",
-  "Preparing your profile...": "Dein Profil wird vorbereitet...",
   "Welcome to the Semantic Data Catalog": "Willkommen im Semantic Data Catalog",
   "Profile avatar": "Profilavatar",
   "Upload profile photo": "Profilfoto hochladen",

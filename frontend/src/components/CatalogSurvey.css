@@ -68,6 +68,30 @@
   color: #0f172a;
   box-shadow: -20px 0 50px rgba(15, 23, 42, 0.22);
   animation: catalog-survey-slide-in 0.22s ease-out;
+  scrollbar-width: thin;
+  scrollbar-color: #7e93ae #edf3f8;
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
+}
+
+.catalog-survey-drawer::-webkit-scrollbar {
+  width: 10px;
+}
+
+.catalog-survey-drawer::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: #edf3f8;
+}
+
+.catalog-survey-drawer::-webkit-scrollbar-thumb {
+  min-height: 2.5rem;
+  border: 2px solid #edf3f8;
+  border-radius: 999px;
+  background: #7e93ae;
+}
+
+.catalog-survey-drawer::-webkit-scrollbar-thumb:hover {
+  background: #142642;
 }
 
 @keyframes catalog-survey-slide-in {

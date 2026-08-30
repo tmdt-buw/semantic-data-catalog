@@ -2,12 +2,20 @@ import {
   assertCatalogDatasetDeletionTarget,
   createDataset,
   deleteDatasetEntry,
+  ensureCatalogStructure,
+  ensurePublicReadOnlyResourceAccess,
   ensureRestrictedResourceAccess,
   getPodRoot,
+  loadAggregatedDatasets,
   loadRegistryConfig,
+  REGISTRY_PRESETS,
+  saveRegistryConfig,
+  updateDataset,
 } from "./solidCatalog";
 
 const IDENTIFIER_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
+const OPERATION_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
+const DEFAULT_THEME_NS = "https://w3id.org/solid-dataspace-manager/theme/";
 
 const generateIdentifier = () => {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
@@ -55,10 +63,119 @@ const normalizePodRoot = (value) => {
   return url.href.endsWith("/") ? url.href : `${url.href}/`;
 };
 
-export function normalizeRestrictedDatasetInput(session, input = {}) {
+const normalizeHttpUrl = (
+  value,
+  label,
+  { allowHash = false, allowEmpty = false } = {}
+) => {
+  const candidate = String(value || "").trim();
+  if (!candidate && allowEmpty) return "";
+  let url;
+  try {
+    url = new URL(candidate);
+  } catch {
+    throw new Error(`${label} must be an absolute HTTP(S) URL.`);
+  }
+  if (
+    (url.protocol !== "https:" && url.protocol !== "http:") ||
+    url.username ||
+    url.password ||
+    url.search ||
+    (!allowHash && url.hash)
+  ) {
+    throw new Error(`${label} must be an absolute HTTP(S) URL.`);
+  }
+  return url.href;
+};
+
+const normalizeRegistryUrl = (value) => {
+  try {
+    const url = new URL(String(value || "").trim());
+    const localHttp =
+      url.protocol === "http:" &&
+      ["localhost", "127.0.0.1", "[::1]", "::1"].includes(url.hostname);
+    if (
+      (url.protocol !== "https:" && !localHttp) ||
+      url.username ||
+      url.password ||
+      url.search ||
+      url.hash
+    ) {
+      return "";
+    }
+    return url.href.replace(/\/+$/, "");
+  } catch {
+    return "";
+  }
+};
+
+const normalizeTheme = (value) => {
+  const candidate = String(value || "").trim();
+  if (!candidate) return "";
+  if (candidate.startsWith("http://") || candidate.startsWith("https://")) {
+    return normalizeHttpUrl(candidate, "Theme", { allowHash: true });
+  }
+  const slug = candidate.toLowerCase().replace(/\s+/g, "-");
+  return `${DEFAULT_THEME_NS}${encodeURIComponent(slug)}`;
+};
+
+const normalizeOperationId = (value) => {
+  if (value === undefined || value === null || value === "") return "";
+  if (typeof value !== "string" || value.trim() !== value) {
+    throw new Error("Operation ID contains unsupported characters.");
+  }
+  if (!OPERATION_ID_PATTERN.test(value)) {
+    throw new Error("Operation ID contains unsupported characters.");
+  }
+  return value;
+};
+
+const requireSession = (session) => {
   if (!session?.info?.webId || typeof session.fetch !== "function") {
     throw new Error("An authenticated Solid session is required.");
   }
+};
+
+const loadResearchRegistryContext = async (session, { podRoot = "" } = {}) => {
+  requireSession(session);
+  const registryConfig = await loadRegistryConfig(
+    session.info.webId,
+    session.fetch,
+    { podRoot }
+  );
+  const publicRegistries = Array.from(
+    new Set(
+      (Array.isArray(registryConfig?.registries)
+        ? registryConfig.registries
+        : []
+      )
+        .map(normalizeRegistryUrl)
+        .filter(Boolean)
+    )
+  );
+  return {
+    catalogConfigured:
+      registryConfig?.mode === "research" && publicRegistries.length > 0,
+    publicRegistries:
+      registryConfig?.mode === "research" ? publicRegistries : [],
+    registryConfig: {
+      ...registryConfig,
+      mode: registryConfig?.mode === "private" ? "private" : "research",
+      registries: publicRegistries,
+    },
+  };
+};
+
+const discoverableRegistryError = () => {
+  const error = new Error(
+    "A public Dataspace registry must be configured before this operation can continue."
+  );
+  error.code = "discoverable-registry-required";
+  return error;
+};
+
+export function normalizeRestrictedDatasetInput(session, input = {}) {
+  requireSession(session);
   const identifier = String(input.identifier || generateIdentifier()).trim();
   if (!IDENTIFIER_PATTERN.test(identifier)) {
     throw new Error("Dataset identifier contains unsupported characters.");
@@ -105,6 +222,301 @@ export function normalizeRestrictedDatasetInput(session, input = {}) {
       input.requireDiscoverableRegistry === true ||
       input.require_discoverable_registry === true,
   };
+}
+
+export function normalizePublicDatasetInput(session, input = {}) {
+  const normalized = normalizeRestrictedDatasetInput(session, input);
+  if (!normalized.title) {
+    throw new Error("A public dataset title is required.");
+  }
+  if (!normalized.file_format) {
+    throw new Error("A public dataset media type is required.");
+  }
+  if (!normalized.theme) {
+    throw new Error("A public dataset theme is required.");
+  }
+
+  return {
+    ...normalized,
+    access_url_dataset: normalizeHttpUrl(
+      normalized.access_url_dataset,
+      "Dataset distribution URL"
+    ),
+    access_url_semantic_model: normalizeHttpUrl(
+      normalized.access_url_semantic_model,
+      "Semantic model URL",
+      { allowHash: true, allowEmpty: true }
+    ),
+    theme: normalizeTheme(normalized.theme),
+    is_public: true,
+    strict_restricted_acl: false,
+    strict_public_acl: true,
+    require_discoverable_registry: true,
+  };
+}
+
+export async function getCatalogReadiness(session, options = {}) {
+  const explicitPodRoot = normalizePodRoot(
+    options.podRoot || options.pod_root
+  );
+  const podRoot = explicitPodRoot || getPodRoot(session?.info?.webId);
+  const { catalogConfigured, publicRegistries } =
+    await loadResearchRegistryContext(session, { podRoot });
+  return { catalogConfigured, publicRegistries };
+}
+
+export function getPublicRegistryPresets() {
+  const presets = new Map();
+  for (const preset of REGISTRY_PRESETS || []) {
+    const url = normalizeRegistryUrl(preset?.url);
+    const id = String(preset?.id || "").trim();
+    const label = String(preset?.label || "").trim();
+    if (!id || !label || !url || presets.has(url)) continue;
+    presets.set(url, { id, label, url });
+  }
+  return Array.from(presets.values());
+}
+
+export async function ensurePublicCatalogReadiness(session, options = {}) {
+  requireSession(session);
+  const explicitPodRoot = normalizePodRoot(
+    options.podRoot || options.pod_root
+  );
+  const podRoot = explicitPodRoot || getPodRoot(session.info.webId);
+  const registryUrl = normalizeRegistryUrl(
+    options.registryUrl || options.registry_url
+  );
+  if (!registryUrl) {
+    throw new Error("Choose a valid public research registry.");
+  }
+
+  const current = await loadResearchRegistryContext(session, { podRoot });
+  const allowedRegistries = new Set([
+    ...getPublicRegistryPresets().map((preset) => preset.url),
+    ...current.publicRegistries,
+  ]);
+  if (!allowedRegistries.has(registryUrl)) {
+    throw new Error("The selected public research registry is not an available preset.");
+  }
+
+  // Preserve already-active public memberships and the user's private registry
+  // location. Only the explicit app consent switches the profile to research
+  // mode and adds the selected public registry.
+  const registryConfig = {
+    ...current.registryConfig,
+    mode: "research",
+    registries: Array.from(
+      new Set([...current.publicRegistries, registryUrl])
+    ),
+  };
+  await saveRegistryConfig(session.info.webId, session.fetch, registryConfig, {
+    podRoot,
+  });
+  await ensureCatalogStructure(session, {
+    podRoot,
+    registryConfig,
+    title: String(options.catalogTitle || "Solid Dataspace Catalog").trim(),
+  });
+
+  const verified = await loadResearchRegistryContext(session, { podRoot });
+  if (
+    !verified.catalogConfigured ||
+    !verified.publicRegistries.includes(registryUrl)
+  ) {
+    throw new Error("The public research registry setup could not be verified.");
+  }
+  return {
+    catalogConfigured: true,
+    publicRegistries: verified.publicRegistries,
+    selectedRegistry: registryUrl,
+  };
+}
+
+export async function publishPublicDataset(session, input = {}) {
+  const normalized = normalizePublicDatasetInput(session, input);
+  const podRoot = normalized.podRoot || getPodRoot(session.info.webId);
+  const datasetUrl = `${podRoot}catalog/ds/${normalized.identifier}.ttl#it`;
+  const recordUrl = `${podRoot}catalog/records/${normalized.identifier}.ttl`;
+  const catalogUrl = `${podRoot}catalog/cat.ttl`;
+  const readiness = await loadResearchRegistryContext(session, { podRoot });
+  if (!readiness.catalogConfigured) throw discoverableRegistryError();
+  normalized.registryConfig = readiness.registryConfig;
+
+  await ensurePublicReadOnlyResourceAccess(
+    session,
+    normalized.access_url_dataset,
+    { podRoot }
+  );
+  if (normalized.access_url_semantic_model) {
+    await ensurePublicReadOnlyResourceAccess(
+      session,
+      normalized.access_url_semantic_model,
+      { podRoot }
+    );
+  }
+
+  try {
+    const created = await createDataset(session, normalized);
+    await ensurePublicReadOnlyResourceAccess(session, created.datasetUrl, {
+      podRoot,
+    });
+    await ensurePublicReadOnlyResourceAccess(session, recordUrl, { podRoot });
+    await ensurePublicReadOnlyResourceAccess(session, catalogUrl, { podRoot });
+    return {
+      ...created,
+      recordUrl,
+      distributionUrl: normalized.access_url_dataset,
+    };
+  } catch (error) {
+    try {
+      await deleteDatasetEntry(session, datasetUrl, normalized.identifier, {
+        podRoot,
+      });
+    } catch (cleanupError) {
+      console.warn(
+        "Failed to clean up incomplete public dataset metadata.",
+        cleanupError
+      );
+    }
+    throw error;
+  }
+}
+
+export async function updatePublicDataset(session, input = {}) {
+  const normalized = normalizePublicDatasetInput(session, input);
+  const operationId = normalizeOperationId(
+    input.operationId ?? input.operation_id
+  );
+  const podRoot = normalized.podRoot || getPodRoot(session.info.webId);
+  const expectedDatasetUrl = `${podRoot}catalog/ds/${normalized.identifier}.ttl#it`;
+  const requestedDatasetUrl = String(
+    input.datasetUrl || input.catalogDatasetUrl || ""
+  ).trim();
+  if (!requestedDatasetUrl) {
+    throw new Error("An existing catalog dataset URL is required for an update.");
+  }
+  const datasetUrl = assertCatalogDatasetDeletionTarget(
+    podRoot,
+    requestedDatasetUrl,
+    normalized.identifier
+  );
+  if (new URL(datasetUrl).href !== new URL(expectedDatasetUrl).href) {
+    throw new Error(
+      "Dataset URL must match the deterministic catalog URL for its identifier."
+    );
+  }
+
+  const recordUrl = `${podRoot}catalog/records/${normalized.identifier}.ttl`;
+  const catalogUrl = `${podRoot}catalog/cat.ttl`;
+  const readiness = await loadResearchRegistryContext(session, { podRoot });
+  if (!readiness.catalogConfigured) throw discoverableRegistryError();
+  normalized.registryConfig = readiness.registryConfig;
+
+  await ensurePublicReadOnlyResourceAccess(
+    session,
+    normalized.access_url_dataset,
+    { podRoot }
+  );
+  if (normalized.access_url_semantic_model) {
+    await ensurePublicReadOnlyResourceAccess(
+      session,
+      normalized.access_url_semantic_model,
+      { podRoot }
+    );
+  }
+
+  // Updating an existing deterministic entry deliberately has no create-style
+  // cleanup path. If a later verification fails, keep the existing metadata in
+  // place so callers can retry or compensate without losing the Catalog entry.
+  await updateDataset(session, {
+    ...normalized,
+    podRoot,
+    datasetUrl,
+    ...(operationId ? { operation_id: operationId } : {}),
+  });
+  await ensurePublicReadOnlyResourceAccess(session, datasetUrl, { podRoot });
+  await ensurePublicReadOnlyResourceAccess(session, recordUrl, { podRoot });
+  await ensurePublicReadOnlyResourceAccess(session, catalogUrl, { podRoot });
+
+  return {
+    identifier: normalized.identifier,
+    datasetUrl,
+    recordUrl,
+    distributionUrl: normalized.access_url_dataset,
+  };
+}
+
+const normalizeDiscoveryOptions = (options = {}) => {
+  const identifierPrefix = String(options.identifierPrefix || "").trim();
+  if (identifierPrefix && !IDENTIFIER_PATTERN.test(identifierPrefix)) {
+    throw new Error("Dataset identifier prefix contains unsupported characters.");
+  }
+  return {
+    podRoot: normalizePodRoot(options.podRoot || options.pod_root),
+    identifierPrefix,
+    mediaType: String(options.mediaType || "").trim().toLowerCase(),
+    theme: options.theme ? normalizeTheme(options.theme) : "",
+  };
+};
+
+const safeDiscoveredUrl = (value, { allowHash = false } = {}) => {
+  try {
+    return normalizeHttpUrl(value, "Discovered URL", { allowHash });
+  } catch {
+    return "";
+  }
+};
+
+export async function discoverPublicDatasets(session, options = {}) {
+  requireSession(session);
+  const filters = normalizeDiscoveryOptions(options);
+  const podRoot = filters.podRoot || getPodRoot(session.info.webId);
+  const readiness = await loadResearchRegistryContext(session, { podRoot });
+  if (!readiness.catalogConfigured) throw discoverableRegistryError();
+
+  const aggregated = await loadAggregatedDatasets(session, undefined, {
+    researchRegistries: readiness.publicRegistries,
+  });
+  const discovered = new Map();
+  for (const dataset of aggregated?.datasets || []) {
+    const identifier = String(dataset?.identifier || "").trim();
+    const title = String(dataset?.title || "").trim();
+    const mediaType = String(dataset?.file_format || "").trim();
+    const theme = String(dataset?.theme || "").trim();
+    const datasetUrl = safeDiscoveredUrl(dataset?.datasetUrl, {
+      allowHash: true,
+    });
+    const distributionUrl = safeDiscoveredUrl(dataset?.access_url_dataset);
+    if (
+      dataset?.datasetType !== "dataset" ||
+      dataset?.is_public !== true ||
+      !IDENTIFIER_PATTERN.test(identifier) ||
+      !title ||
+      !mediaType ||
+      !theme ||
+      !datasetUrl ||
+      !distributionUrl ||
+      (filters.identifierPrefix &&
+        !identifier.startsWith(filters.identifierPrefix)) ||
+      (filters.mediaType && mediaType.toLowerCase() !== filters.mediaType) ||
+      (filters.theme && theme !== filters.theme)
+    ) {
+      continue;
+    }
+
+    discovered.set(datasetUrl, {
+      identifier,
+      title,
+      description: String(dataset.description || "").trim(),
+      publisher: String(dataset.publisher || "").trim(),
+      creatorWebId: safeDiscoveredUrl(dataset.webid, { allowHash: true }),
+      datasetUrl,
+      distributionUrl,
+      mediaType,
+      theme,
+    });
+  }
+  return Array.from(discovered.values());
 }
 
 export async function publishRestrictedDataset(session, input = {}) {
@@ -162,9 +574,7 @@ export async function publishRestrictedDataset(session, input = {}) {
 }
 
 export async function removeDataset(session, reference = {}) {
-  if (!session?.info?.webId || typeof session.fetch !== "function") {
-    throw new Error("An authenticated Solid session is required.");
-  }
+  requireSession(session);
   const input = typeof reference === "string" ? { datasetUrl: reference } : reference;
   const explicitPodRoot = normalizePodRoot(input.podRoot || input.pod_root);
   const podRoot = explicitPodRoot || getPodRoot(session.info.webId);

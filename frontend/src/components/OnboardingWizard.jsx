@@ -34,6 +34,7 @@ import {
   saveRegistryConfig,
   SDP_CATALOG,
 } from "../solidCatalog";
+import CatalogLoadingState from "./CatalogLoadingState";
 import "./OnboardingWizard.css";
 
 const VCARD_TYPE = "http://www.w3.org/2006/vcard/ns#type";
@@ -73,7 +74,12 @@ const normalizeEmails = (values) =>
     .map((value) => value.trim())
     .filter((value) => value.length > 0);
 
-export default function OnboardingWizard({ webId, onComplete, onCancel }) {
+export default function OnboardingWizard({
+  webId,
+  embedded = false,
+  onComplete,
+  onCancel,
+}) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [step, setStep] = useState(1);
@@ -438,11 +444,11 @@ export default function OnboardingWizard({ webId, onComplete, onCancel }) {
 
   if (loading) {
     return (
-      <div className="onboarding-wrap">
-        <div className="onboarding-card">
-          <div className="onboarding-title">Preparing your profile...</div>
-        </div>
-      </div>
+      <CatalogLoadingState
+        title="Semantic Data Catalog"
+        description="Loading your personal catalog workspace …"
+        embedded={embedded}
+      />
     );
   }
 

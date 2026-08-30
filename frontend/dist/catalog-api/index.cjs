@@ -2193,6 +2193,9 @@ var RECORDS_CONTAINER = "catalog/records/";
 var CATALOG_DOC = "catalog/cat.ttl";
 var CATALOG_IDENTIFIER_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
 var CACHE_KEY = "sdm.catalog.cache.v1";
+var CACHE_TTL_MS = 0;
+var STALE_AFTER_MS = 14 * 24 * 60 * 60 * 1000;
+var DROP_AFTER_MS = 30 * 24 * 60 * 60 * 1000;
 var safeNow = () => new Date().toISOString();
 var SDP_NS = "https://w3id.org/solid-dcat-profile#";
 var SDP_CATALOG = "".concat(SDP_NS, "catalog");
@@ -2200,14 +2203,61 @@ var SDM_NS = "https://w3id.org/solid-dataspace-manager#";
 var SDM_REGISTRY_MODE = "".concat(SDM_NS, "registryMode");
 var SDM_REGISTRY = "".concat(SDM_NS, "registry");
 var SDM_PRIVATE_REGISTRY = "".concat(SDM_NS, "privateRegistry");
+var REGISTRY_PRESETS = [{
+  id: "stadt-wuppertal",
+  label: "Gesundes Tal",
+  url: "https://solid-community-server.tmdt.info/semanticdatacatalog/public/stadt-wuppertal"
+}, {
+  id: "dace",
+  label: "DACE",
+  url: "https://solid-community-server.tmdt.info/semanticdatacatalog/public/dace"
+}, {
+  id: "timberconnect",
+  label: "TimberConnect",
+  url: "https://solid-community-server.tmdt.info/semanticdatacatalog/public/timberconnect"
+}, {
+  id: "test",
+  label: "Test",
+  url: "https://solid-community-server.tmdt.info/semanticdatacatalog/public/test",
+  icon: "flask"
+}];
 var SDM_CHANGELOG = "".concat(SDM_NS, "changeLog");
 var SDM_CHANGE_EVENT = "".concat(SDM_NS, "ChangeEvent");
 var LEGACY_DCAT_CONFORMS_TO = "http://www.w3.org/ns/dcat#conformsTo";
 var VCARD_HAS_URL = vocabCommonRdf.VCARD.hasURL || "http://www.w3.org/2006/vcard/ns#hasURL";
-vocabCommonRdf.VCARD.url || "http://www.w3.org/2006/vcard/ns#url";
+var VCARD_URL = vocabCommonRdf.VCARD.url || "http://www.w3.org/2006/vcard/ns#url";
+var resolveUrl = (value, base) => {
+  if (!value) return "";
+  try {
+    return new URL(value, base).href;
+  } catch (_unused) {
+    return value;
+  }
+};
 var isNotFound = err => {
   var _err$response, _err$response2;
   return (err === null || err === void 0 ? void 0 : err.statusCode) === 404 || (err === null || err === void 0 ? void 0 : err.status) === 404 || (err === null || err === void 0 || (_err$response = err.response) === null || _err$response === void 0 ? void 0 : _err$response.status) === 404 || (err === null || err === void 0 || (_err$response2 = err.response) === null || _err$response2 === void 0 ? void 0 : _err$response2.statusCode) === 404;
+};
+var stripMailto = value => {
+  if (!value) return "";
+  return value.startsWith("mailto:") ? value.replace(/^mailto:/, "") : value;
+};
+var getThingByTypes = (datasetDoc, types) => {
+  var typeSet = new Set(types);
+  return solidClient.getThingAll(datasetDoc).find(thing => {
+    var thingTypes = solidClient.getUrlAll(thing, vocabCommonRdf.RDF.type);
+    return thingTypes.some(type => typeSet.has(type));
+  }) || null;
+};
+var resolveDatasetThing = (datasetDoc, datasetUrl) => {
+  if (!datasetDoc) return null;
+  var docUrl = getDocumentUrl(datasetUrl);
+  var candidates = [datasetUrl, "".concat(docUrl, "#it")];
+  for (var candidate of candidates) {
+    var thing = solidClient.getThing(datasetDoc, candidate);
+    if (thing) return thing;
+  }
+  return getThingByTypes(datasetDoc, [vocabCommonRdf.DCAT.Dataset, vocabCommonRdf.DCAT.DatasetSeries]) || solidClient.getThingAll(datasetDoc)[0] || null;
 };
 var toCatalogDatasetRef = (catalogDocUrl, datasetUrl) => {
   if (!catalogDocUrl || !datasetUrl) return datasetUrl;
@@ -2430,6 +2480,43 @@ var normalizeContainerUrl = value => {
   }
 };
 var getDocumentUrl = resourceUrl => resourceUrl.split("#")[0];
+var normalizeLocaleValues = values => {
+  if (!values) return [];
+  if (Array.isArray(values)) {
+    return values.map(value => {
+      if (typeof value === "string") return value;
+      if (value && typeof value === "object") {
+        return value.value || value.literal || value.literalValue || "";
+      }
+      return "";
+    }).filter(Boolean);
+  }
+  if (typeof values === "object") {
+    return Object.values(values).flatMap(value => normalizeLocaleValues(value)).filter(Boolean);
+  }
+  return [];
+};
+var getAnyString = (thing, predicate) => {
+  if (!thing) return "";
+  var noLocale = solidClient.getStringNoLocale(thing, predicate);
+  if (noLocale) return noLocale;
+  try {
+    var values = normalizeLocaleValues(solidClient.getStringWithLocaleAll(thing, predicate));
+    if (!values || values.length === 0) return "";
+    return values[0] || "";
+  } catch (_unused5) {
+    return "";
+  }
+};
+var safeGetUrlAll = (thing, predicate) => {
+  if (!thing) return [];
+  try {
+    return (solidClient.getUrlAll(thing, predicate) || []).filter(Boolean);
+  } catch (err) {
+    console.warn("Invalid URL value for predicate", predicate, err);
+    return [];
+  }
+};
 var setLocaleString = (thing, predicate, value) => {
   if (!value) return thing;
   return solidClient.setStringNoLocale(thing, predicate, value);
@@ -2491,6 +2578,10 @@ var validateDatasetInput = input => {
     throw new Error("Public external links are supported only for public datasets.");
   }
 };
+var loadCache = () => ({
+  updatedAt: 0,
+  catalogs: {}
+});
 var clearCache = () => {
   if (typeof window === "undefined") return;
   window.localStorage.removeItem(CACHE_KEY);
@@ -2663,6 +2754,44 @@ var loadRegistryConfig = /*#__PURE__*/function () {
     return _ref12.apply(this, arguments);
   };
 }();
+var saveRegistryConfig = /*#__PURE__*/function () {
+  var _ref13 = _asyncToGenerator(function* (webId, fetch, config) {
+    var {
+      podRoot = ""
+    } = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : {};
+    if (!webId || !fetch) return;
+    var profileDocUrl = webId.split("#")[0];
+    var profileDataset = yield solidClient.getSolidDataset(profileDocUrl, {
+      fetch
+    });
+    var profileThing = solidClient.getThing(profileDataset, webId);
+    if (!profileThing) {
+      profileThing = solidClient.createThing({
+        url: webId
+      });
+    }
+    var mode = (config === null || config === void 0 ? void 0 : config.mode) === "private" ? "private" : "research";
+    var registries = ((config === null || config === void 0 ? void 0 : config.registries) || []).filter(Boolean).map(url => url.replace(/\/+$/, ""));
+    var privateRegistry = (config === null || config === void 0 ? void 0 : config.privateRegistry) || buildDefaultPrivateRegistry(webId, podRoot);
+    profileThing = solidClient.removeAll(profileThing, SDM_REGISTRY_MODE);
+    profileThing = solidClient.setStringNoLocale(profileThing, SDM_REGISTRY_MODE, mode);
+    profileThing = solidClient.removeAll(profileThing, SDM_REGISTRY);
+    registries.forEach(url => {
+      profileThing = solidClient.addUrl(profileThing, SDM_REGISTRY, url);
+    });
+    profileThing = solidClient.removeAll(profileThing, SDM_PRIVATE_REGISTRY);
+    if (privateRegistry) {
+      profileThing = solidClient.setUrl(profileThing, SDM_PRIVATE_REGISTRY, privateRegistry);
+    }
+    var updatedProfile = solidClient.setThing(profileDataset, profileThing);
+    yield solidClient.saveSolidDatasetAt(profileDocUrl, updatedProfile, {
+      fetch
+    });
+  });
+  return function saveRegistryConfig(_x27, _x28, _x29) {
+    return _ref13.apply(this, arguments);
+  };
+}();
 var ensureRegistryContainer = /*#__PURE__*/function () {
   var _ref14 = _asyncToGenerator(function* (containerUrl, fetch) {
     yield ensureContainer(containerUrl, fetch);
@@ -2763,6 +2892,41 @@ var registerWebIdInRegistries = /*#__PURE__*/function () {
     return _ref18.apply(this, arguments);
   };
 }();
+var loadRegistryMembersFromContainer = /*#__PURE__*/function () {
+  var _ref19 = _asyncToGenerator(function* (containerUrl, fetch) {
+    var normalizedUrl = normalizeContainerUrl(containerUrl);
+    if (!normalizedUrl || !fetch) return [];
+    try {
+      var containerDataset = yield solidClient.getSolidDataset(normalizedUrl, {
+        fetch
+      });
+      var resourceUrls = solidClient.getContainedResourceUrlAll(containerDataset);
+      var members = new Set();
+      for (var resourceUrl of resourceUrls) {
+        try {
+          var memberDataset = yield solidClient.getSolidDataset(resourceUrl, {
+            fetch
+          });
+          var memberThing = solidClient.getThing(memberDataset, "".concat(resourceUrl, "#it")) || solidClient.getThingAll(memberDataset)[0];
+          var memberWebId = memberThing ? solidClient.getUrl(memberThing, vocabCommonRdf.FOAF.member) : "";
+          if (memberWebId) members.add(memberWebId);
+        } catch (_unused9) {
+          // Ignore malformed entries.
+        }
+      }
+      return Array.from(members);
+    } catch (err) {
+      var _err$response4;
+      var status = (err === null || err === void 0 ? void 0 : err.statusCode) || (err === null || err === void 0 || (_err$response4 = err.response) === null || _err$response4 === void 0 ? void 0 : _err$response4.status);
+      if (status === 404) return [];
+      console.warn("Failed to load registry container", normalizedUrl, err);
+      return [];
+    }
+  });
+  return function loadRegistryMembersFromContainer(_x44, _x45) {
+    return _ref19.apply(this, arguments);
+  };
+}();
 var ensureCatalogStructure = /*#__PURE__*/function () {
   var _ref21 = _asyncToGenerator(function* (session) {
     var _session$info;
@@ -2808,14 +2972,358 @@ var ensureCatalogStructure = /*#__PURE__*/function () {
     return _ref21.apply(this, arguments);
   };
 }();
-var DEFAULT_THEME_NS = "https://w3id.org/solid-dataspace-manager/theme/";
-vocabCommonRdf.DCAT.seriesMember || "http://www.w3.org/ns/dcat#seriesMember";
+var resolveCatalogUrlFromWebId = /*#__PURE__*/function () {
+  var _ref24 = _asyncToGenerator(function* (webId, fetch) {
+    if (!webId || !fetch) return getCatalogResourceUrl(webId);
+    try {
+      var profileDocUrl = webId.split("#")[0];
+      var profileDoc = yield solidClient.getSolidDataset(profileDocUrl, {
+        fetch
+      });
+      var profileThing = solidClient.getThing(profileDoc, webId);
+      var profileCatalog = profileThing ? solidClient.getUrl(profileThing, SDP_CATALOG) || solidClient.getUrl(profileThing, vocabCommonRdf.DCAT.catalog) : null;
+      if (profileCatalog) return profileCatalog;
+    } catch (err) {
+      console.warn("Failed to resolve catalog URL from profile:", err);
+    }
+    return getCatalogResourceUrl(webId);
+  });
+  return function resolveCatalogUrlFromWebId(_x53, _x54) {
+    return _ref24.apply(this, arguments);
+  };
+}();
+var loadRegistryMembers = /*#__PURE__*/function () {
+  var _ref25 = _asyncToGenerator(function* (webId, fetch) {
+    var {
+      podRoot = ""
+    } = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
+    var members = new Set();
+    if (webId) members.add(webId);
+    var config = yield loadRegistryConfig(webId, fetch, {
+      podRoot
+    });
+    var containers = [];
+    if (config.mode === "private") {
+      containers = [config.privateRegistry];
+    } else {
+      containers = config.registries || [];
+    }
+    var normalized = Array.from(new Set(containers.map(normalizeContainerUrl).filter(Boolean)));
+    if (!normalized.length) return Array.from(members);
+    for (var containerUrl of normalized) {
+      try {
+        var containerDataset = yield solidClient.getSolidDataset(containerUrl, {
+          fetch
+        });
+        var resourceUrls = solidClient.getContainedResourceUrlAll(containerDataset);
+        for (var resourceUrl of resourceUrls) {
+          try {
+            var memberDataset = yield solidClient.getSolidDataset(resourceUrl, {
+              fetch
+            });
+            var memberThing = solidClient.getThing(memberDataset, "".concat(resourceUrl, "#it")) || solidClient.getThingAll(memberDataset)[0];
+            var memberWebId = memberThing ? solidClient.getUrl(memberThing, vocabCommonRdf.FOAF.member) : "";
+            if (memberWebId) members.add(memberWebId);
+          } catch (_unused11) {
+            // Ignore malformed registry entries.
+          }
+        }
+      } catch (err) {
+        console.warn("Failed to load registry container:", containerUrl, err);
+      }
+    }
+    return Array.from(members);
+  });
+  return function loadRegistryMembers(_x55, _x56) {
+    return _ref25.apply(this, arguments);
+  };
+}();
+var parseDatasetFromDoc = (datasetDoc, datasetUrl) => {
+  var _datasetDoc$internal_;
+  var datasetThing = resolveDatasetThing(datasetDoc, datasetUrl);
+  if (!datasetThing) return null;
+  var baseIri = (datasetDoc === null || datasetDoc === void 0 || (_datasetDoc$internal_ = datasetDoc.internal_resourceInfo) === null || _datasetDoc$internal_ === void 0 ? void 0 : _datasetDoc$internal_.sourceIri) || getDocumentUrl(datasetUrl);
+  var identifier = solidClient.getStringNoLocale(datasetThing, vocabCommonRdf.DCTERMS.identifier) || datasetUrl;
+  var types = solidClient.getUrlAll(datasetThing, vocabCommonRdf.RDF.type) || [];
+  var seriesMembersRaw = safeGetUrlAll(datasetThing, DCAT_SERIES_MEMBER);
+  var isSeries = types.includes(DCAT_DATASET_SERIES) || types.includes(vocabCommonRdf.DCAT.DatasetSeries) || types.includes("http://www.w3.org/ns/dcat#DatasetSeries") || seriesMembersRaw.length > 0;
+  var title = getAnyString(datasetThing, vocabCommonRdf.DCTERMS.title) || "Untitled dataset";
+  var description = getAnyString(datasetThing, vocabCommonRdf.DCTERMS.description) || "";
+  var issued = solidClient.getDatetime(datasetThing, vocabCommonRdf.DCTERMS.issued);
+  var modified = solidClient.getDatetime(datasetThing, vocabCommonRdf.DCTERMS.modified);
+  var publisherLiteral = getAnyString(datasetThing, vocabCommonRdf.DCTERMS.publisher) || "";
+  var publisherRef = solidClient.getUrl(datasetThing, vocabCommonRdf.DCTERMS.publisher) || "";
+  var publisher = publisherLiteral;
+  if (!publisher && publisherRef) {
+    var publisherThing = solidClient.getThing(datasetDoc, publisherRef);
+    if (publisherThing) {
+      publisher = getAnyString(publisherThing, vocabCommonRdf.FOAF.name) || getAnyString(publisherThing, vocabCommonRdf.VCARD.fn) || getAnyString(publisherThing, vocabCommonRdf.DCTERMS.title) || "";
+    }
+  }
+  if (!publisher) publisher = publisherRef;
+  var creator = solidClient.getUrl(datasetThing, vocabCommonRdf.DCTERMS.creator) || "";
+  var theme = solidClient.getStringNoLocale(datasetThing, vocabCommonRdf.DCAT.theme) || solidClient.getUrl(datasetThing, vocabCommonRdf.DCAT.theme) || "";
+  if (!theme) {
+    theme = getAnyString(datasetThing, vocabCommonRdf.DCAT.theme) || "";
+  }
+  var accessRights = solidClient.getStringNoLocale(datasetThing, vocabCommonRdf.DCTERMS.accessRights) || "";
+  var contactRef = solidClient.getUrl(datasetThing, vocabCommonRdf.DCAT.contactPoint) || "";
+  var contactLiteral = solidClient.getStringNoLocale(datasetThing, vocabCommonRdf.DCAT.contactPoint) || getAnyString(datasetThing, vocabCommonRdf.DCAT.contactPoint) || "";
+  var contact = stripMailto(contactLiteral);
+  var contactType = contact ? contactLiteral.startsWith("mailto:") || contact.includes("@") ? "email" : isValidUrl(contact) ? "url" : "text" : "";
+  if (!contact && contactRef) {
+    var contactThing = solidClient.getThing(datasetDoc, contactRef);
+    if (contactThing) {
+      var mailto = solidClient.getUrl(contactThing, vocabCommonRdf.VCARD.hasEmail) || solidClient.getUrl(contactThing, vocabCommonRdf.VCARD.value) || solidClient.getStringNoLocale(contactThing, vocabCommonRdf.VCARD.hasEmail) || solidClient.getStringNoLocale(contactThing, vocabCommonRdf.VCARD.value) || solidClient.getUrl(contactThing, vocabCommonRdf.FOAF.mbox) || solidClient.getStringNoLocale(contactThing, vocabCommonRdf.FOAF.mbox) || "";
+      if (mailto) {
+        contact = stripMailto(mailto);
+        contactType = "email";
+      } else {
+        var contactUrl = solidClient.getUrl(contactThing, VCARD_HAS_URL) || solidClient.getUrl(contactThing, VCARD_URL) || "";
+        if (contactUrl) {
+          contact = contactUrl;
+          contactType = "url";
+        } else {
+          contact = getAnyString(contactThing, vocabCommonRdf.VCARD.fn) || "";
+          contactType = contact ? "text" : "";
+        }
+      }
+    } else if (isValidUrl(contactRef)) {
+      contact = contactRef;
+      contactType = "url";
+    }
+  }
+  var conformsTo = solidClient.getUrl(datasetThing, vocabCommonRdf.DCTERMS.conformsTo) || solidClient.getUrl(datasetThing, LEGACY_DCAT_CONFORMS_TO) || "";
+  var distributions = safeGetUrlAll(datasetThing, vocabCommonRdf.DCAT.distribution);
+  var accessUrlDataset = "";
+  var accessUrlModel = "";
+  var fileFormat = "";
+  var distributionAccessType = DISTRIBUTION_ACCESS_TYPES.download;
+  distributions.forEach(distUrl => {
+    var resolvedDistUrl = resolveUrl(distUrl, baseIri);
+    var distThing = solidClient.getThing(datasetDoc, resolvedDistUrl) || solidClient.getThing(datasetDoc, distUrl);
+    if (!distThing) return;
+    var rawDownloadUrl = solidClient.getUrl(distThing, vocabCommonRdf.DCAT.downloadURL) || "";
+    var rawAccessUrl = solidClient.getUrl(distThing, vocabCommonRdf.DCAT.accessURL) || "";
+    var distributionUrl = resolveUrl(rawDownloadUrl || rawAccessUrl || "", baseIri);
+    var mediaType = solidClient.getStringNoLocale(distThing, vocabCommonRdf.DCAT.mediaType) || solidClient.getStringNoLocale(distThing, vocabCommonRdf.DCTERMS.format) || getAnyString(distThing, vocabCommonRdf.DCTERMS.format) || "";
+    if (!accessUrlDataset) {
+      accessUrlDataset = distributionUrl;
+      fileFormat = mediaType;
+      distributionAccessType = rawDownloadUrl ? DISTRIBUTION_ACCESS_TYPES.download : DISTRIBUTION_ACCESS_TYPES.access;
+    }
+  });
+  if (conformsTo) {
+    accessUrlModel = conformsTo;
+  }
+  var isPublic = (accessRights || "").toLowerCase() === "public";
+  var seriesMembers = isSeries ? seriesMembersRaw : [];
+  var inSeries = !isSeries ? safeGetUrlAll(datasetThing, DCAT_IN_SERIES) : [];
+  return {
+    identifier,
+    title,
+    description,
+    issued: issued ? issued.toISOString() : "",
+    modified: modified ? modified.toISOString() : "",
+    publisher,
+    publisher_url: publisherRef,
+    contact_point: contact,
+    contact_point_type: contactType,
+    access_url_dataset: accessUrlDataset,
+    access_url_semantic_model: accessUrlModel,
+    file_format: fileFormat,
+    distribution_access_type: distributionAccessType,
+    theme,
+    is_public: isPublic,
+    webid: creator,
+    datasetUrl,
+    datasetType: isSeries ? "series" : "dataset",
+    seriesMembers,
+    inSeries
+  };
+};
+var loadCatalogDatasets = /*#__PURE__*/function () {
+  var _ref26 = _asyncToGenerator(function* (catalogUrl, fetch) {
+    var catalogDocUrl = getDocumentUrl(catalogUrl);
+    var catalogDataset = yield solidClient.getSolidDataset(catalogDocUrl, {
+      fetch
+    });
+    var catalogThing = solidClient.getThing(catalogDataset, catalogUrl);
+    var datasetUrls = catalogThing ? safeGetUrlAll(catalogThing, vocabCommonRdf.DCAT.dataset) : [];
+    var resolvedUrls = Array.from(new Set(datasetUrls)).map(url => resolveUrl(url, catalogDocUrl)).filter(Boolean);
+    var datasets = yield Promise.all(resolvedUrls.map(/*#__PURE__*/function () {
+      var _ref27 = _asyncToGenerator(function* (datasetUrl) {
+        try {
+          var datasetDoc = yield solidClient.getSolidDataset(getDocumentUrl(datasetUrl), {
+            fetch
+          });
+          return parseDatasetFromDoc(datasetDoc, datasetUrl);
+        } catch (err) {
+          console.warn("Failed to load dataset", datasetUrl, err);
+          return null;
+        }
+      });
+      return function (_x59) {
+        return _ref27.apply(this, arguments);
+      };
+    }()));
+    return datasets.filter(Boolean);
+  });
+  return function loadCatalogDatasets(_x57, _x58) {
+    return _ref26.apply(this, arguments);
+  };
+}();
+var mergeDatasets = lists => {
+  var map = new Map();
+  lists.flat().forEach(dataset => {
+    if (!dataset) return;
+    var key = dataset.datasetUrl || "".concat(dataset.catalogUrl || "unknown-catalog", "::").concat(dataset.identifier || "");
+    var existing = map.get(key);
+    if (!existing) {
+      map.set(key, dataset);
+      return;
+    }
+    var existingModified = existing.modified ? new Date(existing.modified).getTime() : 0;
+    var nextModified = dataset.modified ? new Date(dataset.modified).getTime() : 0;
+    if (nextModified >= existingModified) {
+      map.set(key, dataset);
+    }
+  });
+  return Array.from(map.values());
+};
+var loadAggregatedDatasets = /*#__PURE__*/function () {
+  var _ref28 = _asyncToGenerator(function* (session, fetchOverride) {
+    var _session$info3;
+    var {
+      researchRegistries
+    } = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
+    var webId = (session === null || session === void 0 || (_session$info3 = session.info) === null || _session$info3 === void 0 ? void 0 : _session$info3.webId) || "";
+    var fetch = fetchOverride || (session === null || session === void 0 ? void 0 : session.fetch) || (typeof window !== "undefined" ? window.fetch.bind(window) : fetchOverride);
+    if (!fetch) return {
+      datasets: [],
+      catalogs: []
+    };
+    var registryMembers;
+    if (Array.isArray(researchRegistries)) {
+      var membersByRegistry = yield Promise.all(researchRegistries.map(registryUrl => loadRegistryMembersFromContainer(registryUrl, fetch)));
+      registryMembers = Array.from(new Set(membersByRegistry.flat().filter(memberWebId => {
+        try {
+          var url = new URL(memberWebId);
+          return (url.protocol === "https:" || url.protocol === "http:") && !url.username && !url.password && !url.search;
+        } catch (_unused12) {
+          return false;
+        }
+      })));
+    } else {
+      registryMembers = yield loadRegistryMembers(webId, fetch);
+    }
+    var catalogUrls = yield Promise.all(registryMembers.map(member => resolveCatalogUrlFromWebId(member, fetch)));
+    var uniqueCatalogUrls = Array.from(new Set(catalogUrls.filter(catalogUrl => {
+      if (!catalogUrl) return false;
+      try {
+        var url = new URL(catalogUrl);
+        return (url.protocol === "https:" || url.protocol === "http:") && !url.username && !url.password && !url.search;
+      } catch (_unused13) {
+        return false;
+      }
+    })));
+    var cache = loadCache();
+    var now = Date.now();
+    var useCacheOnly = now - cache.updatedAt < CACHE_TTL_MS;
+    var results = [];
+    var updatedCache = _objectSpread2(_objectSpread2({}, cache), {}, {
+      catalogs: _objectSpread2({}, cache.catalogs)
+    });
+    var fetchCatalog = /*#__PURE__*/function () {
+      var _ref29 = _asyncToGenerator(function* (catalogUrl) {
+        try {
+          var datasets = yield loadCatalogDatasets(catalogUrl, fetch);
+          updatedCache.catalogs[catalogUrl] = {
+            datasets,
+            lastSuccess: now
+          };
+          return {
+            datasets,
+            lastSuccess: now,
+            failed: false
+          };
+        } catch (err) {
+          console.warn("Catalog load failed", catalogUrl, err);
+          var cached = cache.catalogs[catalogUrl];
+          if (cached !== null && cached !== void 0 && cached.datasets) {
+            return {
+              datasets: cached.datasets,
+              lastSuccess: cached.lastSuccess || 0,
+              failed: true
+            };
+          }
+          return {
+            datasets: [],
+            lastSuccess: 0,
+            failed: true
+          };
+        }
+      });
+      return function fetchCatalog(_x62) {
+        return _ref29.apply(this, arguments);
+      };
+    }();
+    for (var catalogUrl of uniqueCatalogUrls) {
+      if (useCacheOnly && cache.catalogs[catalogUrl]) {
+        results.push({
+          catalogUrl,
+          datasets: cache.catalogs[catalogUrl].datasets || [],
+          lastSuccess: cache.catalogs[catalogUrl].lastSuccess || 0,
+          failed: false
+        });
+        continue;
+      }
+      var catalogResult = yield fetchCatalog(catalogUrl);
+      results.push(_objectSpread2({
+        catalogUrl
+      }, catalogResult));
+    }
+    updatedCache.updatedAt = now;
+    var annotated = results.flatMap(result => {
+      var lastSeen = result.lastSuccess || 0;
+      var age = now - lastSeen;
+      if (lastSeen && age > DROP_AFTER_MS) {
+        return [];
+      }
+      var stale = lastSeen && age > STALE_AFTER_MS;
+      return (result.datasets || []).map(dataset => _objectSpread2(_objectSpread2({}, dataset), {}, {
+        catalogUrl: result.catalogUrl,
+        lastSeenAt: lastSeen ? new Date(lastSeen).toISOString() : "",
+        isStale: Boolean(stale)
+      }));
+    });
+    return {
+      datasets: mergeDatasets(annotated),
+      catalogs: uniqueCatalogUrls
+    };
+  });
+  return function loadAggregatedDatasets(_x60, _x61) {
+    return _ref28.apply(this, arguments);
+  };
+}();
+var DEFAULT_THEME_NS$1 = "https://w3id.org/solid-dataspace-manager/theme/";
+var DCAT_DATASET_SERIES = "http://www.w3.org/ns/dcat#DatasetSeries";
+var DCAT_SERIES_MEMBER = vocabCommonRdf.DCAT.seriesMember || "http://www.w3.org/ns/dcat#seriesMember";
 var DCAT_IN_SERIES = vocabCommonRdf.DCAT.inSeries || "http://www.w3.org/ns/dcat#inSeries";
 var toThemeIri = value => {
   if (!value) return "";
   if (value.startsWith("http://") || value.startsWith("https://")) return value;
   var slug = value.trim().toLowerCase().replace(/\s+/g, "-");
-  return "".concat(DEFAULT_THEME_NS).concat(encodeURIComponent(slug));
+  return "".concat(DEFAULT_THEME_NS$1).concat(encodeURIComponent(slug));
+};
+var isValidUrl = value => {
+  if (!value || typeof value !== "string") return false;
+  try {
+    new URL(value);
+    return true;
+  } catch (_unused14) {
+    return false;
+  }
 };
 var buildDatasetResource = (datasetDocUrl, input) => {
   var datasetUrl = "".concat(datasetDocUrl, "#it");
@@ -2912,12 +3420,7 @@ var buildDistributionThing = (datasetDocUrl, slug, distributionUrl, mediaType, d
 var addLdpTypeIfLocal = function addLdpTypeIfLocal(solidDataset, webId, targetUrl) {
   var podRootOverride = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : "";
   if (!solidDataset || !webId || !targetUrl) return solidDataset;
-  try {
-    var podRoot = podRootOverride || getPodRoot(webId);
-    if (!targetUrl.startsWith(podRoot)) return solidDataset;
-  } catch (_unused13) {
-    return solidDataset;
-  }
+  if (!isLocalPodResource(webId, targetUrl, podRootOverride)) return solidDataset;
   var isContainer = targetUrl.endsWith("/");
   var resourceThing = solidClient.createThing({
     url: targetUrl
@@ -2932,12 +3435,23 @@ var isLocalPodResource = function isLocalPodResource(webId, targetUrl) {
   var podRootOverride = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : "";
   if (!webId || !targetUrl) return false;
   try {
-    return targetUrl.startsWith(podRootOverride || getPodRoot(webId));
-  } catch (_unused14) {
+    var root = new URL(podRootOverride || getPodRoot(webId));
+    var target = new URL(targetUrl);
+    if (root.protocol !== "https:" && root.protocol !== "http:" || root.username || root.password || root.search || root.hash || target.protocol !== "https:" && target.protocol !== "http:" || target.username || target.password || target.search) {
+      return false;
+    }
+    var rootPath = root.pathname.endsWith("/") ? root.pathname : "".concat(root.pathname, "/");
+    return target.origin === root.origin && target.pathname.startsWith(rootPath);
+  } catch (_unused15) {
     return false;
   }
 };
-var ensureRestrictedResourceAccess = /*#__PURE__*/function () {
+var getAclTargetUrl = resourceUrl => {
+  var target = new URL(resourceUrl);
+  target.hash = "";
+  return target.href;
+};
+var ensurePublicReadOnlyResourceAccess = /*#__PURE__*/function () {
   var _ref30 = _asyncToGenerator(function* (session, resourceUrl) {
     var _session$info4;
     var {
@@ -2947,27 +3461,57 @@ var ensureRestrictedResourceAccess = /*#__PURE__*/function () {
       throw new Error("An authenticated Solid session is required.");
     }
     if (!isLocalPodResource(session.info.webId, resourceUrl, podRoot)) {
-      throw new Error("Restricted programmatic datasets must use a resource in the owner's Pod.");
+      throw new Error("Public programmatic datasets must use a resource in the owner's Pod.");
     }
-    yield setPublicReadAccess(resourceUrl, session.fetch, false);
+    var aclTargetUrl = getAclTargetUrl(resourceUrl);
+    if (new URL(aclTargetUrl).pathname.endsWith("/")) {
+      throw new Error("Public programmatic datasets must use a non-container resource.");
+    }
+    yield setPublicReadAccess(aclTargetUrl, session.fetch, true);
     var {
       resourceAcl
-    } = yield getResourceAndAcl(resourceUrl, session.fetch);
+    } = yield getResourceAndAcl(aclTargetUrl, session.fetch);
+    var publicAccess = solidClient.getPublicResourceAccess(resourceAcl) || {};
+    if (publicAccess.read !== true || publicAccess.append !== false || publicAccess.write !== false || publicAccess.control !== false) {
+      throw new Error("Resource does not have verified public read-only access after ACL update: ".concat(resourceUrl));
+    }
+  });
+  return function ensurePublicReadOnlyResourceAccess(_x63, _x64) {
+    return _ref30.apply(this, arguments);
+  };
+}();
+var ensureRestrictedResourceAccess = /*#__PURE__*/function () {
+  var _ref31 = _asyncToGenerator(function* (session, resourceUrl) {
+    var _session$info5;
+    var {
+      podRoot = ""
+    } = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
+    if (!(session !== null && session !== void 0 && (_session$info5 = session.info) !== null && _session$info5 !== void 0 && _session$info5.webId) || typeof session.fetch !== "function") {
+      throw new Error("An authenticated Solid session is required.");
+    }
+    if (!isLocalPodResource(session.info.webId, resourceUrl, podRoot)) {
+      throw new Error("Restricted programmatic datasets must use a resource in the owner's Pod.");
+    }
+    var aclTargetUrl = getAclTargetUrl(resourceUrl);
+    yield setPublicReadAccess(aclTargetUrl, session.fetch, false);
+    var {
+      resourceAcl
+    } = yield getResourceAndAcl(aclTargetUrl, session.fetch);
     var publicAccess = solidClient.getPublicResourceAccess(resourceAcl);
     if (publicAccess.read || publicAccess.append || publicAccess.write || publicAccess.control) {
       throw new Error("Resource still has public access after ACL update: ".concat(resourceUrl));
     }
   });
-  return function ensureRestrictedResourceAccess(_x63, _x64) {
-    return _ref30.apply(this, arguments);
+  return function ensureRestrictedResourceAccess(_x65, _x66) {
+    return _ref31.apply(this, arguments);
   };
 }();
 var syncLinkedResourceAccess = /*#__PURE__*/function () {
-  var _ref31 = _asyncToGenerator(function* (session, input) {
+  var _ref32 = _asyncToGenerator(function* (session, input) {
     var urls = [input.access_url_dataset, input.access_url_semantic_model].filter(Boolean);
     for (var url of urls) {
-      var _session$info5;
-      if (!isLocalPodResource(session === null || session === void 0 || (_session$info5 = session.info) === null || _session$info5 === void 0 ? void 0 : _session$info5.webId, url, input.podRoot)) {
+      var _session$info6;
+      if (!isLocalPodResource(session === null || session === void 0 || (_session$info6 = session.info) === null || _session$info6 === void 0 ? void 0 : _session$info6.webId, url, input.podRoot)) {
         if (input.strict_restricted_acl && !input.is_public) {
           throw new Error("Restricted linked resource is outside the owner's Pod: ".concat(url));
         }
@@ -2978,31 +3522,38 @@ var syncLinkedResourceAccess = /*#__PURE__*/function () {
           yield ensureRestrictedResourceAccess(session, url, {
             podRoot: input.podRoot
           });
+        } else if (input.strict_public_acl && input.is_public) {
+          yield ensurePublicReadOnlyResourceAccess(session, url, {
+            podRoot: input.podRoot
+          });
         } else {
           yield setPublicReadAccess(url, session.fetch, Boolean(input.is_public));
         }
       } catch (err) {
         console.warn("Failed to sync linked resource ACL for", url, err);
-        if (input.is_public || input.strict_restricted_acl) {
+        if (input.is_public || input.strict_restricted_acl || input.strict_public_acl) {
           var accessLabel = input.is_public ? "public" : "restricted";
           throw new Error("Failed to make linked resource ".concat(accessLabel, ": ").concat(url));
         }
       }
     }
   });
-  return function syncLinkedResourceAccess(_x65, _x66) {
-    return _ref31.apply(this, arguments);
+  return function syncLinkedResourceAccess(_x67, _x68) {
+    return _ref32.apply(this, arguments);
   };
 }();
 var writeDatasetDocument = /*#__PURE__*/function () {
-  var _ref32 = _asyncToGenerator(function* (session, datasetDocUrl, input) {
+  var _ref33 = _asyncToGenerator(function* (session, datasetDocUrl, input) {
+    var {
+      allowCreate = true
+    } = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : {};
     var solidDataset;
     try {
       solidDataset = yield solidClient.getSolidDataset(datasetDocUrl, {
         fetch: session.fetch
       });
     } catch (err) {
-      if (isNotFound(err)) {
+      if (isNotFound(err) && allowCreate) {
         solidDataset = solidClient.createSolidDataset();
       } else {
         throw err;
@@ -3020,14 +3571,14 @@ var writeDatasetDocument = /*#__PURE__*/function () {
     }
     var distDataset = buildDistributionThing(datasetDocUrl, "dist", input.access_url_dataset, input.file_format, input.distribution_access_type);
     if (distDataset) {
-      var _session$info6;
+      var _session$info7;
       solidDataset = solidClient.setThing(solidDataset, distDataset);
       datasetThing = solidClient.addUrl(datasetThing, vocabCommonRdf.DCAT.distribution, distDataset.url);
-      solidDataset = addLdpTypeIfLocal(solidDataset, session === null || session === void 0 || (_session$info6 = session.info) === null || _session$info6 === void 0 ? void 0 : _session$info6.webId, input.access_url_dataset, input.podRoot);
+      solidDataset = addLdpTypeIfLocal(solidDataset, session === null || session === void 0 || (_session$info7 = session.info) === null || _session$info7 === void 0 ? void 0 : _session$info7.webId, input.access_url_dataset, input.podRoot);
     }
     if (input.access_url_semantic_model) {
-      var _session$info7;
-      solidDataset = addLdpTypeIfLocal(solidDataset, session === null || session === void 0 || (_session$info7 = session.info) === null || _session$info7 === void 0 ? void 0 : _session$info7.webId, input.access_url_semantic_model, input.podRoot);
+      var _session$info8;
+      solidDataset = addLdpTypeIfLocal(solidDataset, session === null || session === void 0 || (_session$info8 = session.info) === null || _session$info8 === void 0 ? void 0 : _session$info8.webId, input.access_url_semantic_model, input.podRoot);
     }
     solidDataset = solidClient.setThing(solidDataset, datasetThing);
     yield solidClient.saveSolidDatasetAt(datasetDocUrl, solidDataset, {
@@ -3042,12 +3593,12 @@ var writeDatasetDocument = /*#__PURE__*/function () {
     yield makePublicReadable(datasetDocUrl, session.fetch);
     yield syncLinkedResourceAccess(session, input);
   });
-  return function writeDatasetDocument(_x67, _x68, _x69) {
-    return _ref32.apply(this, arguments);
+  return function writeDatasetDocument(_x69, _x70, _x71) {
+    return _ref33.apply(this, arguments);
   };
 }();
 var updateCatalogDatasets = /*#__PURE__*/function () {
-  var _ref34 = _asyncToGenerator(function* (session, catalogDocUrl, datasetUrl) {
+  var _ref35 = _asyncToGenerator(function* (session, catalogDocUrl, datasetUrl) {
     var {
       remove
     } = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : {};
@@ -3062,13 +3613,14 @@ var updateCatalogDatasets = /*#__PURE__*/function () {
     });
     yield makePublicReadable(catalogDocUrl, session.fetch);
   });
-  return function updateCatalogDatasets(_x73, _x74, _x75) {
-    return _ref34.apply(this, arguments);
+  return function updateCatalogDatasets(_x75, _x76, _x77) {
+    return _ref35.apply(this, arguments);
   };
 }();
 var writeRecordDocument = /*#__PURE__*/function () {
-  var _ref37 = _asyncToGenerator(function* (session, datasetDocUrl, identifier) {
+  var _ref38 = _asyncToGenerator(function* (session, datasetDocUrl, identifier) {
     var podRootOverride = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : "";
+    var operationId = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : "";
     var podRoot = podRootOverride || getPodRoot(session.info.webId);
     var recordDocUrl = "".concat(podRoot).concat(RECORDS_CONTAINER).concat(identifier, ".ttl");
     var recordDataset;
@@ -3095,7 +3647,7 @@ var writeRecordDocument = /*#__PURE__*/function () {
     descThing = solidClient.setStringNoLocale(descThing, vocabCommonRdf.DCTERMS.description, "Catalog record for dataset metadata.");
     descThing = solidClient.setUrl(descThing, vocabCommonRdf.FOAF.primaryTopic, datasetDocUrl);
     descThing = solidClient.setDatetime(descThing, vocabCommonRdf.DCTERMS.modified, new Date());
-    var changeUrl = "".concat(recordDocUrl, "#change-").concat(Date.now());
+    var changeUrl = "".concat(recordDocUrl, "#change-").concat(operationId || Date.now());
     var changeThing = solidClient.createThing({
       url: changeUrl
     });
@@ -3106,7 +3658,9 @@ var writeRecordDocument = /*#__PURE__*/function () {
     existingChanges.forEach(url => {
       descThing = solidClient.addUrl(descThing, SDM_CHANGELOG, url);
     });
-    descThing = solidClient.addUrl(descThing, SDM_CHANGELOG, changeUrl);
+    if (!existingChanges.includes(changeUrl)) {
+      descThing = solidClient.addUrl(descThing, SDM_CHANGELOG, changeUrl);
+    }
     recordDataset = solidClient.setThing(recordDataset, descThing);
     var aclUrl = "".concat(datasetDocUrl, ".acl");
     var wacUrl = "".concat(recordDocUrl, "#wac");
@@ -3124,8 +3678,8 @@ var writeRecordDocument = /*#__PURE__*/function () {
     });
     yield makePublicReadable(recordDocUrl, session.fetch);
   });
-  return function writeRecordDocument(_x82, _x83, _x84) {
-    return _ref37.apply(this, arguments);
+  return function writeRecordDocument(_x84, _x85, _x86) {
+    return _ref38.apply(this, arguments);
   };
 }();
 var generateIdentifier$1 = () => {
@@ -3135,11 +3689,12 @@ var generateIdentifier$1 = () => {
   return "dataset-".concat(Date.now());
 };
 var createDataset = /*#__PURE__*/function () {
-  var _ref38 = _asyncToGenerator(function* (session, input) {
-    var _session$info8;
-    var podRoot = (input === null || input === void 0 ? void 0 : input.podRoot) || getPodRoot(session === null || session === void 0 || (_session$info8 = session.info) === null || _session$info8 === void 0 ? void 0 : _session$info8.webId);
+  var _ref39 = _asyncToGenerator(function* (session, input) {
+    var _session$info9;
+    var podRoot = (input === null || input === void 0 ? void 0 : input.podRoot) || getPodRoot(session === null || session === void 0 || (_session$info9 = session.info) === null || _session$info9 === void 0 ? void 0 : _session$info9.webId);
     yield ensureCatalogStructure(session, {
-      podRoot
+      podRoot,
+      registryConfig: input === null || input === void 0 ? void 0 : input.registryConfig
     });
     validateDatasetInput(input);
     var identifier = input.identifier || generateIdentifier$1();
@@ -3158,12 +3713,34 @@ var createDataset = /*#__PURE__*/function () {
       identifier
     };
   });
-  return function createDataset(_x85, _x86) {
-    return _ref38.apply(this, arguments);
+  return function createDataset(_x87, _x88) {
+    return _ref39.apply(this, arguments);
+  };
+}();
+var updateDataset = /*#__PURE__*/function () {
+  var _ref41 = _asyncToGenerator(function* (session, input) {
+    var _session$info11;
+    if (!input.datasetUrl) throw new Error("Missing dataset URL.");
+    validateDatasetInput(input);
+    var podRoot = (input === null || input === void 0 ? void 0 : input.podRoot) || getPodRoot(session === null || session === void 0 || (_session$info11 = session.info) === null || _session$info11 === void 0 ? void 0 : _session$info11.webId);
+    var datasetDocUrl = getDocumentUrl(input.datasetUrl);
+    yield writeDatasetDocument(session, datasetDocUrl, input, {
+      allowCreate: false
+    });
+    yield updateCatalogDatasets(session, getCatalogDocUrl(session.info.webId, podRoot), input.datasetUrl, {
+      remove: false
+    });
+    if (input.identifier) {
+      yield writeRecordDocument(session, datasetDocUrl, input.identifier, podRoot, input.operation_id);
+    }
+    clearCache();
+  });
+  return function updateDataset(_x91, _x92) {
+    return _ref41.apply(this, arguments);
   };
 }();
 var deleteDatasetEntry = /*#__PURE__*/function () {
-  var _ref43 = _asyncToGenerator(function* (session, datasetUrl, identifier) {
+  var _ref44 = _asyncToGenerator(function* (session, datasetUrl, identifier) {
     var {
       podRoot: podRootOverride = ""
     } = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : {};
@@ -3186,12 +3763,14 @@ var deleteDatasetEntry = /*#__PURE__*/function () {
       clearCache();
     }
   });
-  return function deleteDatasetEntry(_x96, _x97, _x98) {
-    return _ref43.apply(this, arguments);
+  return function deleteDatasetEntry(_x98, _x99, _x100) {
+    return _ref44.apply(this, arguments);
   };
 }();
 
 var IDENTIFIER_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
+var OPERATION_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
+var DEFAULT_THEME_NS = "https://w3id.org/solid-dataspace-manager/theme/";
 var generateIdentifier = () => {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
     return crypto.randomUUID();
@@ -3228,12 +3807,94 @@ var normalizePodRoot = value => {
   }
   return url.href.endsWith("/") ? url.href : "".concat(url.href, "/");
 };
-function normalizeRestrictedDatasetInput(session) {
+var normalizeHttpUrl = function normalizeHttpUrl(value, label) {
+  var {
+    allowHash = false,
+    allowEmpty = false
+  } = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
+  var candidate = String(value || "").trim();
+  if (!candidate && allowEmpty) return "";
+  var url;
+  try {
+    url = new URL(candidate);
+  } catch (_unused3) {
+    throw new Error("".concat(label, " must be an absolute HTTP(S) URL."));
+  }
+  if (url.protocol !== "https:" && url.protocol !== "http:" || url.username || url.password || url.search || !allowHash && url.hash) {
+    throw new Error("".concat(label, " must be an absolute HTTP(S) URL."));
+  }
+  return url.href;
+};
+var normalizeRegistryUrl = value => {
+  try {
+    var url = new URL(String(value || "").trim());
+    var localHttp = url.protocol === "http:" && ["localhost", "127.0.0.1", "[::1]", "::1"].includes(url.hostname);
+    if (url.protocol !== "https:" && !localHttp || url.username || url.password || url.search || url.hash) {
+      return "";
+    }
+    return url.href.replace(/\/+$/, "");
+  } catch (_unused4) {
+    return "";
+  }
+};
+var normalizeTheme = value => {
+  var candidate = String(value || "").trim();
+  if (!candidate) return "";
+  if (candidate.startsWith("http://") || candidate.startsWith("https://")) {
+    return normalizeHttpUrl(candidate, "Theme", {
+      allowHash: true
+    });
+  }
+  var slug = candidate.toLowerCase().replace(/\s+/g, "-");
+  return "".concat(DEFAULT_THEME_NS).concat(encodeURIComponent(slug));
+};
+var normalizeOperationId = value => {
+  if (value === undefined || value === null || value === "") return "";
+  if (typeof value !== "string" || value.trim() !== value) {
+    throw new Error("Operation ID contains unsupported characters.");
+  }
+  if (!OPERATION_ID_PATTERN.test(value)) {
+    throw new Error("Operation ID contains unsupported characters.");
+  }
+  return value;
+};
+var requireSession = session => {
   var _session$info;
-  var input = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
   if (!(session !== null && session !== void 0 && (_session$info = session.info) !== null && _session$info !== void 0 && _session$info.webId) || typeof session.fetch !== "function") {
     throw new Error("An authenticated Solid session is required.");
   }
+};
+var loadResearchRegistryContext = /*#__PURE__*/function () {
+  var _ref = _asyncToGenerator(function* (session) {
+    var {
+      podRoot = ""
+    } = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+    requireSession(session);
+    var registryConfig = yield loadRegistryConfig(session.info.webId, session.fetch, {
+      podRoot
+    });
+    var publicRegistries = Array.from(new Set((Array.isArray(registryConfig === null || registryConfig === void 0 ? void 0 : registryConfig.registries) ? registryConfig.registries : []).map(normalizeRegistryUrl).filter(Boolean)));
+    return {
+      catalogConfigured: (registryConfig === null || registryConfig === void 0 ? void 0 : registryConfig.mode) === "research" && publicRegistries.length > 0,
+      publicRegistries: (registryConfig === null || registryConfig === void 0 ? void 0 : registryConfig.mode) === "research" ? publicRegistries : [],
+      registryConfig: _objectSpread2(_objectSpread2({}, registryConfig), {}, {
+        mode: (registryConfig === null || registryConfig === void 0 ? void 0 : registryConfig.mode) === "private" ? "private" : "research",
+        registries: publicRegistries
+      })
+    };
+  });
+  return function loadResearchRegistryContext(_x) {
+    return _ref.apply(this, arguments);
+  };
+}();
+var discoverableRegistryError = () => {
+  var error = new Error("A public Dataspace registry must be configured before this operation can continue.");
+  error.code = "discoverable-registry-required";
+  return error;
+};
+function normalizeRestrictedDatasetInput(session) {
+  var input = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+  requireSession(session);
   var identifier = String(input.identifier || generateIdentifier()).trim();
   if (!IDENTIFIER_PATTERN.test(identifier)) {
     throw new Error("Dataset identifier contains unsupported characters.");
@@ -3260,10 +3921,309 @@ function normalizeRestrictedDatasetInput(session) {
     webid: includeCreator ? String(input.creatorWebId || input.webid || session.info.webId).trim() : "",
     distribution_access_type: "download",
     is_public: false,
-    strict_restricted_acl: true
+    strict_restricted_acl: true,
+    require_discoverable_registry: input.requireDiscoverableRegistry === true || input.require_discoverable_registry === true
   };
 }
-function publishRestrictedDataset(_x) {
+function normalizePublicDatasetInput(session) {
+  var input = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+  var normalized = normalizeRestrictedDatasetInput(session, input);
+  if (!normalized.title) {
+    throw new Error("A public dataset title is required.");
+  }
+  if (!normalized.file_format) {
+    throw new Error("A public dataset media type is required.");
+  }
+  if (!normalized.theme) {
+    throw new Error("A public dataset theme is required.");
+  }
+  return _objectSpread2(_objectSpread2({}, normalized), {}, {
+    access_url_dataset: normalizeHttpUrl(normalized.access_url_dataset, "Dataset distribution URL"),
+    access_url_semantic_model: normalizeHttpUrl(normalized.access_url_semantic_model, "Semantic model URL", {
+      allowHash: true,
+      allowEmpty: true
+    }),
+    theme: normalizeTheme(normalized.theme),
+    is_public: true,
+    strict_restricted_acl: false,
+    strict_public_acl: true,
+    require_discoverable_registry: true
+  });
+}
+function getCatalogReadiness(_x2) {
+  return _getCatalogReadiness.apply(this, arguments);
+}
+function _getCatalogReadiness() {
+  _getCatalogReadiness = _asyncToGenerator(function* (session) {
+    var _session$info2;
+    var options = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+    var explicitPodRoot = normalizePodRoot(options.podRoot || options.pod_root);
+    var podRoot = explicitPodRoot || getPodRoot(session === null || session === void 0 || (_session$info2 = session.info) === null || _session$info2 === void 0 ? void 0 : _session$info2.webId);
+    var {
+      catalogConfigured,
+      publicRegistries
+    } = yield loadResearchRegistryContext(session, {
+      podRoot
+    });
+    return {
+      catalogConfigured,
+      publicRegistries
+    };
+  });
+  return _getCatalogReadiness.apply(this, arguments);
+}
+function getPublicRegistryPresets() {
+  var presets = new Map();
+  for (var preset of REGISTRY_PRESETS || []) {
+    var url = normalizeRegistryUrl(preset === null || preset === void 0 ? void 0 : preset.url);
+    var id = String((preset === null || preset === void 0 ? void 0 : preset.id) || "").trim();
+    var label = String((preset === null || preset === void 0 ? void 0 : preset.label) || "").trim();
+    if (!id || !label || !url || presets.has(url)) continue;
+    presets.set(url, {
+      id,
+      label,
+      url
+    });
+  }
+  return Array.from(presets.values());
+}
+function ensurePublicCatalogReadiness(_x3) {
+  return _ensurePublicCatalogReadiness.apply(this, arguments);
+}
+function _ensurePublicCatalogReadiness() {
+  _ensurePublicCatalogReadiness = _asyncToGenerator(function* (session) {
+    var options = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+    requireSession(session);
+    var explicitPodRoot = normalizePodRoot(options.podRoot || options.pod_root);
+    var podRoot = explicitPodRoot || getPodRoot(session.info.webId);
+    var registryUrl = normalizeRegistryUrl(options.registryUrl || options.registry_url);
+    if (!registryUrl) {
+      throw new Error("Choose a valid public research registry.");
+    }
+    var current = yield loadResearchRegistryContext(session, {
+      podRoot
+    });
+    var allowedRegistries = new Set([...getPublicRegistryPresets().map(preset => preset.url), ...current.publicRegistries]);
+    if (!allowedRegistries.has(registryUrl)) {
+      throw new Error("The selected public research registry is not an available preset.");
+    }
+
+    // Preserve already-active public memberships and the user's private registry
+    // location. Only the explicit app consent switches the profile to research
+    // mode and adds the selected public registry.
+    var registryConfig = _objectSpread2(_objectSpread2({}, current.registryConfig), {}, {
+      mode: "research",
+      registries: Array.from(new Set([...current.publicRegistries, registryUrl]))
+    });
+    yield saveRegistryConfig(session.info.webId, session.fetch, registryConfig, {
+      podRoot
+    });
+    yield ensureCatalogStructure(session, {
+      podRoot,
+      registryConfig,
+      title: String(options.catalogTitle || "Solid Dataspace Catalog").trim()
+    });
+    var verified = yield loadResearchRegistryContext(session, {
+      podRoot
+    });
+    if (!verified.catalogConfigured || !verified.publicRegistries.includes(registryUrl)) {
+      throw new Error("The public research registry setup could not be verified.");
+    }
+    return {
+      catalogConfigured: true,
+      publicRegistries: verified.publicRegistries,
+      selectedRegistry: registryUrl
+    };
+  });
+  return _ensurePublicCatalogReadiness.apply(this, arguments);
+}
+function publishPublicDataset(_x4) {
+  return _publishPublicDataset.apply(this, arguments);
+}
+function _publishPublicDataset() {
+  _publishPublicDataset = _asyncToGenerator(function* (session) {
+    var input = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+    var normalized = normalizePublicDatasetInput(session, input);
+    var podRoot = normalized.podRoot || getPodRoot(session.info.webId);
+    var datasetUrl = "".concat(podRoot, "catalog/ds/").concat(normalized.identifier, ".ttl#it");
+    var recordUrl = "".concat(podRoot, "catalog/records/").concat(normalized.identifier, ".ttl");
+    var catalogUrl = "".concat(podRoot, "catalog/cat.ttl");
+    var readiness = yield loadResearchRegistryContext(session, {
+      podRoot
+    });
+    if (!readiness.catalogConfigured) throw discoverableRegistryError();
+    normalized.registryConfig = readiness.registryConfig;
+    yield ensurePublicReadOnlyResourceAccess(session, normalized.access_url_dataset, {
+      podRoot
+    });
+    if (normalized.access_url_semantic_model) {
+      yield ensurePublicReadOnlyResourceAccess(session, normalized.access_url_semantic_model, {
+        podRoot
+      });
+    }
+    try {
+      var created = yield createDataset(session, normalized);
+      yield ensurePublicReadOnlyResourceAccess(session, created.datasetUrl, {
+        podRoot
+      });
+      yield ensurePublicReadOnlyResourceAccess(session, recordUrl, {
+        podRoot
+      });
+      yield ensurePublicReadOnlyResourceAccess(session, catalogUrl, {
+        podRoot
+      });
+      return _objectSpread2(_objectSpread2({}, created), {}, {
+        recordUrl,
+        distributionUrl: normalized.access_url_dataset
+      });
+    } catch (error) {
+      try {
+        yield deleteDatasetEntry(session, datasetUrl, normalized.identifier, {
+          podRoot
+        });
+      } catch (cleanupError) {
+        console.warn("Failed to clean up incomplete public dataset metadata.", cleanupError);
+      }
+      throw error;
+    }
+  });
+  return _publishPublicDataset.apply(this, arguments);
+}
+function updatePublicDataset(_x5) {
+  return _updatePublicDataset.apply(this, arguments);
+}
+function _updatePublicDataset() {
+  _updatePublicDataset = _asyncToGenerator(function* (session) {
+    var _input$operationId;
+    var input = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+    var normalized = normalizePublicDatasetInput(session, input);
+    var operationId = normalizeOperationId((_input$operationId = input.operationId) !== null && _input$operationId !== void 0 ? _input$operationId : input.operation_id);
+    var podRoot = normalized.podRoot || getPodRoot(session.info.webId);
+    var expectedDatasetUrl = "".concat(podRoot, "catalog/ds/").concat(normalized.identifier, ".ttl#it");
+    var requestedDatasetUrl = String(input.datasetUrl || input.catalogDatasetUrl || "").trim();
+    if (!requestedDatasetUrl) {
+      throw new Error("An existing catalog dataset URL is required for an update.");
+    }
+    var datasetUrl = assertCatalogDatasetDeletionTarget(podRoot, requestedDatasetUrl, normalized.identifier);
+    if (new URL(datasetUrl).href !== new URL(expectedDatasetUrl).href) {
+      throw new Error("Dataset URL must match the deterministic catalog URL for its identifier.");
+    }
+    var recordUrl = "".concat(podRoot, "catalog/records/").concat(normalized.identifier, ".ttl");
+    var catalogUrl = "".concat(podRoot, "catalog/cat.ttl");
+    var readiness = yield loadResearchRegistryContext(session, {
+      podRoot
+    });
+    if (!readiness.catalogConfigured) throw discoverableRegistryError();
+    normalized.registryConfig = readiness.registryConfig;
+    yield ensurePublicReadOnlyResourceAccess(session, normalized.access_url_dataset, {
+      podRoot
+    });
+    if (normalized.access_url_semantic_model) {
+      yield ensurePublicReadOnlyResourceAccess(session, normalized.access_url_semantic_model, {
+        podRoot
+      });
+    }
+
+    // Updating an existing deterministic entry deliberately has no create-style
+    // cleanup path. If a later verification fails, keep the existing metadata in
+    // place so callers can retry or compensate without losing the Catalog entry.
+    yield updateDataset(session, _objectSpread2(_objectSpread2({}, normalized), {}, {
+      podRoot,
+      datasetUrl
+    }, operationId ? {
+      operation_id: operationId
+    } : {}));
+    yield ensurePublicReadOnlyResourceAccess(session, datasetUrl, {
+      podRoot
+    });
+    yield ensurePublicReadOnlyResourceAccess(session, recordUrl, {
+      podRoot
+    });
+    yield ensurePublicReadOnlyResourceAccess(session, catalogUrl, {
+      podRoot
+    });
+    return {
+      identifier: normalized.identifier,
+      datasetUrl,
+      recordUrl,
+      distributionUrl: normalized.access_url_dataset
+    };
+  });
+  return _updatePublicDataset.apply(this, arguments);
+}
+var normalizeDiscoveryOptions = function normalizeDiscoveryOptions() {
+  var options = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+  var identifierPrefix = String(options.identifierPrefix || "").trim();
+  if (identifierPrefix && !IDENTIFIER_PATTERN.test(identifierPrefix)) {
+    throw new Error("Dataset identifier prefix contains unsupported characters.");
+  }
+  return {
+    podRoot: normalizePodRoot(options.podRoot || options.pod_root),
+    identifierPrefix,
+    mediaType: String(options.mediaType || "").trim().toLowerCase(),
+    theme: options.theme ? normalizeTheme(options.theme) : ""
+  };
+};
+var safeDiscoveredUrl = function safeDiscoveredUrl(value) {
+  var {
+    allowHash = false
+  } = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+  try {
+    return normalizeHttpUrl(value, "Discovered URL", {
+      allowHash
+    });
+  } catch (_unused5) {
+    return "";
+  }
+};
+function discoverPublicDatasets(_x6) {
+  return _discoverPublicDatasets.apply(this, arguments);
+}
+function _discoverPublicDatasets() {
+  _discoverPublicDatasets = _asyncToGenerator(function* (session) {
+    var options = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+    requireSession(session);
+    var filters = normalizeDiscoveryOptions(options);
+    var podRoot = filters.podRoot || getPodRoot(session.info.webId);
+    var readiness = yield loadResearchRegistryContext(session, {
+      podRoot
+    });
+    if (!readiness.catalogConfigured) throw discoverableRegistryError();
+    var aggregated = yield loadAggregatedDatasets(session, undefined, {
+      researchRegistries: readiness.publicRegistries
+    });
+    var discovered = new Map();
+    for (var dataset of (aggregated === null || aggregated === void 0 ? void 0 : aggregated.datasets) || []) {
+      var identifier = String((dataset === null || dataset === void 0 ? void 0 : dataset.identifier) || "").trim();
+      var title = String((dataset === null || dataset === void 0 ? void 0 : dataset.title) || "").trim();
+      var mediaType = String((dataset === null || dataset === void 0 ? void 0 : dataset.file_format) || "").trim();
+      var theme = String((dataset === null || dataset === void 0 ? void 0 : dataset.theme) || "").trim();
+      var datasetUrl = safeDiscoveredUrl(dataset === null || dataset === void 0 ? void 0 : dataset.datasetUrl, {
+        allowHash: true
+      });
+      var distributionUrl = safeDiscoveredUrl(dataset === null || dataset === void 0 ? void 0 : dataset.access_url_dataset);
+      if ((dataset === null || dataset === void 0 ? void 0 : dataset.datasetType) !== "dataset" || (dataset === null || dataset === void 0 ? void 0 : dataset.is_public) !== true || !IDENTIFIER_PATTERN.test(identifier) || !title || !mediaType || !theme || !datasetUrl || !distributionUrl || filters.identifierPrefix && !identifier.startsWith(filters.identifierPrefix) || filters.mediaType && mediaType.toLowerCase() !== filters.mediaType || filters.theme && theme !== filters.theme) {
+        continue;
+      }
+      discovered.set(datasetUrl, {
+        identifier,
+        title,
+        description: String(dataset.description || "").trim(),
+        publisher: String(dataset.publisher || "").trim(),
+        creatorWebId: safeDiscoveredUrl(dataset.webid, {
+          allowHash: true
+        }),
+        datasetUrl,
+        distributionUrl,
+        mediaType,
+        theme
+      });
+    }
+    return Array.from(discovered.values());
+  });
+  return _discoverPublicDatasets.apply(this, arguments);
+}
+function publishRestrictedDataset(_x7) {
   return _publishRestrictedDataset.apply(this, arguments);
 }
 function _publishRestrictedDataset() {
@@ -3273,6 +4233,17 @@ function _publishRestrictedDataset() {
     var podRoot = normalized.podRoot || getPodRoot(session.info.webId);
     var datasetUrl = "".concat(podRoot, "catalog/ds/").concat(normalized.identifier, ".ttl#it");
     var recordUrl = "".concat(podRoot, "catalog/records/").concat(normalized.identifier, ".ttl");
+    if (normalized.require_discoverable_registry) {
+      var registryConfig = yield loadRegistryConfig(session.info.webId, session.fetch, {
+        podRoot
+      });
+      if ((registryConfig === null || registryConfig === void 0 ? void 0 : registryConfig.mode) !== "research" || !Array.isArray(registryConfig.registries) || registryConfig.registries.length === 0) {
+        var error = new Error("A public Dataspace registry must be configured before this dataset can be published.");
+        error.code = "discoverable-registry-required";
+        throw error;
+      }
+      normalized.registryConfig = registryConfig;
+    }
     yield ensureRestrictedResourceAccess(session, normalized.access_url_dataset, {
       podRoot
     });
@@ -3300,16 +4271,13 @@ function _publishRestrictedDataset() {
   });
   return _publishRestrictedDataset.apply(this, arguments);
 }
-function removeDataset(_x2) {
+function removeDataset(_x8) {
   return _removeDataset.apply(this, arguments);
 }
 function _removeDataset() {
   _removeDataset = _asyncToGenerator(function* (session) {
-    var _session$info2;
     var reference = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-    if (!(session !== null && session !== void 0 && (_session$info2 = session.info) !== null && _session$info2 !== void 0 && _session$info2.webId) || typeof session.fetch !== "function") {
-      throw new Error("An authenticated Solid session is required.");
-    }
+    requireSession(session);
     var input = typeof reference === "string" ? {
       datasetUrl: reference
     } : reference;
@@ -3334,7 +4302,13 @@ function _removeDataset() {
   return _removeDataset.apply(this, arguments);
 }
 
+exports.discoverPublicDatasets = discoverPublicDatasets;
+exports.ensurePublicCatalogReadiness = ensurePublicCatalogReadiness;
+exports.getCatalogReadiness = getCatalogReadiness;
+exports.getPublicRegistryPresets = getPublicRegistryPresets;
 exports.normalizeRestrictedDatasetInput = normalizeRestrictedDatasetInput;
+exports.publishPublicDataset = publishPublicDataset;
 exports.publishRestrictedDataset = publishRestrictedDataset;
 exports.removeDataset = removeDataset;
+exports.updatePublicDataset = updatePublicDataset;
 //# sourceMappingURL=index.cjs.map

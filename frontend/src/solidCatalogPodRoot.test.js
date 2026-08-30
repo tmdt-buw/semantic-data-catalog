@@ -20,6 +20,7 @@ jest.mock("@inrupt/solid-client", () => {
 const {
   createSolidDataset,
   createThing,
+  getDatetime,
   getThing,
   getUrl,
   getUrlAll,
@@ -33,6 +34,7 @@ const {
   deleteDatasetEntry,
   loadRegistryConfig,
   saveRegistryConfig,
+  updateDataset,
 } = require("./solidCatalog");
 
 const WEB_ID = "https://identity.example/users/alex#me";
@@ -133,4 +135,202 @@ test("saveRegistryConfig keeps public registries unchanged while defaulting priv
   expect(getUrlAll(profile, REGISTRY)).toEqual([PUBLIC_REGISTRY]);
   expect(getUrl(profile, PRIVATE_REGISTRY)).toBe(`${POD_ROOT}registry/`);
   expect(options).toEqual({ fetch });
+});
+
+test("updateDataset keeps the Catalog and record at the explicit Pod root", async () => {
+  const identifier = "solid-tours-route-template-run-1";
+  const datasetDocUrl = `${POD_ROOT}catalog/ds/${identifier}.ttl`;
+  const datasetUrl = `${datasetDocUrl}#it`;
+  const recordDocUrl = `${POD_ROOT}catalog/records/${identifier}.ttl`;
+  const catalogDocUrl = `${POD_ROOT}catalog/cat.ttl`;
+  const catalogBody = [
+    "@prefix dcat: <http://www.w3.org/ns/dcat#>.",
+    "@prefix dcterms: <http://purl.org/dc/terms/>.",
+    "@prefix xsd: <http://www.w3.org/2001/XMLSchema#>.",
+    "<#it> a dcat:Catalog ;",
+    '  dcterms:title "External storage catalog" ;',
+    '  dcterms:modified "2026-08-29T10:00:00.000Z"^^xsd:dateTime .',
+  ].join("\n");
+  const response = (url, status, { body = "", etag = "" } = {}) => ({
+    url,
+    status,
+    ok: status >= 200 && status < 300,
+    redirected: false,
+    headers: {
+      get: (name) => (name.toLowerCase() === "etag" ? etag || null : null),
+    },
+    text: async () => body,
+  });
+  const fetch = jest.fn(async (url, options = {}) => {
+    const method = String(options.method || "GET").toUpperCase();
+    if (url === catalogDocUrl && method === "GET" && options.cache === "no-store") {
+      return response(url, 200, { body: catalogBody, etag: '"catalog-v1"' });
+    }
+    if (url === catalogDocUrl && method === "PUT") {
+      return response(url, 204, { etag: '"catalog-v2"' });
+    }
+    if (url === datasetDocUrl && method === "HEAD") {
+      return response(url, 200);
+    }
+    return response(url, 404);
+  });
+  const session = { info: { webId: WEB_ID }, fetch };
+  const warning = jest.spyOn(console, "warn").mockImplementation(() => {});
+  mockGetSolidDataset.mockResolvedValue(createSolidDataset());
+
+  try {
+    await updateDataset(session, {
+      podRoot: POD_ROOT,
+      datasetUrl,
+      identifier,
+      title: "Updated route",
+      description: "Updated indexed route",
+      access_url_dataset: `${POD_ROOT}solid-tours/public/cataloged-routes/run-1.geojson`,
+      file_format: "application/geo+json",
+      distribution_access_type: "download",
+      is_public: false,
+    });
+  } finally {
+    warning.mockRestore();
+  }
+
+  expect(mockSaveSolidDatasetAt.mock.calls.map(([url]) => url)).toEqual([
+    datasetDocUrl,
+    recordDocUrl,
+  ]);
+  expect(fetch).toHaveBeenCalledWith(
+    catalogDocUrl,
+    expect.objectContaining({ method: "GET", cache: "no-store" })
+  );
+  expect(fetch).toHaveBeenCalledWith(
+    catalogDocUrl,
+    expect.objectContaining({ method: "PUT" })
+  );
+  expect(fetch.mock.calls.some(([url]) =>
+    String(url).startsWith("https://identity.example/users/alex/catalog/")
+  )).toBe(false);
+});
+
+test("updateDataset rejects a missing dataset document instead of creating it", async () => {
+  const identifier = "solid-tours-route-template-missing";
+  const datasetUrl = `${POD_ROOT}catalog/ds/${identifier}.ttl#it`;
+  const notFound = Object.assign(new Error("Dataset not found"), {
+    statusCode: 404,
+  });
+  const fetch = jest.fn();
+  mockGetSolidDataset.mockRejectedValueOnce(notFound);
+
+  await expect(
+    updateDataset(
+      { info: { webId: WEB_ID }, fetch },
+      {
+        podRoot: POD_ROOT,
+        datasetUrl,
+        identifier,
+        access_url_dataset: `${POD_ROOT}solid-tours/public/cataloged-routes/missing.geojson`,
+        distribution_access_type: "download",
+        is_public: false,
+      }
+    )
+  ).rejects.toBe(notFound);
+
+  expect(mockSaveSolidDatasetAt).not.toHaveBeenCalled();
+  expect(fetch).not.toHaveBeenCalled();
+});
+
+test("updateDataset preserves issued and reuses the operation change IRI on retry", async () => {
+  const identifier = "solid-tours-route-template-retry";
+  const datasetDocUrl = `${POD_ROOT}catalog/ds/${identifier}.ttl`;
+  const datasetUrl = `${datasetDocUrl}#it`;
+  const recordDocUrl = `${POD_ROOT}catalog/records/${identifier}.ttl`;
+  const catalogDocUrl = `${POD_ROOT}catalog/cat.ttl`;
+  const operationId = "69020722-f94e-4d99-9aac-37b33d5607c7";
+  const issued = "2026-08-20T14:00:00.000Z";
+  const changeUrl = `${recordDocUrl}#change-${operationId}`;
+  const changeLog = "https://w3id.org/solid-dataspace-manager#changeLog";
+  const issuedPredicate = "http://purl.org/dc/terms/issued";
+  const catalogBody = [
+    "@prefix dcat: <http://www.w3.org/ns/dcat#>.",
+    "@prefix dcterms: <http://purl.org/dc/terms/>.",
+    "@prefix xsd: <http://www.w3.org/2001/XMLSchema#>.",
+    "<#it> a dcat:Catalog ;",
+    '  dcterms:title "External storage catalog" ;',
+    '  dcterms:modified "2026-08-29T10:00:00.000Z"^^xsd:dateTime .',
+  ].join("\n");
+  const response = (url, status, { body = "", etag = "" } = {}) => ({
+    url,
+    status,
+    ok: status >= 200 && status < 300,
+    redirected: false,
+    headers: {
+      get: (name) => (name.toLowerCase() === "etag" ? etag || null : null),
+    },
+    text: async () => body,
+  });
+  const fetch = jest.fn(async (url, options = {}) => {
+    const method = String(options.method || "GET").toUpperCase();
+    if (url === catalogDocUrl && method === "GET" && options.cache === "no-store") {
+      return response(url, 200, { body: catalogBody, etag: '"catalog-v1"' });
+    }
+    if (url === catalogDocUrl && method === "PUT") {
+      return response(url, 204, { etag: '"catalog-v2"' });
+    }
+    if (url === datasetDocUrl && method === "HEAD") {
+      return response(url, 200);
+    }
+    return response(url, 404);
+  });
+  let currentRecord = null;
+  mockGetSolidDataset.mockImplementation(async (url) => {
+    if (url === datasetDocUrl) return createSolidDataset();
+    if (url === recordDocUrl) {
+      if (currentRecord) return currentRecord;
+      throw Object.assign(new Error("Record not found"), { statusCode: 404 });
+    }
+    throw Object.assign(new Error("Not found"), { statusCode: 404 });
+  });
+  mockSaveSolidDatasetAt.mockImplementation(async (url, dataset) => {
+    if (url === recordDocUrl) currentRecord = dataset;
+  });
+  const input = {
+    podRoot: POD_ROOT,
+    datasetUrl,
+    identifier,
+    title: "Updated route",
+    description: "Updated indexed route",
+    issued,
+    operation_id: operationId,
+    access_url_dataset: `${POD_ROOT}solid-tours/public/cataloged-routes/retry.geojson`,
+    file_format: "application/geo+json",
+    distribution_access_type: "download",
+    is_public: false,
+  };
+  const warning = jest.spyOn(console, "warn").mockImplementation(() => {});
+
+  try {
+    await updateDataset({ info: { webId: WEB_ID }, fetch }, input);
+    await updateDataset({ info: { webId: WEB_ID }, fetch }, input);
+  } finally {
+    warning.mockRestore();
+  }
+
+  const savedDatasetDocuments = mockSaveSolidDatasetAt.mock.calls
+    .filter(([url]) => url === datasetDocUrl)
+    .map(([, dataset]) => dataset);
+  expect(savedDatasetDocuments).toHaveLength(2);
+  savedDatasetDocuments.forEach((dataset) => {
+    expect(getDatetime(getThing(dataset, datasetUrl), issuedPredicate)?.toISOString()).toBe(
+      issued
+    );
+  });
+
+  const savedRecords = mockSaveSolidDatasetAt.mock.calls
+    .filter(([url]) => url === recordDocUrl)
+    .map(([, dataset]) => dataset);
+  expect(savedRecords).toHaveLength(2);
+  savedRecords.forEach((record) => {
+    const descriptionRecord = getThing(record, `${recordDocUrl}#desc`);
+    expect(getUrlAll(descriptionRecord, changeLog)).toEqual([changeUrl]);
+    expect(getThing(record, changeUrl)).not.toBeNull();
+  });
 });

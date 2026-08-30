@@ -1225,7 +1225,9 @@ const mergeDatasets = (lists) => {
   const map = new Map();
   lists.flat().forEach((dataset) => {
     if (!dataset) return;
-    const key = dataset.identifier || dataset.datasetUrl;
+    const key =
+      dataset.datasetUrl ||
+      `${dataset.catalogUrl || "unknown-catalog"}::${dataset.identifier || ""}`;
     const existing = map.get(key);
     if (!existing) {
       map.set(key, dataset);
@@ -1240,7 +1242,11 @@ const mergeDatasets = (lists) => {
   return Array.from(map.values());
 };
 
-export const loadAggregatedDatasets = async (session, fetchOverride) => {
+export const loadAggregatedDatasets = async (
+  session,
+  fetchOverride,
+  { researchRegistries } = {}
+) => {
   const webId = session?.info?.webId || "";
   const fetch =
     fetchOverride ||
@@ -1248,11 +1254,56 @@ export const loadAggregatedDatasets = async (session, fetchOverride) => {
     (typeof window !== "undefined" ? window.fetch.bind(window) : fetchOverride);
   if (!fetch) return { datasets: [], catalogs: [] };
 
-  const registryMembers = await loadRegistryMembers(webId, fetch);
+  let registryMembers;
+  if (Array.isArray(researchRegistries)) {
+    const membersByRegistry = await Promise.all(
+      researchRegistries.map((registryUrl) =>
+        loadRegistryMembersFromContainer(registryUrl, fetch)
+      )
+    );
+    registryMembers = Array.from(
+      new Set(
+        membersByRegistry
+          .flat()
+          .filter((memberWebId) => {
+            try {
+              const url = new URL(memberWebId);
+              return (
+                (url.protocol === "https:" || url.protocol === "http:") &&
+                !url.username &&
+                !url.password &&
+                !url.search
+              );
+            } catch {
+              return false;
+            }
+          })
+      )
+    );
+  } else {
+    registryMembers = await loadRegistryMembers(webId, fetch);
+  }
   const catalogUrls = await Promise.all(
     registryMembers.map((member) => resolveCatalogUrlFromWebId(member, fetch))
   );
-  const uniqueCatalogUrls = Array.from(new Set(catalogUrls.filter(Boolean)));
+  const uniqueCatalogUrls = Array.from(
+    new Set(
+      catalogUrls.filter((catalogUrl) => {
+        if (!catalogUrl) return false;
+        try {
+          const url = new URL(catalogUrl);
+          return (
+            (url.protocol === "https:" || url.protocol === "http:") &&
+            !url.username &&
+            !url.password &&
+            !url.search
+          );
+        } catch {
+          return false;
+        }
+      })
+    )
+  );
 
   const cache = loadCache();
   const now = Date.now();
@@ -1496,12 +1547,7 @@ const buildDistributionThing = (
 
 const addLdpTypeIfLocal = (solidDataset, webId, targetUrl, podRootOverride = "") => {
   if (!solidDataset || !webId || !targetUrl) return solidDataset;
-  try {
-    const podRoot = podRootOverride || getPodRoot(webId);
-    if (!targetUrl.startsWith(podRoot)) return solidDataset;
-  } catch {
-    return solidDataset;
-  }
+  if (!isLocalPodResource(webId, targetUrl, podRootOverride)) return solidDataset;
   const isContainer = targetUrl.endsWith("/");
   let resourceThing = createThing({ url: targetUrl });
   resourceThing = addUrl(resourceThing, RDF.type, LDP.Resource);
@@ -1514,9 +1560,64 @@ const addLdpTypeIfLocal = (solidDataset, webId, targetUrl, podRootOverride = "")
 const isLocalPodResource = (webId, targetUrl, podRootOverride = "") => {
   if (!webId || !targetUrl) return false;
   try {
-    return targetUrl.startsWith(podRootOverride || getPodRoot(webId));
+    const root = new URL(podRootOverride || getPodRoot(webId));
+    const target = new URL(targetUrl);
+    if (
+      (root.protocol !== "https:" && root.protocol !== "http:") ||
+      root.username ||
+      root.password ||
+      root.search ||
+      root.hash ||
+      (target.protocol !== "https:" && target.protocol !== "http:") ||
+      target.username ||
+      target.password ||
+      target.search
+    ) {
+      return false;
+    }
+    const rootPath = root.pathname.endsWith("/")
+      ? root.pathname
+      : `${root.pathname}/`;
+    return target.origin === root.origin && target.pathname.startsWith(rootPath);
   } catch {
     return false;
+  }
+};
+
+const getAclTargetUrl = (resourceUrl) => {
+  const target = new URL(resourceUrl);
+  target.hash = "";
+  return target.href;
+};
+
+export const ensurePublicReadOnlyResourceAccess = async (
+  session,
+  resourceUrl,
+  { podRoot = "" } = {}
+) => {
+  if (!session?.info?.webId || typeof session.fetch !== "function") {
+    throw new Error("An authenticated Solid session is required.");
+  }
+  if (!isLocalPodResource(session.info.webId, resourceUrl, podRoot)) {
+    throw new Error("Public programmatic datasets must use a resource in the owner's Pod.");
+  }
+  const aclTargetUrl = getAclTargetUrl(resourceUrl);
+  if (new URL(aclTargetUrl).pathname.endsWith("/")) {
+    throw new Error("Public programmatic datasets must use a non-container resource.");
+  }
+
+  await setPublicReadAccess(aclTargetUrl, session.fetch, true);
+  const { resourceAcl } = await getResourceAndAcl(aclTargetUrl, session.fetch);
+  const publicAccess = getPublicResourceAccess(resourceAcl) || {};
+  if (
+    publicAccess.read !== true ||
+    publicAccess.append !== false ||
+    publicAccess.write !== false ||
+    publicAccess.control !== false
+  ) {
+    throw new Error(
+      `Resource does not have verified public read-only access after ACL update: ${resourceUrl}`
+    );
   }
 };
 
@@ -1532,8 +1633,9 @@ export const ensureRestrictedResourceAccess = async (
     throw new Error("Restricted programmatic datasets must use a resource in the owner's Pod.");
   }
 
-  await setPublicReadAccess(resourceUrl, session.fetch, false);
-  const { resourceAcl } = await getResourceAndAcl(resourceUrl, session.fetch);
+  const aclTargetUrl = getAclTargetUrl(resourceUrl);
+  await setPublicReadAccess(aclTargetUrl, session.fetch, false);
+  const { resourceAcl } = await getResourceAndAcl(aclTargetUrl, session.fetch);
   const publicAccess = getPublicResourceAccess(resourceAcl);
   if (
     publicAccess.read ||
@@ -1557,12 +1659,20 @@ const syncLinkedResourceAccess = async (session, input) => {
     try {
       if (input.strict_restricted_acl && !input.is_public) {
         await ensureRestrictedResourceAccess(session, url, { podRoot: input.podRoot });
+      } else if (input.strict_public_acl && input.is_public) {
+        await ensurePublicReadOnlyResourceAccess(session, url, {
+          podRoot: input.podRoot,
+        });
       } else {
         await setPublicReadAccess(url, session.fetch, Boolean(input.is_public));
       }
     } catch (err) {
       console.warn("Failed to sync linked resource ACL for", url, err);
-      if (input.is_public || input.strict_restricted_acl) {
+      if (
+        input.is_public ||
+        input.strict_restricted_acl ||
+        input.strict_public_acl
+      ) {
         const accessLabel = input.is_public ? "public" : "restricted";
         throw new Error(`Failed to make linked resource ${accessLabel}: ${url}`);
       }
@@ -1570,12 +1680,17 @@ const syncLinkedResourceAccess = async (session, input) => {
   }
 };
 
-const writeDatasetDocument = async (session, datasetDocUrl, input) => {
+const writeDatasetDocument = async (
+  session,
+  datasetDocUrl,
+  input,
+  { allowCreate = true } = {}
+) => {
   let solidDataset;
   try {
     solidDataset = await getSolidDataset(datasetDocUrl, { fetch: session.fetch });
   } catch (err) {
-    if (isNotFound(err)) {
+    if (isNotFound(err) && allowCreate) {
       solidDataset = createSolidDataset();
     } else {
       throw err;
@@ -1731,7 +1846,8 @@ const writeRecordDocument = async (
   session,
   datasetDocUrl,
   identifier,
-  podRootOverride = ""
+  podRootOverride = "",
+  operationId = ""
 ) => {
   const podRoot = podRootOverride || getPodRoot(session.info.webId);
   const recordDocUrl = `${podRoot}${RECORDS_CONTAINER}${identifier}.ttl`;
@@ -1756,7 +1872,7 @@ const writeRecordDocument = async (
   descThing = setUrl(descThing, FOAF.primaryTopic, datasetDocUrl);
   descThing = setDatetime(descThing, DCTERMS.modified, new Date());
 
-  const changeUrl = `${recordDocUrl}#change-${Date.now()}`;
+  const changeUrl = `${recordDocUrl}#change-${operationId || Date.now()}`;
   let changeThing = createThing({ url: changeUrl });
   changeThing = addUrl(changeThing, RDF.type, SDM_CHANGE_EVENT);
   changeThing = setDatetime(changeThing, DCTERMS.modified, new Date());
@@ -1766,7 +1882,9 @@ const writeRecordDocument = async (
   existingChanges.forEach((url) => {
     descThing = addUrl(descThing, SDM_CHANGELOG, url);
   });
-  descThing = addUrl(descThing, SDM_CHANGELOG, changeUrl);
+  if (!existingChanges.includes(changeUrl)) {
+    descThing = addUrl(descThing, SDM_CHANGELOG, changeUrl);
+  }
   recordDataset = setThing(recordDataset, descThing);
 
   const aclUrl = `${datasetDocUrl}.acl`;
@@ -1842,13 +1960,22 @@ export const createDatasetSeries = async (session, input) => {
 export const updateDataset = async (session, input) => {
   if (!input.datasetUrl) throw new Error("Missing dataset URL.");
   validateDatasetInput(input);
+  const podRoot = input?.podRoot || getPodRoot(session?.info?.webId);
   const datasetDocUrl = getDocumentUrl(input.datasetUrl);
-  await writeDatasetDocument(session, datasetDocUrl, input);
-  await updateCatalogDatasets(session, getCatalogDocUrl(session.info.webId), input.datasetUrl, {
+  await writeDatasetDocument(session, datasetDocUrl, input, {
+    allowCreate: false,
+  });
+  await updateCatalogDatasets(session, getCatalogDocUrl(session.info.webId, podRoot), input.datasetUrl, {
     remove: false,
   });
   if (input.identifier) {
-    await writeRecordDocument(session, datasetDocUrl, input.identifier);
+    await writeRecordDocument(
+      session,
+      datasetDocUrl,
+      input.identifier,
+      podRoot,
+      input.operation_id
+    );
   }
   clearCache();
 };

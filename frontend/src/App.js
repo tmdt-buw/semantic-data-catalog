@@ -8,6 +8,7 @@ import DatasetEditModal from './components/DatasetEditModal';
 import HeaderBar from './components/HeaderBar';
 import FooterBar from './components/FooterBar';
 import OnboardingWizard from './components/OnboardingWizard';
+import CatalogLoadingState from './components/CatalogLoadingState';
 import PrivateRegistryModal from './components/PrivateRegistryModal';
 import CatalogSurvey from './components/CatalogSurvey';
 import { I18nProvider, LanguageSelect } from './i18n';
@@ -478,14 +479,11 @@ const App = ({
 
   if (checkingProfile) {
     return renderWithI18n(
-      <div className="onboarding-wrap">
-        <div className="onboarding-card">
-          <div className="onboarding-title">Checking profile</div>
-          <div className="onboarding-subtitle">
-            We are verifying your Solid profile and catalog configuration.
-          </div>
-        </div>
-      </div>
+      <CatalogLoadingState
+        title="Semantic Data Catalog"
+        description="Loading your personal catalog workspace …"
+        embedded={embedded}
+      />
     );
   }
 
@@ -493,6 +491,7 @@ const App = ({
     return renderWithI18n(
       <OnboardingWizard
         webId={webId}
+        embedded={embedded}
         onComplete={() => setOnboardingRequired(false)}
         onCancel={async () => {
           await session.logout({ logoutType: "app" });
