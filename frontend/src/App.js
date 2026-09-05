@@ -5,7 +5,7 @@ import DatasetAddModal from './components/DatasetAddModal';
 import DatasetDetailModal from './components/DatasetDetailModal';
 import DatasetDeleteModal from './components/DatasetDeleteModal';
 import DatasetEditModal from './components/DatasetEditModal';
-import HeaderBar from './components/HeaderBar';
+import HeaderBar, { loadProfilePhoto } from './components/HeaderBar';
 import FooterBar from './components/FooterBar';
 import OnboardingWizard from './components/OnboardingWizard';
 import CatalogLoadingState from './components/CatalogLoadingState';
@@ -14,15 +14,14 @@ import CatalogSurvey from './components/CatalogSurvey';
 import { I18nProvider, LanguageSelect } from './i18n';
 import './LanguageSelect.css';
 import { session } from './solidSession';
+import useCatalogDatasets from './useCatalogDatasets';
 import { CATALOG_SURFACES, resolveStatisticsConfig } from './statistics';
 import {
   buildDefaultPrivateRegistry,
   buildCatalogDownload,
   buildMergedCatalogDownload,
-  cleanupCatalogSeriesLinks,
   createDataset,
   createDatasetSeries,
-  loadAggregatedDatasets,
   loadRegistryConfig,
   SDP_CATALOG,
   updateDatasetSeries,
@@ -37,8 +36,6 @@ const App = ({
   language = null,
   statisticsConfig,
 } = {}) => {
-  const [datasets, setDatasets] = useState([]);
-  const [catalogs, setCatalogs] = useState([]);
   const [showNewDatasetModal, setShowNewDatasetModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -46,38 +43,36 @@ const App = ({
   const [showAddDatasetModal, setShowAddDatasetModal] = useState(false);
   const [showRegistryModal, setShowRegistryModal] = useState(false);
   const [selectedDataset, setSelectedDataset] = useState(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [webId, setWebId] = useState(null);
+  const [sessionLoggedIn, setIsLoggedIn] = useState(() => Boolean(session.info.isLoggedIn));
+  const [sessionWebId, setWebId] = useState(() => session.info.webId || null);
+  const isLoggedIn = embedded ? Boolean(webIdOverride) : sessionLoggedIn;
+  const webId = embedded ? webIdOverride : sessionWebId;
   const [userName, setUserName] = useState('');
   const [userEmail, setUserEmail] = useState('');
+  const [headerUserInfo, setHeaderUserInfo] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isPopulating, setIsPopulating] = useState(false);
-  const accessCacheRef = useRef(new Map());
   const populateTriggerRef = useRef(false);
 
   const [activeTab, setActiveTab] = useState('dataset');
   const [onboardingRequired, setOnboardingRequired] = useState(false);
-  const [checkingProfile, setCheckingProfile] = useState(false);
+  const [profileCheck, setProfileCheck] = useState(null);
+  const [profileAttempt, setProfileAttempt] = useState(0);
   const [isPrivateRegistry, setIsPrivateRegistry] = useState(false);
   const [issuer, setIssuer] = useState(defaultIssuer);
 
-  const retryTimeoutRef = useRef(null);
-  const cleanupTriggerRef = useRef(false);
+  const {
+    datasets,
+    catalogs,
+    loading: loadingDatasets,
+    error: datasetLoadError,
+    fetchDatasets,
+    retry: retryDatasets,
+  } = useCatalogDatasets(session, webId, isLoggedIn);
   const effectiveStatisticsConfig = resolveStatisticsConfig({
     embedded,
     statisticsConfig,
   });
-
-  useEffect(() => {
-    if (!embedded) return;
-    if (webIdOverride) {
-      setWebId(webIdOverride);
-      setIsLoggedIn(true);
-    } else {
-      setWebId(null);
-      setIsLoggedIn(false);
-    }
-  }, [embedded, webIdOverride]);
 
   useEffect(() => {
     if (embedded) return;
@@ -102,90 +97,19 @@ const App = ({
     });
   };
 
-  const enrichAccessFlags = (data, currentWebId) =>
-    data.map((dataset) => ({
-      ...dataset,
-      userHasAccess: dataset.is_public || dataset.webid === currentWebId,
-    }));
-
-  const fetchDatasets = async () => {
-    try {
-      const fetchOverride = session.info.isLoggedIn
-        ? null
-        : (typeof window !== "undefined" ? window.fetch.bind(window) : null);
-      const { datasets: loadedDatasets, catalogs: loadedCatalogs } = await loadAggregatedDatasets(
-        session,
-        fetchOverride
-      );
-      if (retryTimeoutRef.current) {
-        clearTimeout(retryTimeoutRef.current);
-        retryTimeoutRef.current = null;
-      }
-
-      const enriched = enrichAccessFlags(loadedDatasets, webId);
-      setDatasets(enriched);
-      setCatalogs(loadedCatalogs || []);
-    } catch (error) {
-      console.error("Error fetching datasets:", error);
-      retryTimeoutRef.current = setTimeout(fetchDatasets, 8000);
-    }
-  };
-
   useEffect(() => {
-    fetchDatasets();
-
-    return () => {
-      if (retryTimeoutRef.current) {
-        clearTimeout(retryTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    if (webId) {
-      accessCacheRef.current.clear();
-      fetchDatasets();
-    }
-  }, [webId]);
-
-  useEffect(() => {
-    if (!isLoggedIn || !webId) {
-      setIsPrivateRegistry(false);
-      return;
-    }
-    (async () => {
-      try {
-        const registryConfig = await loadRegistryConfig(webId, session.fetch);
-        setIsPrivateRegistry(registryConfig.mode === "private");
-      } catch {
-        setIsPrivateRegistry(false);
-      }
-    })();
-  }, [isLoggedIn, webId]);
-
-  useEffect(() => {
-    if (!isLoggedIn || !webId) return;
-    if (cleanupTriggerRef.current) return;
-    cleanupTriggerRef.current = true;
-    (async () => {
-      try {
-        await cleanupCatalogSeriesLinks(session);
-        await fetchDatasets();
-      } catch (err) {
-        console.error("Cleanup failed:", err);
-      }
-    })();
-  }, [isLoggedIn, webId]);
-
-  useEffect(() => {
+    let cancelled = false;
+    let profilePhoto = '';
     if (!isLoggedIn) {
-      setCheckingProfile(false);
+      setProfileCheck(null);
       setOnboardingRequired(false);
+      setIsPrivateRegistry(false);
       return;
     }
     const checkProfileCompleteness = async () => {
       if (!isLoggedIn || !webId) return;
-      setCheckingProfile(true);
+      setProfileCheck(null);
+      let failed = false;
       try {
         const {
           getSolidDataset,
@@ -199,6 +123,7 @@ const App = ({
 
         const profileDocUrl = webId.split("#")[0];
         const ds = await getSolidDataset(profileDocUrl, { fetch: session.fetch });
+        if (cancelled) return;
         let me = getThing(ds, webId) || getThingAll(ds).find((t) => t.url === webId);
         if (!me) {
           setOnboardingRequired(true);
@@ -240,43 +165,57 @@ const App = ({
           try {
             await getSolidDataset(profileCatalog.split("#")[0], { fetch: session.fetch });
             missingCatalog = false;
-          } catch {
+          } catch (error) {
+            if ((error?.statusCode || error?.response?.status) !== 404) throw error;
             missingCatalog = true;
           }
         }
 
         let missingRegistry = false;
-        try {
-          const registryConfig = await loadRegistryConfig(webId, session.fetch);
-          const privateRegistry =
-            registryConfig.privateRegistry || buildDefaultPrivateRegistry(webId);
-          if (!privateRegistry) {
-            missingRegistry = !privateRegistry;
-          } else {
-            try {
-              await getSolidDataset(privateRegistry, { fetch: session.fetch });
-            } catch (err) {
-              const status = err?.statusCode || err?.response?.status;
-              if (status === 404) missingRegistry = true;
-            }
-          }
-        } catch {
+        const registryConfig = await loadRegistryConfig(webId, session.fetch, {
+          onLoadError: (error) => { throw error; },
+        });
+        if (cancelled) return;
+        setIsPrivateRegistry(registryConfig.mode === "private");
+        const privateRegistry =
+          registryConfig.privateRegistry || buildDefaultPrivateRegistry(webId);
+        if (!privateRegistry) {
           missingRegistry = true;
+        } else {
+          try {
+            await getSolidDataset(privateRegistry, { fetch: session.fetch });
+          } catch (err) {
+            const status = err?.statusCode || err?.response?.status;
+            if (status === 404) missingRegistry = true;
+            else throw err;
+          }
         }
 
+        if (!embedded) profilePhoto = await loadProfilePhoto(ds, me, session.fetch);
+        if (cancelled && profilePhoto.startsWith('blob:')) URL.revokeObjectURL(profilePhoto);
+        if (cancelled) return;
+        setUserName(name);
+        setUserEmail(allEmails[0] || "");
+        setHeaderUserInfo({ loggedIn: true, webId, name, email: allEmails[0] || "", photo: profilePhoto });
         setOnboardingRequired(
           missingBasics || missingEmail || missingInbox || missingCatalog || missingRegistry
         );
       } catch (err) {
+        if (cancelled) return;
         console.error("Profile completeness check failed:", err);
-        setOnboardingRequired(true);
+        failed = (err?.statusCode || err?.response?.status) !== 404;
+        setOnboardingRequired(!failed);
       } finally {
-        setCheckingProfile(false);
+        if (!cancelled) setProfileCheck({ webId, error: failed });
       }
     };
 
     checkProfileCompleteness();
-  }, [isLoggedIn, webId]);
+    return () => {
+      cancelled = true;
+      if (profilePhoto.startsWith('blob:')) URL.revokeObjectURL(profilePhoto);
+    };
+  }, [isLoggedIn, webId, profileAttempt, embedded]);
 
   const handleSearch = (searchValue) => {
     setSearchQuery(searchValue || "");
@@ -477,7 +416,9 @@ const App = ({
     <I18nProvider language={language}>{content}</I18nProvider>
   );
 
-  if (checkingProfile) {
+  const checkingProfile = isLoggedIn && profileCheck?.webId !== webId;
+  const showLogin = !embedded && !isLoggedIn;
+  if (!showLogin && (checkingProfile || loadingDatasets || isPopulating)) {
     return renderWithI18n(
       <CatalogLoadingState
         title="Semantic Data Catalog"
@@ -492,10 +433,31 @@ const App = ({
       <OnboardingWizard
         webId={webId}
         embedded={embedded}
-        onComplete={() => setOnboardingRequired(false)}
+        onComplete={() => {
+          setOnboardingRequired(false);
+          setProfileCheck(null);
+          setProfileAttempt((value) => value + 1);
+          retryDatasets();
+        }}
         onCancel={async () => {
           await session.logout({ logoutType: "app" });
           window.location.reload();
+        }}
+      />
+    );
+  }
+
+  if (!showLogin && (datasetLoadError || profileCheck?.error)) {
+    return renderWithI18n(
+      <CatalogLoadingState
+        title="Semantic Data Catalog"
+        description="Some catalog sources could not be loaded. Please try again."
+        embedded={embedded}
+        error
+        onRetry={() => {
+          setProfileCheck(null);
+          setProfileAttempt((value) => value + 1);
+          retryDatasets();
         }}
       />
     );
@@ -523,6 +485,7 @@ const App = ({
     <div>
       {!embedded && (
         <HeaderBar
+          initialUserInfo={headerUserInfo}
           onLoginStatusChange={setIsLoggedIn}
           onWebIdChange={setWebId}
           onUserInfoChange={({ name, email }) => {

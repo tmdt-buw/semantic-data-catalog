@@ -2,6 +2,7 @@ import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import HeaderBar from "./HeaderBar";
 import { session } from "../solidSession";
+import { getSolidDataset } from "@inrupt/solid-client";
 
 jest.mock("@inrupt/solid-client", () => ({
   getSolidDataset: jest.fn(),
@@ -31,6 +32,19 @@ jest.mock("../solidSession", () => ({
 }));
 
 describe("HeaderBar", () => {
+  test("uses the startup profile without a second request or login flash", async () => {
+    session.info = { isLoggedIn: true, webId: "https://solid.example/profile/card#me" };
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    await act(async () => root.render(<HeaderBar initialUserInfo={{
+      loggedIn: true, webId: session.info.webId, name: "Loaded User", email: "", photo: "",
+    }} />));
+    expect(container.textContent).toContain("Loaded User");
+    expect(container.textContent).not.toContain("Not logged in");
+    expect(getSolidDataset).not.toHaveBeenCalled();
+    await act(async () => root.unmount());
+  });
   beforeAll(() => {
     global.IS_REACT_ACT_ENVIRONMENT = true;
   });

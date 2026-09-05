@@ -6,6 +6,8 @@ export default function CatalogLoadingState({
   title,
   description = "",
   embedded = false,
+  error = false,
+  onRetry,
 }) {
   const { language, t } = useI18n();
   const translatedTitle = t(title);
@@ -18,7 +20,7 @@ export default function CatalogLoadingState({
         embedded ? "embedded" : "standalone"
       }`}
     >
-      <main className="catalog-full-loader" aria-busy="true">
+      <main className="catalog-full-loader" aria-busy={!error}>
         <span className="catalog-full-loader__mark" aria-hidden="true">
           <svg viewBox="0 0 24 24" focusable="false">
             <path d="M5 5.75C5 4.78 8.13 4 12 4s7 .78 7 1.75-3.13 1.75-7 1.75-7-.78-7-1.75Z" />
@@ -28,16 +30,20 @@ export default function CatalogLoadingState({
           </svg>
         </span>
         <h1>{translatedTitle}</h1>
-        <p role="status" aria-live="polite">
+        <p role={error ? "alert" : "status"} aria-live={error ? "assertive" : "polite"}>
           {translatedDescription}
         </p>
-        <span
+        {error ? (
+          <button type="button" className="catalog-full-loader__retry" onClick={onRetry}>
+            {t("Try again")}
+          </button>
+        ) : <span
           className="catalog-full-loader__rail"
           role="progressbar"
           aria-label={translatedDescription}
         >
           <span />
-        </span>
+        </span>}
       </main>
     </div>
   );

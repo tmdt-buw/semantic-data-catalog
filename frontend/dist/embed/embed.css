@@ -3493,6 +3493,22 @@ div.network-navigation_wrapper {
   background: #dce4ef;
 }
 
+.catalog-full-loader__retry {
+  margin-top: 1.5rem;
+  padding: 0.75rem 1.25rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: var(--catalog-loader-blue);
+  color: #ffffff;
+  font: inherit;
+  cursor: pointer;
+}
+
+.catalog-full-loader__retry:focus-visible {
+  outline: 3px solid var(--catalog-loader-navy);
+  outline-offset: 3px;
+}
+
 .catalog-full-loader__rail > span {
   width: 42%;
   height: 100%;

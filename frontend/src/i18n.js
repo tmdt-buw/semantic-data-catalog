@@ -31,6 +31,8 @@ const enToDe = {
   "Loading your personal catalog workspace …":
     "Dein persönlicher Katalogbereich wird geladen …",
   "Semantic Data Catalog": "Semantischer Datenkatalog",
+  "Some catalog sources could not be loaded. Please try again.":
+    "Einige Katalogquellen konnten nicht geladen werden. Bitte versuche es erneut.",
   "All datasets & dataset series": "Alle Datensätze und Datensatzreihen",
   "Add Dataset": "Datensatz hinzufügen",
   "Download Catalog": "Katalog herunterladen",

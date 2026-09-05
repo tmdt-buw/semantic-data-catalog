@@ -2716,7 +2716,8 @@ var setCatalogLinkInProfile = /*#__PURE__*/function () {
 var loadRegistryConfig = /*#__PURE__*/function () {
   var _ref12 = _asyncToGenerator(function* (webId, fetch) {
     var {
-      podRoot = ""
+      podRoot = "",
+      onLoadError
     } = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
     if (!webId || !fetch) {
       return {
@@ -2741,6 +2742,7 @@ var loadRegistryConfig = /*#__PURE__*/function () {
       };
     } catch (err) {
       console.warn("Failed to load registry config from profile:", err);
+      onLoadError === null || onLoadError === void 0 || onLoadError(err);
       return {
         mode: "research",
         registries: [],
@@ -2892,6 +2894,9 @@ var registerWebIdInRegistries = /*#__PURE__*/function () {
 }();
 var loadRegistryMembersFromContainer = /*#__PURE__*/function () {
   var _ref19 = _asyncToGenerator(function* (containerUrl, fetch) {
+    var {
+      onLoadError
+    } = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
     var normalizedUrl = normalizeContainerUrl(containerUrl);
     if (!normalizedUrl || !fetch) return [];
     try {
@@ -2908,14 +2913,15 @@ var loadRegistryMembersFromContainer = /*#__PURE__*/function () {
           var memberThing = getThing(memberDataset, "".concat(resourceUrl, "#it")) || getThingAll(memberDataset)[0];
           var memberWebId = memberThing ? getUrl(memberThing, FOAF.member) : "";
           if (memberWebId) members.add(memberWebId);
-        } catch (_unused9) {
-          // Ignore malformed entries.
+        } catch (error) {
+          onLoadError === null || onLoadError === void 0 || onLoadError(error);
         }
       }
       return Array.from(members);
     } catch (err) {
       var _err$response4;
       var status = (err === null || err === void 0 ? void 0 : err.statusCode) || (err === null || err === void 0 || (_err$response4 = err.response) === null || _err$response4 === void 0 ? void 0 : _err$response4.status);
+      onLoadError === null || onLoadError === void 0 || onLoadError(err);
       if (status === 404) return [];
       console.warn("Failed to load registry container", normalizedUrl, err);
       return [];
@@ -2993,12 +2999,14 @@ var resolveCatalogUrlFromWebId = /*#__PURE__*/function () {
 var loadRegistryMembers = /*#__PURE__*/function () {
   var _ref25 = _asyncToGenerator(function* (webId, fetch) {
     var {
-      podRoot = ""
+      podRoot = "",
+      onLoadError
     } = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
     var members = new Set();
     if (webId) members.add(webId);
     var config = yield loadRegistryConfig(webId, fetch, {
-      podRoot
+      podRoot,
+      onLoadError
     });
     var containers = [];
     if (config.mode === "private") {
@@ -3022,12 +3030,13 @@ var loadRegistryMembers = /*#__PURE__*/function () {
             var memberThing = getThing(memberDataset, "".concat(resourceUrl, "#it")) || getThingAll(memberDataset)[0];
             var memberWebId = memberThing ? getUrl(memberThing, FOAF.member) : "";
             if (memberWebId) members.add(memberWebId);
-          } catch (_unused11) {
-            // Ignore malformed registry entries.
+          } catch (error) {
+            onLoadError === null || onLoadError === void 0 || onLoadError(error);
           }
         }
       } catch (err) {
         console.warn("Failed to load registry container:", containerUrl, err);
+        onLoadError === null || onLoadError === void 0 || onLoadError(err);
       }
     }
     return Array.from(members);
@@ -3141,7 +3150,7 @@ var parseDatasetFromDoc = (datasetDoc, datasetUrl) => {
   };
 };
 var loadCatalogDatasets = /*#__PURE__*/function () {
-  var _ref26 = _asyncToGenerator(function* (catalogUrl, fetch) {
+  var _ref26 = _asyncToGenerator(function* (catalogUrl, fetch, onLoadError) {
     var catalogDocUrl = getDocumentUrl(catalogUrl);
     var catalogDataset = yield getSolidDataset(catalogDocUrl, {
       fetch
@@ -3158,16 +3167,17 @@ var loadCatalogDatasets = /*#__PURE__*/function () {
           return parseDatasetFromDoc(datasetDoc, datasetUrl);
         } catch (err) {
           console.warn("Failed to load dataset", datasetUrl, err);
+          onLoadError === null || onLoadError === void 0 || onLoadError(err);
           return null;
         }
       });
-      return function (_x59) {
+      return function (_x60) {
         return _ref27.apply(this, arguments);
       };
     }()));
     return datasets.filter(Boolean);
   });
-  return function loadCatalogDatasets(_x57, _x58) {
+  return function loadCatalogDatasets(_x57, _x58, _x59) {
     return _ref26.apply(this, arguments);
   };
 }();
@@ -3193,7 +3203,8 @@ var loadAggregatedDatasets = /*#__PURE__*/function () {
   var _ref28 = _asyncToGenerator(function* (session, fetchOverride) {
     var _session$info3;
     var {
-      researchRegistries
+      researchRegistries,
+      onLoadError
     } = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
     var webId = (session === null || session === void 0 || (_session$info3 = session.info) === null || _session$info3 === void 0 ? void 0 : _session$info3.webId) || "";
     var fetch = fetchOverride || (session === null || session === void 0 ? void 0 : session.fetch) || (typeof window !== "undefined" ? window.fetch.bind(window) : fetchOverride);
@@ -3203,17 +3214,21 @@ var loadAggregatedDatasets = /*#__PURE__*/function () {
     };
     var registryMembers;
     if (Array.isArray(researchRegistries)) {
-      var membersByRegistry = yield Promise.all(researchRegistries.map(registryUrl => loadRegistryMembersFromContainer(registryUrl, fetch)));
+      var membersByRegistry = yield Promise.all(researchRegistries.map(registryUrl => loadRegistryMembersFromContainer(registryUrl, fetch, {
+        onLoadError
+      })));
       registryMembers = Array.from(new Set(membersByRegistry.flat().filter(memberWebId => {
         try {
           var url = new URL(memberWebId);
           return (url.protocol === "https:" || url.protocol === "http:") && !url.username && !url.password && !url.search;
-        } catch (_unused12) {
+        } catch (_unused10) {
           return false;
         }
       })));
     } else {
-      registryMembers = yield loadRegistryMembers(webId, fetch);
+      registryMembers = yield loadRegistryMembers(webId, fetch, {
+        onLoadError
+      });
     }
     var catalogUrls = yield Promise.all(registryMembers.map(member => resolveCatalogUrlFromWebId(member, fetch)));
     var uniqueCatalogUrls = Array.from(new Set(catalogUrls.filter(catalogUrl => {
@@ -3221,7 +3236,7 @@ var loadAggregatedDatasets = /*#__PURE__*/function () {
       try {
         var url = new URL(catalogUrl);
         return (url.protocol === "https:" || url.protocol === "http:") && !url.username && !url.password && !url.search;
-      } catch (_unused13) {
+      } catch (_unused11) {
         return false;
       }
     })));
@@ -3235,7 +3250,7 @@ var loadAggregatedDatasets = /*#__PURE__*/function () {
     var fetchCatalog = /*#__PURE__*/function () {
       var _ref29 = _asyncToGenerator(function* (catalogUrl) {
         try {
-          var datasets = yield loadCatalogDatasets(catalogUrl, fetch);
+          var datasets = yield loadCatalogDatasets(catalogUrl, fetch, onLoadError);
           updatedCache.catalogs[catalogUrl] = {
             datasets,
             lastSuccess: now
@@ -3247,6 +3262,7 @@ var loadAggregatedDatasets = /*#__PURE__*/function () {
           };
         } catch (err) {
           console.warn("Catalog load failed", catalogUrl, err);
+          onLoadError === null || onLoadError === void 0 || onLoadError(err);
           var cached = cache.catalogs[catalogUrl];
           if (cached !== null && cached !== void 0 && cached.datasets) {
             return {
@@ -3262,7 +3278,7 @@ var loadAggregatedDatasets = /*#__PURE__*/function () {
           };
         }
       });
-      return function fetchCatalog(_x62) {
+      return function fetchCatalog(_x63) {
         return _ref29.apply(this, arguments);
       };
     }();
@@ -3300,7 +3316,7 @@ var loadAggregatedDatasets = /*#__PURE__*/function () {
       catalogs: uniqueCatalogUrls
     };
   });
-  return function loadAggregatedDatasets(_x60, _x61) {
+  return function loadAggregatedDatasets(_x61, _x62) {
     return _ref28.apply(this, arguments);
   };
 }();
@@ -3319,7 +3335,7 @@ var isValidUrl = value => {
   try {
     new URL(value);
     return true;
-  } catch (_unused14) {
+  } catch (_unused12) {
     return false;
   }
 };
@@ -3440,7 +3456,7 @@ var isLocalPodResource = function isLocalPodResource(webId, targetUrl) {
     }
     var rootPath = root.pathname.endsWith("/") ? root.pathname : "".concat(root.pathname, "/");
     return target.origin === root.origin && target.pathname.startsWith(rootPath);
-  } catch (_unused15) {
+  } catch (_unused13) {
     return false;
   }
 };
@@ -3474,7 +3490,7 @@ var ensurePublicReadOnlyResourceAccess = /*#__PURE__*/function () {
       throw new Error("Resource does not have verified public read-only access after ACL update: ".concat(resourceUrl));
     }
   });
-  return function ensurePublicReadOnlyResourceAccess(_x63, _x64) {
+  return function ensurePublicReadOnlyResourceAccess(_x64, _x65) {
     return _ref30.apply(this, arguments);
   };
 }();
@@ -3500,7 +3516,7 @@ var ensureRestrictedResourceAccess = /*#__PURE__*/function () {
       throw new Error("Resource still has public access after ACL update: ".concat(resourceUrl));
     }
   });
-  return function ensureRestrictedResourceAccess(_x65, _x66) {
+  return function ensureRestrictedResourceAccess(_x66, _x67) {
     return _ref31.apply(this, arguments);
   };
 }();
@@ -3536,7 +3552,7 @@ var syncLinkedResourceAccess = /*#__PURE__*/function () {
       }
     }
   });
-  return function syncLinkedResourceAccess(_x67, _x68) {
+  return function syncLinkedResourceAccess(_x68, _x69) {
     return _ref32.apply(this, arguments);
   };
 }();
@@ -3591,7 +3607,7 @@ var writeDatasetDocument = /*#__PURE__*/function () {
     yield makePublicReadable(datasetDocUrl, session.fetch);
     yield syncLinkedResourceAccess(session, input);
   });
-  return function writeDatasetDocument(_x69, _x70, _x71) {
+  return function writeDatasetDocument(_x70, _x71, _x72) {
     return _ref33.apply(this, arguments);
   };
 }();
@@ -3611,7 +3627,7 @@ var updateCatalogDatasets = /*#__PURE__*/function () {
     });
     yield makePublicReadable(catalogDocUrl, session.fetch);
   });
-  return function updateCatalogDatasets(_x75, _x76, _x77) {
+  return function updateCatalogDatasets(_x76, _x77, _x78) {
     return _ref35.apply(this, arguments);
   };
 }();
@@ -3676,7 +3692,7 @@ var writeRecordDocument = /*#__PURE__*/function () {
     });
     yield makePublicReadable(recordDocUrl, session.fetch);
   });
-  return function writeRecordDocument(_x84, _x85, _x86) {
+  return function writeRecordDocument(_x85, _x86, _x87) {
     return _ref38.apply(this, arguments);
   };
 }();
@@ -3711,7 +3727,7 @@ var createDataset = /*#__PURE__*/function () {
       identifier
     };
   });
-  return function createDataset(_x87, _x88) {
+  return function createDataset(_x88, _x89) {
     return _ref39.apply(this, arguments);
   };
 }();
@@ -3733,7 +3749,7 @@ var updateDataset = /*#__PURE__*/function () {
     }
     clearCache();
   });
-  return function updateDataset(_x91, _x92) {
+  return function updateDataset(_x92, _x93) {
     return _ref41.apply(this, arguments);
   };
 }();
@@ -3761,7 +3777,7 @@ var deleteDatasetEntry = /*#__PURE__*/function () {
       clearCache();
     }
   });
-  return function deleteDatasetEntry(_x98, _x99, _x100) {
+  return function deleteDatasetEntry(_x99, _x100, _x101) {
     return _ref44.apply(this, arguments);
   };
 }();

@@ -99,6 +99,49 @@ const createDatasetDocument = (datasetUrl, distributionUrl, creatorWebId) => {
   return setThing(dataset, datasetThing);
 };
 
+test.each([false, true])("waits for the last dataset even when an earlier source fails: %s", async (failFirst) => {
+  const memberUrl = `${REGISTRY}member-alice.ttl`;
+  const catalogUrl = "https://pod.example/alice/catalog.ttl#it";
+  const firstUrl = "https://pod.example/alice/first.ttl#it";
+  const lastUrl = "https://pod.example/alice/last.ttl#it";
+  const memberWebId = "https://pod.example/alice/profile/card#me";
+  let catalogDocument = createCatalogDocument(catalogUrl, firstUrl);
+  catalogDocument = setThing(catalogDocument, addUrl(
+    require("@inrupt/solid-client").getThing(catalogDocument, catalogUrl), DCAT.dataset, lastUrl
+  ));
+  const resources = new Map([
+    [REGISTRY, { contained: [memberUrl] }],
+    [memberUrl, createMemberDocument(memberUrl, memberWebId)],
+    [memberWebId.split("#")[0], createProfileDocument(memberWebId, catalogUrl)],
+    [catalogUrl.split("#")[0], catalogDocument],
+    [firstUrl.split("#")[0], createDatasetDocument(firstUrl, "https://data.example/first.csv", memberWebId)],
+  ]);
+  let releaseLast;
+  const lastRequest = new Promise((resolve) => { releaseLast = resolve; });
+  mockGetContainedResourceUrlAll.mockImplementation((doc) => doc.contained || []);
+  mockGetSolidDataset.mockImplementation(async (url) => {
+    if (url === lastUrl.split("#")[0]) return lastRequest;
+    if (failFirst && url === firstUrl.split("#")[0]) throw new Error("source unavailable");
+    if (!resources.has(url)) throw new Error(`Unexpected resource: ${url}`);
+    return resources.get(url);
+  });
+  const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+  const onLoadError = jest.fn();
+  let completed = false;
+  const pending = loadAggregatedDatasets({ info: {}, fetch: jest.fn() }, undefined, {
+    researchRegistries: [REGISTRY], onLoadError,
+  }).then((result) => { completed = true; return result; });
+  for (let step = 0; step < 30; step += 1) await Promise.resolve();
+  expect(mockGetSolidDataset).toHaveBeenCalledWith(lastUrl.split("#")[0], expect.anything());
+  expect(completed).toBe(false);
+  releaseLast(createDatasetDocument(lastUrl, "https://data.example/last.csv", memberWebId));
+  const result = await pending;
+  expect(result.datasets).toHaveLength(failFirst ? 1 : 2);
+  expect(onLoadError).toHaveBeenCalledTimes(failFirst ? 1 : 0);
+  expect(mockGetSolidDataset.mock.calls.some(([url]) => url.startsWith("https://data.example/"))).toBe(false);
+  warn.mockRestore();
+});
+
 test("research discovery reads only registry members and preserves same-id datasets from different Pods", async () => {
   const members = ["alice", "bob"].map((name) => {
     const podRoot = `https://pod.example/${name}/`;

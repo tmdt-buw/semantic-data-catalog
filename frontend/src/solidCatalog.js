@@ -659,7 +659,7 @@ const setCatalogLinkInProfile = async (webId, catalogUrl, fetch) => {
   await saveSolidDatasetAt(profileDocUrl, updatedProfile, { fetch });
 };
 
-export const loadRegistryConfig = async (webId, fetch, { podRoot = "" } = {}) => {
+export const loadRegistryConfig = async (webId, fetch, { podRoot = "", onLoadError } = {}) => {
   if (!webId || !fetch) {
     return { mode: "research", registries: [], privateRegistry: "" };
   }
@@ -681,6 +681,7 @@ export const loadRegistryConfig = async (webId, fetch, { podRoot = "" } = {}) =>
     };
   } catch (err) {
     console.warn("Failed to load registry config from profile:", err);
+    onLoadError?.(err);
     return {
       mode: "research",
       registries: [],
@@ -839,7 +840,7 @@ const registerWebIdInRegistries = async (
   }
 };
 
-export const loadRegistryMembersFromContainer = async (containerUrl, fetch) => {
+export const loadRegistryMembersFromContainer = async (containerUrl, fetch, { onLoadError } = {}) => {
   const normalizedUrl = normalizeContainerUrl(containerUrl);
   if (!normalizedUrl || !fetch) return [];
   try {
@@ -853,13 +854,14 @@ export const loadRegistryMembersFromContainer = async (containerUrl, fetch) => {
           getThing(memberDataset, `${resourceUrl}#it`) || getThingAll(memberDataset)[0];
         const memberWebId = memberThing ? getUrl(memberThing, FOAF.member) : "";
         if (memberWebId) members.add(memberWebId);
-      } catch {
-        // Ignore malformed entries.
+      } catch (error) {
+        onLoadError?.(error);
       }
     }
     return Array.from(members);
   } catch (err) {
     const status = err?.statusCode || err?.response?.status;
+    onLoadError?.(err);
     if (status === 404) return [];
     console.warn("Failed to load registry container", normalizedUrl, err);
     return [];
@@ -1007,11 +1009,11 @@ export const resolveCatalogUrlFromWebId = async (webId, fetch) => {
   return getCatalogResourceUrl(webId);
 };
 
-const loadRegistryMembers = async (webId, fetch, { podRoot = "" } = {}) => {
+const loadRegistryMembers = async (webId, fetch, { podRoot = "", onLoadError } = {}) => {
   const members = new Set();
   if (webId) members.add(webId);
 
-  const config = await loadRegistryConfig(webId, fetch, { podRoot });
+  const config = await loadRegistryConfig(webId, fetch, { podRoot, onLoadError });
   let containers = [];
   if (config.mode === "private") {
     containers = [config.privateRegistry];
@@ -1035,12 +1037,13 @@ const loadRegistryMembers = async (webId, fetch, { podRoot = "" } = {}) => {
             getThing(memberDataset, `${resourceUrl}#it`) || getThingAll(memberDataset)[0];
           const memberWebId = memberThing ? getUrl(memberThing, FOAF.member) : "";
           if (memberWebId) members.add(memberWebId);
-        } catch {
-          // Ignore malformed registry entries.
+        } catch (error) {
+          onLoadError?.(error);
         }
       }
     } catch (err) {
       console.warn("Failed to load registry container:", containerUrl, err);
+      onLoadError?.(err);
     }
   }
 
@@ -1195,7 +1198,7 @@ export const parseDatasetFromDoc = (datasetDoc, datasetUrl) => {
   };
 };
 
-const loadCatalogDatasets = async (catalogUrl, fetch) => {
+const loadCatalogDatasets = async (catalogUrl, fetch, onLoadError) => {
   const catalogDocUrl = getDocumentUrl(catalogUrl);
   const catalogDataset = await getSolidDataset(catalogDocUrl, { fetch });
   const catalogThing = getThing(catalogDataset, catalogUrl);
@@ -1213,6 +1216,7 @@ const loadCatalogDatasets = async (catalogUrl, fetch) => {
         return parseDatasetFromDoc(datasetDoc, datasetUrl);
       } catch (err) {
         console.warn("Failed to load dataset", datasetUrl, err);
+        onLoadError?.(err);
         return null;
       }
     })
@@ -1245,7 +1249,7 @@ const mergeDatasets = (lists) => {
 export const loadAggregatedDatasets = async (
   session,
   fetchOverride,
-  { researchRegistries } = {}
+  { researchRegistries, onLoadError } = {}
 ) => {
   const webId = session?.info?.webId || "";
   const fetch =
@@ -1258,7 +1262,7 @@ export const loadAggregatedDatasets = async (
   if (Array.isArray(researchRegistries)) {
     const membersByRegistry = await Promise.all(
       researchRegistries.map((registryUrl) =>
-        loadRegistryMembersFromContainer(registryUrl, fetch)
+        loadRegistryMembersFromContainer(registryUrl, fetch, { onLoadError })
       )
     );
     registryMembers = Array.from(
@@ -1281,7 +1285,7 @@ export const loadAggregatedDatasets = async (
       )
     );
   } else {
-    registryMembers = await loadRegistryMembers(webId, fetch);
+    registryMembers = await loadRegistryMembers(webId, fetch, { onLoadError });
   }
   const catalogUrls = await Promise.all(
     registryMembers.map((member) => resolveCatalogUrlFromWebId(member, fetch))
@@ -1313,7 +1317,7 @@ export const loadAggregatedDatasets = async (
 
   const fetchCatalog = async (catalogUrl) => {
     try {
-      const datasets = await loadCatalogDatasets(catalogUrl, fetch);
+      const datasets = await loadCatalogDatasets(catalogUrl, fetch, onLoadError);
       updatedCache.catalogs[catalogUrl] = {
         datasets,
         lastSuccess: now,
@@ -1321,6 +1325,7 @@ export const loadAggregatedDatasets = async (
       return { datasets, lastSuccess: now, failed: false };
     } catch (err) {
       console.warn("Catalog load failed", catalogUrl, err);
+      onLoadError?.(err);
       const cached = cache.catalogs[catalogUrl];
       if (cached?.datasets) {
         return { datasets: cached.datasets, lastSuccess: cached.lastSuccess || 0, failed: true };

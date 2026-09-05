@@ -11,6 +11,27 @@ import {
 import { FOAF, VCARD } from "@inrupt/vocab-common-rdf";
 import LoginIssuerModal from './LoginIssuerModal';
 
+export const loadProfilePhoto = async (dataset, profile, fetch) => {
+  const photoRef = getUrl(profile, VCARD.hasPhoto) || getUrl(profile, FOAF.img);
+  if (!photoRef) return '';
+  let photoUrl = photoRef;
+  if (!/\.(png|jpe?g|gif|svg|webp)$/i.test(photoRef)) {
+    const photoThing = getThing(dataset, photoRef);
+    if (photoThing) {
+      photoUrl = getUrl(photoThing, VCARD.value) || getUrl(photoThing, VCARD.url) || '';
+    }
+  }
+  if (photoUrl) {
+    try {
+      const response = await fetch(photoUrl);
+      if (response.ok) return URL.createObjectURL(await response.blob());
+    } catch {
+      // A missing avatar does not prevent access to the catalog.
+    }
+  }
+  return photoUrl;
+};
+
 const HeaderBar = ({
   onLoginStatusChange,
   onWebIdChange,
@@ -18,9 +39,10 @@ const HeaderBar = ({
   activeTab,
   setActiveTab,
   languageControl,
+  initialUserInfo,
 }) => {
   const [showLoginModal, setShowLoginModal] = useState(false);
-  const [userInfo, setUserInfo] = useState({
+  const [userInfo, setUserInfo] = useState(initialUserInfo || {
     loggedIn: false,
     name: '',
     email: '',
@@ -47,30 +69,7 @@ const HeaderBar = ({
       const name = getStringNoLocale(profile, FOAF.name) ||
                    getStringNoLocale(profile, VCARD.fn) || "Solid User";
 
-      const photoRef = getUrl(profile, VCARD.hasPhoto) || getUrl(profile, FOAF.img);
-      let photo = '';
-      if (photoRef) {
-        let photoUrl = photoRef;
-        if (!/\.(png|jpe?g|gif|svg|webp)$/i.test(photoRef)) {
-          const photoThing = getThing(dataset, photoRef);
-          if (photoThing) {
-            photoUrl = getUrl(photoThing, VCARD.value) || getUrl(photoThing, VCARD.url) || '';
-          }
-        }
-
-        if (photoUrl) {
-          try {
-            const response = await session.fetch(photoUrl);
-            if (response.ok) {
-              const blob = await response.blob();
-              photoUrl = URL.createObjectURL(blob);
-            }
-          } catch (e) {
-            // Ignore fetch errors and fall back to the original URL
-          }
-          photo = photoUrl;
-        }
-      }
+      const photo = await loadProfilePhoto(dataset, profile, session.fetch);
 
       let email = "";
       const emailNode = getUrl(profile, VCARD.hasEmail);
@@ -102,6 +101,7 @@ const HeaderBar = ({
   };
 
   useEffect(() => {
+    if (initialUserInfo?.webId === session.info.webId && initialUserInfo?.loggedIn) return;
     if (session.info.isLoggedIn && session.info.webId) {
       localStorage.setItem("solid-was-logged-in", "true");
       fetchPodUserInfo(session.info.webId);

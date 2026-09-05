@@ -3569,7 +3569,8 @@ var setCatalogLinkInProfile = /*#__PURE__*/function () {
 var loadRegistryConfig = /*#__PURE__*/function () {
   var _ref12 = _asyncToGenerator(function* (webId, fetch) {
     var {
-      podRoot = ""
+      podRoot = "",
+      onLoadError
     } = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
     if (!webId || !fetch) {
       return {
@@ -3594,6 +3595,7 @@ var loadRegistryConfig = /*#__PURE__*/function () {
       };
     } catch (err) {
       console.warn("Failed to load registry config from profile:", err);
+      onLoadError === null || onLoadError === void 0 || onLoadError(err);
       return {
         mode: "research",
         registries: [],
@@ -3760,6 +3762,9 @@ var registerWebIdInRegistries = /*#__PURE__*/function () {
 }();
 var loadRegistryMembersFromContainer = /*#__PURE__*/function () {
   var _ref19 = _asyncToGenerator(function* (containerUrl, fetch) {
+    var {
+      onLoadError
+    } = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
     var normalizedUrl = normalizeContainerUrl$2(containerUrl);
     if (!normalizedUrl || !fetch) return [];
     try {
@@ -3776,14 +3781,15 @@ var loadRegistryMembersFromContainer = /*#__PURE__*/function () {
           var memberThing = solidClient.getThing(memberDataset, "".concat(resourceUrl, "#it")) || solidClient.getThingAll(memberDataset)[0];
           var memberWebId = memberThing ? solidClient.getUrl(memberThing, vocabCommonRdf.FOAF.member) : "";
           if (memberWebId) members.add(memberWebId);
-        } catch (_unused9) {
-          // Ignore malformed entries.
+        } catch (error) {
+          onLoadError === null || onLoadError === void 0 || onLoadError(error);
         }
       }
       return Array.from(members);
     } catch (err) {
       var _err$response4;
       var status = (err === null || err === void 0 ? void 0 : err.statusCode) || (err === null || err === void 0 || (_err$response4 = err.response) === null || _err$response4 === void 0 ? void 0 : _err$response4.status);
+      onLoadError === null || onLoadError === void 0 || onLoadError(err);
       if (status === 404) return [];
       console.warn("Failed to load registry container", normalizedUrl, err);
       return [];
@@ -3819,7 +3825,7 @@ var syncRegistryMembersInContainer = /*#__PURE__*/function () {
         if (memberWebId) {
           existing.set(memberWebId, resourceUrl);
         }
-      } catch (_unused10) {
+      } catch (_unused9) {
         // Ignore malformed entries.
       }
     }
@@ -3911,12 +3917,14 @@ var resolveCatalogUrlFromWebId = /*#__PURE__*/function () {
 var loadRegistryMembers = /*#__PURE__*/function () {
   var _ref25 = _asyncToGenerator(function* (webId, fetch) {
     var {
-      podRoot = ""
+      podRoot = "",
+      onLoadError
     } = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
     var members = new Set();
     if (webId) members.add(webId);
     var config = yield loadRegistryConfig(webId, fetch, {
-      podRoot
+      podRoot,
+      onLoadError
     });
     var containers = [];
     if (config.mode === "private") {
@@ -3940,12 +3948,13 @@ var loadRegistryMembers = /*#__PURE__*/function () {
             var memberThing = solidClient.getThing(memberDataset, "".concat(resourceUrl, "#it")) || solidClient.getThingAll(memberDataset)[0];
             var memberWebId = memberThing ? solidClient.getUrl(memberThing, vocabCommonRdf.FOAF.member) : "";
             if (memberWebId) members.add(memberWebId);
-          } catch (_unused11) {
-            // Ignore malformed registry entries.
+          } catch (error) {
+            onLoadError === null || onLoadError === void 0 || onLoadError(error);
           }
         }
       } catch (err) {
         console.warn("Failed to load registry container:", containerUrl, err);
+        onLoadError === null || onLoadError === void 0 || onLoadError(err);
       }
     }
     return Array.from(members);
@@ -4059,7 +4068,7 @@ var parseDatasetFromDoc = (datasetDoc, datasetUrl) => {
   };
 };
 var loadCatalogDatasets = /*#__PURE__*/function () {
-  var _ref26 = _asyncToGenerator(function* (catalogUrl, fetch) {
+  var _ref26 = _asyncToGenerator(function* (catalogUrl, fetch, onLoadError) {
     var catalogDocUrl = getDocumentUrl(catalogUrl);
     var catalogDataset = yield solidClient.getSolidDataset(catalogDocUrl, {
       fetch
@@ -4076,16 +4085,17 @@ var loadCatalogDatasets = /*#__PURE__*/function () {
           return parseDatasetFromDoc(datasetDoc, datasetUrl);
         } catch (err) {
           console.warn("Failed to load dataset", datasetUrl, err);
+          onLoadError === null || onLoadError === void 0 || onLoadError(err);
           return null;
         }
       });
-      return function (_x59) {
+      return function (_x60) {
         return _ref27.apply(this, arguments);
       };
     }()));
     return datasets.filter(Boolean);
   });
-  return function loadCatalogDatasets(_x57, _x58) {
+  return function loadCatalogDatasets(_x57, _x58, _x59) {
     return _ref26.apply(this, arguments);
   };
 }();
@@ -4111,7 +4121,8 @@ var loadAggregatedDatasets = /*#__PURE__*/function () {
   var _ref28 = _asyncToGenerator(function* (session, fetchOverride) {
     var _session$info3;
     var {
-      researchRegistries
+      researchRegistries,
+      onLoadError
     } = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
     var webId = (session === null || session === void 0 || (_session$info3 = session.info) === null || _session$info3 === void 0 ? void 0 : _session$info3.webId) || "";
     var fetch = fetchOverride || (session === null || session === void 0 ? void 0 : session.fetch) || (typeof window !== "undefined" ? window.fetch.bind(window) : fetchOverride);
@@ -4121,17 +4132,21 @@ var loadAggregatedDatasets = /*#__PURE__*/function () {
     };
     var registryMembers;
     if (Array.isArray(researchRegistries)) {
-      var membersByRegistry = yield Promise.all(researchRegistries.map(registryUrl => loadRegistryMembersFromContainer(registryUrl, fetch)));
+      var membersByRegistry = yield Promise.all(researchRegistries.map(registryUrl => loadRegistryMembersFromContainer(registryUrl, fetch, {
+        onLoadError
+      })));
       registryMembers = Array.from(new Set(membersByRegistry.flat().filter(memberWebId => {
         try {
           var url = new URL(memberWebId);
           return (url.protocol === "https:" || url.protocol === "http:") && !url.username && !url.password && !url.search;
-        } catch (_unused12) {
+        } catch (_unused10) {
           return false;
         }
       })));
     } else {
-      registryMembers = yield loadRegistryMembers(webId, fetch);
+      registryMembers = yield loadRegistryMembers(webId, fetch, {
+        onLoadError
+      });
     }
     var catalogUrls = yield Promise.all(registryMembers.map(member => resolveCatalogUrlFromWebId(member, fetch)));
     var uniqueCatalogUrls = Array.from(new Set(catalogUrls.filter(catalogUrl => {
@@ -4139,7 +4154,7 @@ var loadAggregatedDatasets = /*#__PURE__*/function () {
       try {
         var url = new URL(catalogUrl);
         return (url.protocol === "https:" || url.protocol === "http:") && !url.username && !url.password && !url.search;
-      } catch (_unused13) {
+      } catch (_unused11) {
         return false;
       }
     })));
@@ -4153,7 +4168,7 @@ var loadAggregatedDatasets = /*#__PURE__*/function () {
     var fetchCatalog = /*#__PURE__*/function () {
       var _ref29 = _asyncToGenerator(function* (catalogUrl) {
         try {
-          var datasets = yield loadCatalogDatasets(catalogUrl, fetch);
+          var datasets = yield loadCatalogDatasets(catalogUrl, fetch, onLoadError);
           updatedCache.catalogs[catalogUrl] = {
             datasets,
             lastSuccess: now
@@ -4165,6 +4180,7 @@ var loadAggregatedDatasets = /*#__PURE__*/function () {
           };
         } catch (err) {
           console.warn("Catalog load failed", catalogUrl, err);
+          onLoadError === null || onLoadError === void 0 || onLoadError(err);
           var cached = cache.catalogs[catalogUrl];
           if (cached !== null && cached !== void 0 && cached.datasets) {
             return {
@@ -4180,7 +4196,7 @@ var loadAggregatedDatasets = /*#__PURE__*/function () {
           };
         }
       });
-      return function fetchCatalog(_x62) {
+      return function fetchCatalog(_x63) {
         return _ref29.apply(this, arguments);
       };
     }();
@@ -4218,7 +4234,7 @@ var loadAggregatedDatasets = /*#__PURE__*/function () {
       catalogs: uniqueCatalogUrls
     };
   });
-  return function loadAggregatedDatasets(_x60, _x61) {
+  return function loadAggregatedDatasets(_x61, _x62) {
     return _ref28.apply(this, arguments);
   };
 }();
@@ -4237,7 +4253,7 @@ var isValidUrl = value => {
   try {
     new URL(value);
     return true;
-  } catch (_unused14) {
+  } catch (_unused12) {
     return false;
   }
 };
@@ -4410,7 +4426,7 @@ var isLocalPodResource = function isLocalPodResource(webId, targetUrl) {
     }
     var rootPath = root.pathname.endsWith("/") ? root.pathname : "".concat(root.pathname, "/");
     return target.origin === root.origin && target.pathname.startsWith(rootPath);
-  } catch (_unused15) {
+  } catch (_unused13) {
     return false;
   }
 };
@@ -4444,7 +4460,7 @@ var ensurePublicReadOnlyResourceAccess = /*#__PURE__*/function () {
       throw new Error("Resource does not have verified public read-only access after ACL update: ".concat(resourceUrl));
     }
   });
-  return function ensurePublicReadOnlyResourceAccess(_x63, _x64) {
+  return function ensurePublicReadOnlyResourceAccess(_x64, _x65) {
     return _ref30.apply(this, arguments);
   };
 }();
@@ -4470,7 +4486,7 @@ var ensureRestrictedResourceAccess = /*#__PURE__*/function () {
       throw new Error("Resource still has public access after ACL update: ".concat(resourceUrl));
     }
   });
-  return function ensureRestrictedResourceAccess(_x65, _x66) {
+  return function ensureRestrictedResourceAccess(_x66, _x67) {
     return _ref31.apply(this, arguments);
   };
 }();
@@ -4506,7 +4522,7 @@ var syncLinkedResourceAccess = /*#__PURE__*/function () {
       }
     }
   });
-  return function syncLinkedResourceAccess(_x67, _x68) {
+  return function syncLinkedResourceAccess(_x68, _x69) {
     return _ref32.apply(this, arguments);
   };
 }();
@@ -4561,7 +4577,7 @@ var writeDatasetDocument = /*#__PURE__*/function () {
     yield makePublicReadable(datasetDocUrl, session.fetch);
     yield syncLinkedResourceAccess(session, input);
   });
-  return function writeDatasetDocument(_x69, _x70, _x71) {
+  return function writeDatasetDocument(_x70, _x71, _x72) {
     return _ref33.apply(this, arguments);
   };
 }();
@@ -4598,7 +4614,7 @@ var writeSeriesDocument = /*#__PURE__*/function () {
     }
     // Skip ACL update here to avoid noisy 404s on servers without WAC ACL support.
   });
-  return function writeSeriesDocument(_x72, _x73, _x74) {
+  return function writeSeriesDocument(_x73, _x74, _x75) {
     return _ref34.apply(this, arguments);
   };
 }();
@@ -4618,7 +4634,7 @@ var updateCatalogDatasets = /*#__PURE__*/function () {
     });
     yield makePublicReadable(catalogDocUrl, session.fetch);
   });
-  return function updateCatalogDatasets(_x75, _x76, _x77) {
+  return function updateCatalogDatasets(_x76, _x77, _x78) {
     return _ref35.apply(this, arguments);
   };
 }();
@@ -4649,7 +4665,7 @@ var linkDatasetToSeries = /*#__PURE__*/function () {
     });
     yield makePublicReadable(datasetDocUrl, session.fetch);
   });
-  return function linkDatasetToSeries(_x78, _x79, _x80) {
+  return function linkDatasetToSeries(_x79, _x80, _x81) {
     return _ref36.apply(this, arguments);
   };
 }();
@@ -4681,7 +4697,7 @@ var unlinkDatasetFromSeries = /*#__PURE__*/function () {
       fetch: session.fetch
     });
   });
-  return function unlinkDatasetFromSeries(_x81, _x82, _x83) {
+  return function unlinkDatasetFromSeries(_x82, _x83, _x84) {
     return _ref37.apply(this, arguments);
   };
 }();
@@ -4746,7 +4762,7 @@ var writeRecordDocument = /*#__PURE__*/function () {
     });
     yield makePublicReadable(recordDocUrl, session.fetch);
   });
-  return function writeRecordDocument(_x84, _x85, _x86) {
+  return function writeRecordDocument(_x85, _x86, _x87) {
     return _ref38.apply(this, arguments);
   };
 }();
@@ -4781,7 +4797,7 @@ var createDataset = /*#__PURE__*/function () {
       identifier
     };
   });
-  return function createDataset(_x87, _x88) {
+  return function createDataset(_x88, _x89) {
     return _ref39.apply(this, arguments);
   };
 }();
@@ -4811,7 +4827,7 @@ var createDatasetSeries = /*#__PURE__*/function () {
       identifier
     };
   });
-  return function createDatasetSeries(_x89, _x90) {
+  return function createDatasetSeries(_x90, _x91) {
     return _ref40.apply(this, arguments);
   };
 }();
@@ -4833,7 +4849,7 @@ var updateDataset = /*#__PURE__*/function () {
     }
     clearCache();
   });
-  return function updateDataset(_x91, _x92) {
+  return function updateDataset(_x92, _x93) {
     return _ref41.apply(this, arguments);
   };
 }();
@@ -4874,7 +4890,7 @@ var updateDatasetSeries = /*#__PURE__*/function () {
     }
     clearCache();
   });
-  return function updateDatasetSeries(_x93, _x94) {
+  return function updateDatasetSeries(_x94, _x95) {
     return _ref42.apply(this, arguments);
   };
 }();
@@ -4909,7 +4925,7 @@ var deleteSeriesEntry = /*#__PURE__*/function () {
     }
     clearCache();
   });
-  return function deleteSeriesEntry(_x95, _x96, _x97) {
+  return function deleteSeriesEntry(_x96, _x97, _x98) {
     return _ref43.apply(this, arguments);
   };
 }();
@@ -4937,7 +4953,7 @@ var deleteDatasetEntry = /*#__PURE__*/function () {
       clearCache();
     }
   });
-  return function deleteDatasetEntry(_x98, _x99, _x100) {
+  return function deleteDatasetEntry(_x99, _x100, _x101) {
     return _ref44.apply(this, arguments);
   };
 }();
@@ -4991,7 +5007,7 @@ var cleanupCatalogSeriesLinks = /*#__PURE__*/function () {
     yield makePublicReadable(catalogDocUrl, session.fetch);
     clearCache();
   });
-  return function cleanupCatalogSeriesLinks(_x101) {
+  return function cleanupCatalogSeriesLinks(_x102) {
     return _ref45.apply(this, arguments);
   };
 }();
@@ -5014,7 +5030,7 @@ var parseTurtleIntoStore = /*#__PURE__*/function () {
       });
     });
   });
-  return function parseTurtleIntoStore(_x102, _x103, _x104) {
+  return function parseTurtleIntoStore(_x103, _x104, _x105) {
     return _ref46.apply(this, arguments);
   };
 }();
@@ -5072,7 +5088,7 @@ var buildMergedCatalogDownload = /*#__PURE__*/function () {
       });
     });
   });
-  return function buildMergedCatalogDownload(_x105) {
+  return function buildMergedCatalogDownload(_x106) {
     return _ref47.apply(this, arguments);
   };
 }();
@@ -14176,17 +14192,43 @@ var LoginIssuerModal = _ref => {
   }, "Login")))))));
 };
 
-var HeaderBar = _ref => {
+var loadProfilePhoto = /*#__PURE__*/function () {
+  var _ref = _asyncToGenerator(function* (dataset, profile, fetch) {
+    var photoRef = solidClient.getUrl(profile, vocabCommonRdf.VCARD.hasPhoto) || solidClient.getUrl(profile, vocabCommonRdf.FOAF.img);
+    if (!photoRef) return '';
+    var photoUrl = photoRef;
+    if (!/\.(png|jpe?g|gif|svg|webp)$/i.test(photoRef)) {
+      var photoThing = solidClient.getThing(dataset, photoRef);
+      if (photoThing) {
+        photoUrl = solidClient.getUrl(photoThing, vocabCommonRdf.VCARD.value) || solidClient.getUrl(photoThing, vocabCommonRdf.VCARD.url) || '';
+      }
+    }
+    if (photoUrl) {
+      try {
+        var response = yield fetch(photoUrl);
+        if (response.ok) return URL.createObjectURL(yield response.blob());
+      } catch (_unused) {
+        // A missing avatar does not prevent access to the catalog.
+      }
+    }
+    return photoUrl;
+  });
+  return function loadProfilePhoto(_x, _x2, _x3) {
+    return _ref.apply(this, arguments);
+  };
+}();
+var HeaderBar = _ref2 => {
   var {
     onLoginStatusChange,
     onWebIdChange,
     onUserInfoChange,
     activeTab,
     setActiveTab,
-    languageControl
-  } = _ref;
+    languageControl,
+    initialUserInfo
+  } = _ref2;
   var [showLoginModal, setShowLoginModal] = React.useState(false);
-  var [userInfo, setUserInfo] = React.useState({
+  var [userInfo, setUserInfo] = React.useState(initialUserInfo || {
     loggedIn: false,
     name: '',
     email: '',
@@ -14205,36 +14247,14 @@ var HeaderBar = _ref => {
     });
   };
   var fetchPodUserInfo = /*#__PURE__*/function () {
-    var _ref2 = _asyncToGenerator(function* (webId) {
+    var _ref3 = _asyncToGenerator(function* (webId) {
       try {
         var dataset = yield solidClient.getSolidDataset(webId, {
           fetch: session.fetch
         });
         var profile = solidClient.getThing(dataset, webId);
         var name = solidClient.getStringNoLocale(profile, vocabCommonRdf.FOAF.name) || solidClient.getStringNoLocale(profile, vocabCommonRdf.VCARD.fn) || "Solid User";
-        var photoRef = solidClient.getUrl(profile, vocabCommonRdf.VCARD.hasPhoto) || solidClient.getUrl(profile, vocabCommonRdf.FOAF.img);
-        var photo = '';
-        if (photoRef) {
-          var photoUrl = photoRef;
-          if (!/\.(png|jpe?g|gif|svg|webp)$/i.test(photoRef)) {
-            var photoThing = solidClient.getThing(dataset, photoRef);
-            if (photoThing) {
-              photoUrl = solidClient.getUrl(photoThing, vocabCommonRdf.VCARD.value) || solidClient.getUrl(photoThing, vocabCommonRdf.VCARD.url) || '';
-            }
-          }
-          if (photoUrl) {
-            try {
-              var response = yield session.fetch(photoUrl);
-              if (response.ok) {
-                var blob = yield response.blob();
-                photoUrl = URL.createObjectURL(blob);
-              }
-            } catch (e) {
-              // Ignore fetch errors and fall back to the original URL
-            }
-            photo = photoUrl;
-          }
-        }
+        var photo = yield loadProfilePhoto(dataset, profile, session.fetch);
         var email = "";
         var emailNode = solidClient.getUrl(profile, vocabCommonRdf.VCARD.hasEmail);
         if (emailNode) {
@@ -14263,11 +14283,12 @@ var HeaderBar = _ref => {
         console.error("Error loading pod profile info:", err);
       }
     });
-    return function fetchPodUserInfo(_x) {
-      return _ref2.apply(this, arguments);
+    return function fetchPodUserInfo(_x4) {
+      return _ref3.apply(this, arguments);
     };
   }();
   React.useEffect(() => {
+    if ((initialUserInfo === null || initialUserInfo === void 0 ? void 0 : initialUserInfo.webId) === session.info.webId && initialUserInfo !== null && initialUserInfo !== void 0 && initialUserInfo.loggedIn) return;
     if (session.info.isLoggedIn && session.info.webId) {
       localStorage.setItem("solid-was-logged-in", "true");
       fetchPodUserInfo(session.info.webId);
@@ -14350,7 +14371,7 @@ var HeaderBar = _ref => {
   }));
 };
 
-var appVersion = "0.8.70";
+var appVersion = "0.8.71";
 
 var FooterBar = () => {
   return /*#__PURE__*/React.createElement("footer", {
@@ -14390,6 +14411,7 @@ var enToDe = {
   "Loading...": "Wird geladen...",
   "Loading your personal catalog workspace …": "Dein persönlicher Katalogbereich wird geladen …",
   "Semantic Data Catalog": "Semantischer Datenkatalog",
+  "Some catalog sources could not be loaded. Please try again.": "Einige Katalogquellen konnten nicht geladen werden. Bitte versuche es erneut.",
   "All datasets & dataset series": "Alle Datensätze und Datensatzreihen",
   "Add Dataset": "Datensatz hinzufügen",
   "Download Catalog": "Katalog herunterladen",
@@ -14818,7 +14840,9 @@ function CatalogLoadingState(_ref) {
   var {
     title,
     description = "",
-    embedded = false
+    embedded = false,
+    error = false,
+    onRetry
   } = _ref;
   var {
     language,
@@ -14831,7 +14855,7 @@ function CatalogLoadingState(_ref) {
     className: "catalog-loading-app catalog-loading-app--loading catalog-loading-app--".concat(embedded ? "embedded" : "standalone")
   }, /*#__PURE__*/React.createElement("main", {
     className: "catalog-full-loader",
-    "aria-busy": "true"
+    "aria-busy": !error
   }, /*#__PURE__*/React.createElement("span", {
     className: "catalog-full-loader__mark",
     "aria-hidden": "true"
@@ -14847,9 +14871,13 @@ function CatalogLoadingState(_ref) {
   }), /*#__PURE__*/React.createElement("path", {
     d: "M5 14.75v3.5C5 19.22 8.13 20 12 20s7-.78 7-1.75v-3.5"
   }))), /*#__PURE__*/React.createElement("h1", null, translatedTitle), /*#__PURE__*/React.createElement("p", {
-    role: "status",
-    "aria-live": "polite"
-  }, translatedDescription), /*#__PURE__*/React.createElement("span", {
+    role: error ? "alert" : "status",
+    "aria-live": error ? "assertive" : "polite"
+  }, translatedDescription), error ? /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    className: "catalog-full-loader__retry",
+    onClick: onRetry
+  }, t("Try again")) : /*#__PURE__*/React.createElement("span", {
     className: "catalog-full-loader__rail",
     role: "progressbar",
     "aria-label": translatedDescription
@@ -16103,6 +16131,86 @@ function CatalogSurvey(_ref3) {
   }, saving ? t("Saving...") : t(pendingEvent ? "Try again" : questionIndex === 0 ? "Next" : "Submit")))))));
 }
 
+function useCatalogDatasets(session, webId, isLoggedIn) {
+  var context = "".concat(isLoggedIn, ":").concat(webId || "");
+  var [result, setResult] = React.useState(null);
+  var [attempt, setAttempt] = React.useState(0);
+  var activeRun = React.useRef(null);
+  var cleanup = React.useRef(null);
+  var fetchDatasets = React.useCallback(/*#__PURE__*/_asyncToGenerator(function* () {
+    var run = activeRun.current;
+    if (!run || run.context !== context) return;
+    var request = ++run.request;
+    var failed = false;
+    try {
+      var loaded = yield loadAggregatedDatasets(session, isLoggedIn ? null : window.fetch.bind(window), {
+        onLoadError: () => {
+          failed = true;
+        }
+      });
+      if (activeRun.current !== run || run.request !== request) return;
+      setResult({
+        context,
+        datasets: loaded.datasets.map(dataset => _objectSpread2$2(_objectSpread2$2({}, dataset), {}, {
+          userHasAccess: dataset.is_public || dataset.webid === webId
+        })),
+        catalogs: loaded.catalogs || [],
+        error: failed
+      });
+    } catch (error) {
+      if (activeRun.current !== run || run.request !== request) return;
+      console.error("Error fetching datasets:", error);
+      setResult({
+        context,
+        datasets: [],
+        catalogs: [],
+        error: true
+      });
+    }
+  }), [session, context, isLoggedIn, webId]);
+  React.useEffect(() => {
+    var _cleanup$current, _cleanup$current2, _cleanup$current3;
+    var run = {
+      context,
+      request: 0
+    };
+    activeRun.current = run;
+    setResult(null);
+    // Keep the existing maintenance step, but load the final catalog only
+    // afterwards. Sharing its promise also avoids duplicate Strict Mode writes.
+    if (isLoggedIn && webId && (((_cleanup$current = cleanup.current) === null || _cleanup$current === void 0 ? void 0 : _cleanup$current.context) !== context || ((_cleanup$current2 = cleanup.current) === null || _cleanup$current2 === void 0 ? void 0 : _cleanup$current2.session) !== session)) {
+      cleanup.current = {
+        context,
+        session,
+        promise: cleanupCatalogSeriesLinks(session).catch(error => {
+          console.error("Cleanup failed:", error);
+        })
+      };
+    }
+    var preparation = isLoggedIn ? (_cleanup$current3 = cleanup.current) === null || _cleanup$current3 === void 0 ? void 0 : _cleanup$current3.promise : undefined;
+    Promise.resolve(preparation).then(() => {
+      if (activeRun.current === run) fetchDatasets();
+    });
+    // Ignore stale responses after account changes or unmounts.
+    // https://react.dev/reference/react/useEffect#fetching-data-with-effects
+    return () => {
+      if (activeRun.current === run) activeRun.current = null;
+    };
+  }, [session, context, isLoggedIn, webId, attempt, fetchDatasets]);
+  var current = (result === null || result === void 0 ? void 0 : result.context) === context ? result : null;
+  return {
+    datasets: (current === null || current === void 0 ? void 0 : current.datasets) || [],
+    catalogs: (current === null || current === void 0 ? void 0 : current.catalogs) || [],
+    loading: !current,
+    error: Boolean(current === null || current === void 0 ? void 0 : current.error),
+    fetchDatasets,
+    retry: () => {
+      setResult(null);
+      setAttempt(value => value + 1);
+    }
+  };
+}
+
 var defaultIssuer = process.env.REACT_APP_OIDC_ISSUER || 'https://solid-community-server.tmdt.info';
 var App = function App() {
   var {
@@ -16112,8 +16220,6 @@ var App = function App() {
     language = null,
     statisticsConfig
   } = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
-  var [datasets, setDatasets] = React.useState([]);
-  var [catalogs, setCatalogs] = React.useState([]);
   var [showNewDatasetModal, setShowNewDatasetModal] = React.useState(false);
   var [showDetailModal, setShowDetailModal] = React.useState(false);
   var [showDeleteModal, setShowDeleteModal] = React.useState(false);
@@ -16121,35 +16227,34 @@ var App = function App() {
   var [showAddDatasetModal, setShowAddDatasetModal] = React.useState(false);
   var [showRegistryModal, setShowRegistryModal] = React.useState(false);
   var [selectedDataset, setSelectedDataset] = React.useState(null);
-  var [isLoggedIn, setIsLoggedIn] = React.useState(false);
-  var [webId, setWebId] = React.useState(null);
+  var [sessionLoggedIn, setIsLoggedIn] = React.useState(() => Boolean(session.info.isLoggedIn));
+  var [sessionWebId, setWebId] = React.useState(() => session.info.webId || null);
+  var isLoggedIn = embedded ? Boolean(webIdOverride) : sessionLoggedIn;
+  var webId = embedded ? webIdOverride : sessionWebId;
   var [userName, setUserName] = React.useState('');
   var [userEmail, setUserEmail] = React.useState('');
+  var [headerUserInfo, setHeaderUserInfo] = React.useState(null);
   var [searchQuery, setSearchQuery] = React.useState('');
   var [isPopulating, setIsPopulating] = React.useState(false);
-  var accessCacheRef = React.useRef(new Map());
   var populateTriggerRef = React.useRef(false);
   var [activeTab, setActiveTab] = React.useState('dataset');
   var [onboardingRequired, setOnboardingRequired] = React.useState(false);
-  var [checkingProfile, setCheckingProfile] = React.useState(false);
+  var [profileCheck, setProfileCheck] = React.useState(null);
+  var [profileAttempt, setProfileAttempt] = React.useState(0);
   var [isPrivateRegistry, setIsPrivateRegistry] = React.useState(false);
   var [issuer, setIssuer] = React.useState(defaultIssuer);
-  var retryTimeoutRef = React.useRef(null);
-  var cleanupTriggerRef = React.useRef(false);
+  var {
+    datasets,
+    catalogs,
+    loading: loadingDatasets,
+    error: datasetLoadError,
+    fetchDatasets,
+    retry: retryDatasets
+  } = useCatalogDatasets(session, webId, isLoggedIn);
   var effectiveStatisticsConfig = resolveStatisticsConfig({
     embedded,
     statisticsConfig
   });
-  React.useEffect(() => {
-    if (!embedded) return;
-    if (webIdOverride) {
-      setWebId(webIdOverride);
-      setIsLoggedIn(true);
-    } else {
-      setWebId(null);
-      setIsLoggedIn(false);
-    }
-  }, [embedded, webIdOverride]);
   React.useEffect(() => {
     if (embedded) return;
     if (session.info.isLoggedIn && session.info.webId) {
@@ -16176,84 +16281,20 @@ var App = function App() {
       return _ref.apply(this, arguments);
     };
   }();
-  var enrichAccessFlags = (data, currentWebId) => data.map(dataset => _objectSpread2$2(_objectSpread2$2({}, dataset), {}, {
-    userHasAccess: dataset.is_public || dataset.webid === currentWebId
-  }));
-  var _fetchDatasets = /*#__PURE__*/function () {
-    var _ref2 = _asyncToGenerator(function* () {
-      try {
-        var fetchOverride = session.info.isLoggedIn ? null : typeof window !== "undefined" ? window.fetch.bind(window) : null;
-        var {
-          datasets: loadedDatasets,
-          catalogs: loadedCatalogs
-        } = yield loadAggregatedDatasets(session, fetchOverride);
-        if (retryTimeoutRef.current) {
-          clearTimeout(retryTimeoutRef.current);
-          retryTimeoutRef.current = null;
-        }
-        var enriched = enrichAccessFlags(loadedDatasets, webId);
-        setDatasets(enriched);
-        setCatalogs(loadedCatalogs || []);
-      } catch (error) {
-        console.error("Error fetching datasets:", error);
-        retryTimeoutRef.current = setTimeout(_fetchDatasets, 8000);
-      }
-    });
-    return function fetchDatasets() {
-      return _ref2.apply(this, arguments);
-    };
-  }();
   React.useEffect(() => {
-    _fetchDatasets();
-    return () => {
-      if (retryTimeoutRef.current) {
-        clearTimeout(retryTimeoutRef.current);
-      }
-    };
-  }, []);
-  React.useEffect(() => {
-    if (webId) {
-      accessCacheRef.current.clear();
-      _fetchDatasets();
-    }
-  }, [webId]);
-  React.useEffect(() => {
-    if (!isLoggedIn || !webId) {
+    var cancelled = false;
+    var profilePhoto = '';
+    if (!isLoggedIn) {
+      setProfileCheck(null);
+      setOnboardingRequired(false);
       setIsPrivateRegistry(false);
       return;
     }
-    _asyncToGenerator(function* () {
-      try {
-        var registryConfig = yield loadRegistryConfig(webId, session.fetch);
-        setIsPrivateRegistry(registryConfig.mode === "private");
-      } catch (_unused) {
-        setIsPrivateRegistry(false);
-      }
-    })();
-  }, [isLoggedIn, webId]);
-  React.useEffect(() => {
-    if (!isLoggedIn || !webId) return;
-    if (cleanupTriggerRef.current) return;
-    cleanupTriggerRef.current = true;
-    _asyncToGenerator(function* () {
-      try {
-        yield cleanupCatalogSeriesLinks(session);
-        yield _fetchDatasets();
-      } catch (err) {
-        console.error("Cleanup failed:", err);
-      }
-    })();
-  }, [isLoggedIn, webId]);
-  React.useEffect(() => {
-    if (!isLoggedIn) {
-      setCheckingProfile(false);
-      setOnboardingRequired(false);
-      return;
-    }
     var checkProfileCompleteness = /*#__PURE__*/function () {
-      var _ref5 = _asyncToGenerator(function* () {
+      var _ref2 = _asyncToGenerator(function* () {
         if (!isLoggedIn || !webId) return;
-        setCheckingProfile(true);
+        setProfileCheck(null);
+        var failed = false;
         try {
           var {
             getSolidDataset,
@@ -16272,6 +16313,7 @@ var App = function App() {
           var ds = yield getSolidDataset(profileDocUrl, {
             fetch: session.fetch
           });
+          if (cancelled) return;
           var me = getThing(ds, webId) || getThingAll(ds).find(t => t.url === webId);
           if (!me) {
             setOnboardingRequired(true);
@@ -16307,44 +16349,70 @@ var App = function App() {
                 fetch: session.fetch
               });
               missingCatalog = false;
-            } catch (_unused2) {
+            } catch (error) {
+              var _error$response;
+              if (((error === null || error === void 0 ? void 0 : error.statusCode) || (error === null || error === void 0 || (_error$response = error.response) === null || _error$response === void 0 ? void 0 : _error$response.status)) !== 404) throw error;
               missingCatalog = true;
             }
           }
           var missingRegistry = false;
-          try {
-            var registryConfig = yield loadRegistryConfig(webId, session.fetch);
-            var privateRegistry = registryConfig.privateRegistry || buildDefaultPrivateRegistry(webId);
-            if (!privateRegistry) {
-              missingRegistry = !privateRegistry;
-            } else {
-              try {
-                yield getSolidDataset(privateRegistry, {
-                  fetch: session.fetch
-                });
-              } catch (err) {
-                var _err$response;
-                var status = (err === null || err === void 0 ? void 0 : err.statusCode) || (err === null || err === void 0 || (_err$response = err.response) === null || _err$response === void 0 ? void 0 : _err$response.status);
-                if (status === 404) missingRegistry = true;
-              }
+          var registryConfig = yield loadRegistryConfig(webId, session.fetch, {
+            onLoadError: error => {
+              throw error;
             }
-          } catch (_unused3) {
+          });
+          if (cancelled) return;
+          setIsPrivateRegistry(registryConfig.mode === "private");
+          var privateRegistry = registryConfig.privateRegistry || buildDefaultPrivateRegistry(webId);
+          if (!privateRegistry) {
             missingRegistry = true;
+          } else {
+            try {
+              yield getSolidDataset(privateRegistry, {
+                fetch: session.fetch
+              });
+            } catch (err) {
+              var _err$response;
+              var status = (err === null || err === void 0 ? void 0 : err.statusCode) || (err === null || err === void 0 || (_err$response = err.response) === null || _err$response === void 0 ? void 0 : _err$response.status);
+              if (status === 404) missingRegistry = true;else throw err;
+            }
           }
+          if (!embedded) profilePhoto = yield loadProfilePhoto(ds, me, session.fetch);
+          if (cancelled && profilePhoto.startsWith('blob:')) URL.revokeObjectURL(profilePhoto);
+          if (cancelled) return;
+          setUserName(name);
+          setUserEmail(allEmails[0] || "");
+          setHeaderUserInfo({
+            loggedIn: true,
+            webId,
+            name,
+            email: allEmails[0] || "",
+            photo: profilePhoto
+          });
           setOnboardingRequired(missingBasics || missingEmail || missingInbox || missingCatalog || missingRegistry);
         } catch (err) {
+          var _err$response2;
+          if (cancelled) return;
           console.error("Profile completeness check failed:", err);
-          setOnboardingRequired(true);
+          failed = ((err === null || err === void 0 ? void 0 : err.statusCode) || (err === null || err === void 0 || (_err$response2 = err.response) === null || _err$response2 === void 0 ? void 0 : _err$response2.status)) !== 404;
+          setOnboardingRequired(!failed);
         } finally {
-          setCheckingProfile(false);
+          if (!cancelled) setProfileCheck({
+            webId,
+            error: failed
+          });
         }
       });
       return function checkProfileCompleteness() {
-        return _ref5.apply(this, arguments);
+        return _ref2.apply(this, arguments);
       };
     }();
     checkProfileCompleteness();
-  }, [isLoggedIn, webId]);
+    return () => {
+      cancelled = true;
+      if (profilePhoto.startsWith('blob:')) URL.revokeObjectURL(profilePhoto);
+    };
+  }, [isLoggedIn, webId, profileAttempt, embedded]);
   var handleSearch = searchValue => {
     setSearchQuery(searchValue || "");
   };
@@ -16385,11 +16453,11 @@ var App = function App() {
     }
   }, [datasets, selectedDataset, showDetailModal, showEditModal, showDeleteModal]);
   var populateFromSeed = /*#__PURE__*/function () {
-    var _ref7 = _asyncToGenerator(function* (_ref6) {
+    var _ref4 = _asyncToGenerator(function* (_ref3) {
       var {
         publisher,
         webId
-      } = _ref6;
+      } = _ref3;
       if (!session.info.isLoggedIn || !session.info.webId) return;
       setIsPopulating(true);
       try {
@@ -16480,7 +16548,7 @@ var App = function App() {
             seriesMembers: members
           });
         }
-        yield _fetchDatasets();
+        yield fetchDatasets();
       } catch (error) {
         console.error("Failed to populate catalog:", error);
       } finally {
@@ -16488,7 +16556,7 @@ var App = function App() {
       }
     });
     return function populateFromSeed(_x2) {
-      return _ref7.apply(this, arguments);
+      return _ref4.apply(this, arguments);
     };
   }();
   React.useEffect(() => {
@@ -16514,7 +16582,9 @@ var App = function App() {
   var renderWithI18n = content => /*#__PURE__*/React.createElement(I18nProvider, {
     language: language
   }, content);
-  if (checkingProfile) {
+  var checkingProfile = isLoggedIn && (profileCheck === null || profileCheck === void 0 ? void 0 : profileCheck.webId) !== webId;
+  var showLogin = !embedded && !isLoggedIn;
+  if (!showLogin && (checkingProfile || loadingDatasets || isPopulating)) {
     return renderWithI18n(/*#__PURE__*/React.createElement(CatalogLoadingState, {
       title: "Semantic Data Catalog",
       description: "Loading your personal catalog workspace \u2026",
@@ -16525,13 +16595,31 @@ var App = function App() {
     return renderWithI18n(/*#__PURE__*/React.createElement(OnboardingWizard, {
       webId: webId,
       embedded: embedded,
-      onComplete: () => setOnboardingRequired(false),
+      onComplete: () => {
+        setOnboardingRequired(false);
+        setProfileCheck(null);
+        setProfileAttempt(value => value + 1);
+        retryDatasets();
+      },
       onCancel: /*#__PURE__*/_asyncToGenerator(function* () {
         yield session.logout({
           logoutType: "app"
         });
         window.location.reload();
       })
+    }));
+  }
+  if (!showLogin && (datasetLoadError || profileCheck !== null && profileCheck !== void 0 && profileCheck.error)) {
+    return renderWithI18n(/*#__PURE__*/React.createElement(CatalogLoadingState, {
+      title: "Semantic Data Catalog",
+      description: "Some catalog sources could not be loaded. Please try again.",
+      embedded: embedded,
+      error: true,
+      onRetry: () => {
+        setProfileCheck(null);
+        setProfileAttempt(value => value + 1);
+        retryDatasets();
+      }
     }));
   }
   if (!embedded && !isLoggedIn) {
@@ -16550,13 +16638,14 @@ var App = function App() {
     })));
   }
   return renderWithI18n(/*#__PURE__*/React.createElement("div", null, !embedded && /*#__PURE__*/React.createElement(HeaderBar, {
+    initialUserInfo: headerUserInfo,
     onLoginStatusChange: setIsLoggedIn,
     onWebIdChange: setWebId,
-    onUserInfoChange: _ref9 => {
+    onUserInfoChange: _ref6 => {
       var {
         name,
         email
-      } = _ref9;
+      } = _ref6;
       setUserName(name);
       setUserEmail(email);
     },
@@ -16627,7 +16716,7 @@ var App = function App() {
     className: "fa-solid fa-hammer mr-2"
   }), "Under Construction"), /*#__PURE__*/React.createElement("p", null, "This section is not yet available.")), showNewDatasetModal && /*#__PURE__*/React.createElement(DatasetAddModal, {
     onClose: handleCloseModal,
-    fetchDatasets: _fetchDatasets
+    fetchDatasets: fetchDatasets
   }), showDetailModal && /*#__PURE__*/React.createElement(DatasetDetailModal, {
     dataset: selectedDataset,
     onClose: handleCloseModal,
@@ -16642,14 +16731,14 @@ var App = function App() {
     onClose: handleCloseNestedModal,
     onDeleted: handleCloseModal,
     dataset: selectedDataset,
-    fetchDatasets: _fetchDatasets
+    fetchDatasets: fetchDatasets
   }), showRegistryModal && /*#__PURE__*/React.createElement(PrivateRegistryModal, {
     onClose: () => setShowRegistryModal(false),
-    onSaved: _fetchDatasets
+    onSaved: fetchDatasets
   }), showEditModal && /*#__PURE__*/React.createElement(DatasetEditModal, {
     dataset: selectedDataset,
     onClose: handleCloseNestedModal,
-    fetchDatasets: _fetchDatasets
+    fetchDatasets: fetchDatasets
   }), /*#__PURE__*/React.createElement(CatalogSurvey, {
     session: session,
     webId: webId,

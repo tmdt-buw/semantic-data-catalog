@@ -6,6 +6,30 @@ import CatalogLoadingState from "./CatalogLoadingState";
 import { I18nProvider } from "../i18n";
 
 describe("CatalogLoadingState", () => {
+  test("shows an accessible translated retry state without a progress animation", async () => {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    const retry = jest.fn();
+    await act(async () => root.render(
+      <I18nProvider language="de">
+        <CatalogLoadingState title="Semantic Data Catalog" error onRetry={retry}
+          description="Some catalog sources could not be loaded. Please try again." />
+      </I18nProvider>
+    ));
+    expect(container.querySelector('[role="alert"]').textContent).toBe(
+      "Einige Katalogquellen konnten nicht geladen werden. Bitte versuche es erneut."
+    );
+    expect(container.querySelector("main").getAttribute("aria-busy")).toBe("false");
+    expect(container.querySelector('[role="progressbar"]')).toBeNull();
+    const button = container.querySelector("button");
+    expect(button.textContent).toBe("Erneut versuchen");
+    button.focus();
+    expect(document.activeElement).toBe(button);
+    await act(async () => button.click());
+    expect(retry).toHaveBeenCalledTimes(1);
+    await act(async () => root.unmount());
+  });
   beforeAll(() => {
     global.IS_REACT_ACT_ENVIRONMENT = true;
   });
