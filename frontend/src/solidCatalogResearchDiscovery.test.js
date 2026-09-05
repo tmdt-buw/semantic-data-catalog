@@ -138,6 +138,7 @@ test.each([false, true])("waits for the last dataset even when an earlier source
   const result = await pending;
   expect(result.datasets).toHaveLength(failFirst ? 1 : 2);
   expect(onLoadError).toHaveBeenCalledTimes(failFirst ? 1 : 0);
+  if (failFirst) expect(onLoadError).toHaveBeenCalledWith(expect.any(Error), { stage: "dataset" });
   expect(mockGetSolidDataset.mock.calls.some(([url]) => url.startsWith("https://data.example/"))).toBe(false);
   warn.mockRestore();
 });

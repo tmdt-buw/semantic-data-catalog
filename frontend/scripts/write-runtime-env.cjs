@@ -6,6 +6,7 @@ const parseBoolean = (value) =>
   ["1", "true", "yes", "on"].includes(String(value || "").trim().toLowerCase());
 
 const runtimeConfig = {
+  PUBLIC_CACHE_URL: process.env.PUBLIC_CACHE_URL || "",
   REACT_APP_REDIRECT_URL: process.env.REACT_APP_REDIRECT_URL || "",
   REACT_APP_VERSION: process.env.REACT_APP_VERSION || packageJson.version,
   STATISTICS_ENABLED: parseBoolean(process.env.STATISTICS_ENABLED),

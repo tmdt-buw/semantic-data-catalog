@@ -13,11 +13,21 @@ export default function useCatalogDatasets(session, webId, isLoggedIn) {
     if (!run || run.context !== context) return;
     const request = ++run.request;
     let failed = false;
+    let partial = false;
     try {
       const loaded = await loadAggregatedDatasets(
         session,
         isLoggedIn ? null : window.fetch.bind(window),
-        { onLoadError: () => { failed = true; } }
+        {
+          usePublicCache: true,
+          onLoadError: (_error, detail) => {
+            // A registry can link to deleted, private or offline entries.
+            // Wait for the complete traversal, but do not let one such entry
+            // hide every successful result. Discovery failures remain blocking.
+            if (detail?.stage === "dataset" || detail?.stage === "catalog") partial = true;
+            else failed = true;
+          },
+        }
       );
       if (activeRun.current !== run || run.request !== request) return;
       setResult({
@@ -28,6 +38,7 @@ export default function useCatalogDatasets(session, webId, isLoggedIn) {
         })),
         catalogs: loaded.catalogs || [],
         error: failed,
+        partial,
       });
     } catch (error) {
       if (activeRun.current !== run || run.request !== request) return;
@@ -69,6 +80,7 @@ export default function useCatalogDatasets(session, webId, isLoggedIn) {
     catalogs: current?.catalogs || [],
     loading: !current,
     error: Boolean(current?.error),
+    partial: Boolean(current?.partial),
     fetchDatasets,
     retry: () => {
       setResult(null);

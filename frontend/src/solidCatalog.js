@@ -33,6 +33,7 @@ import { DCAT, DCTERMS, FOAF, LDP, RDF, VCARD } from "@inrupt/vocab-common-rdf";
 import Parser from "n3/lib/N3Parser";
 import Writer from "n3/lib/N3Writer";
 import { deleteCatalogDatasetDocuments } from "./catalogDeletion";
+import { loadPublicCatalogCache, cachedCatalogFetch } from "./publicCatalogCache";
 
 const CATALOG_CONTAINER = "catalog/";
 const DATASET_CONTAINER = "catalog/ds/";
@@ -1216,7 +1217,7 @@ const loadCatalogDatasets = async (catalogUrl, fetch, onLoadError) => {
         return parseDatasetFromDoc(datasetDoc, datasetUrl);
       } catch (err) {
         console.warn("Failed to load dataset", datasetUrl, err);
-        onLoadError?.(err);
+        onLoadError?.(err, { stage: "dataset" });
         return null;
       }
     })
@@ -1249,19 +1250,31 @@ const mergeDatasets = (lists) => {
 export const loadAggregatedDatasets = async (
   session,
   fetchOverride,
-  { researchRegistries, onLoadError } = {}
+  { researchRegistries, onLoadError, usePublicCache = false } = {}
 ) => {
   const webId = session?.info?.webId || "";
-  const fetch =
+  let fetch =
     fetchOverride ||
     session?.fetch ||
     (typeof window !== "undefined" ? window.fetch.bind(window) : fetchOverride);
   if (!fetch) return { datasets: [], catalogs: [] };
 
+  let snapshots = [];
+  let selectedRegistries = researchRegistries;
+  if (usePublicCache) {
+    if (!Array.isArray(selectedRegistries)) {
+      const registryConfig = await loadRegistryConfig(webId, fetch, { onLoadError });
+      if (registryConfig.mode !== "private") selectedRegistries = registryConfig.registries;
+    }
+    if (Array.isArray(selectedRegistries)) snapshots = await loadPublicCatalogCache(selectedRegistries);
+  }
+  const cachedMembers = new Map(snapshots.filter((s) => s.discoveryComplete).map((s) => [s.registryUrl, s.members]));
+  const cachedCatalogs = new Map(snapshots.flatMap((s) => s.members.map((m) => [m.webId, m.catalogUrl])));
   let registryMembers;
-  if (Array.isArray(researchRegistries)) {
+  if (Array.isArray(selectedRegistries)) {
     const membersByRegistry = await Promise.all(
-      researchRegistries.map((registryUrl) =>
+      selectedRegistries.map((registryUrl) =>
+        cachedMembers.get(normalizeContainerUrl(registryUrl))?.map((m) => m.webId) ||
         loadRegistryMembersFromContainer(registryUrl, fetch, { onLoadError })
       )
     );
@@ -1284,12 +1297,17 @@ export const loadAggregatedDatasets = async (
           })
       )
     );
+    if (!Array.isArray(researchRegistries) && webId && !registryMembers.includes(webId)) registryMembers.push(webId);
   } else {
     registryMembers = await loadRegistryMembers(webId, fetch, { onLoadError });
   }
   const catalogUrls = await Promise.all(
-    registryMembers.map((member) => resolveCatalogUrlFromWebId(member, fetch))
+    registryMembers.map((member) => (member !== webId && cachedCatalogs.get(member)) || resolveCatalogUrlFromWebId(member, fetch))
   );
+  if (snapshots.length) {
+    const ownIndex = registryMembers.indexOf(webId);
+    fetch = cachedCatalogFetch(snapshots, fetch, { ownCatalogUrl: catalogUrls[ownIndex], isLoggedIn: Boolean(session?.info?.isLoggedIn) });
+  }
   const uniqueCatalogUrls = Array.from(
     new Set(
       catalogUrls.filter((catalogUrl) => {
@@ -1325,7 +1343,7 @@ export const loadAggregatedDatasets = async (
       return { datasets, lastSuccess: now, failed: false };
     } catch (err) {
       console.warn("Catalog load failed", catalogUrl, err);
-      onLoadError?.(err);
+      onLoadError?.(err, { stage: "catalog" });
       const cached = cache.catalogs[catalogUrl];
       if (cached?.datasets) {
         return { datasets: cached.datasets, lastSuccess: cached.lastSuccess || 0, failed: true };

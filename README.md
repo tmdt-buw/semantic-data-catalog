@@ -215,6 +215,26 @@ This work has been supported as part of the research project _Gesundes Tal_ in c
 
 ---
 
+## Public metadata cache
+
+The catalog UI optionally reads preloaded public RDF metadata from the shared
+sync worker at `/sync-worker/public-cache/catalog`. On localhost it uses the
+test domain's central worker. Configure `PUBLIC_CACHE_URL` (runtime
+`window._env_.PUBLIC_CACHE_URL`) for a standalone host without this proxy.
+
+The worker warms only its configured public research registries. Private registry
+mode and protected metadata keep using the active Solid session. Own catalog
+metadata is loaded directly so changes are immediately visible. Public cache
+misses, expired snapshots and unavailable worker versions fall back to normal
+discovery; missing individual entries keep the existing partial-load warning.
+The app still waits for profile checks and all selected data reads to settle.
+
+For library callers, `loadAggregatedDatasets` accepts the optional
+`usePublicCache: true` option; it defaults to false outside the UI. Cache responses
+preserve original RDF document URLs and do not imply access to a distribution.
+The worker README documents configuration, expiry, pagination, and deployment
+verification. No private data is sent to or persisted in the public cache.
+
 ## Contact
 
 For questions or contributions, please contact:

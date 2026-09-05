@@ -3043,6 +3043,132 @@ var deleteCatalogDatasetDocuments = /*#__PURE__*/function () {
   };
 }();
 
+var normalizeRegistry = value => "".concat(String(value).replace(/\/+$/, ""), "/");
+var documentUrl = value => String(value).split("#", 1)[0];
+var safeUrl = value => {
+  try {
+    var url = new URL(value);
+    return ["https:", "http:"].includes(url.protocol) && !url.username && !url.password && !url.search;
+  } catch (_unused) {
+    return false;
+  }
+};
+function publicCatalogCacheUrl(registry, currentHref, configuredBase) {
+  var current = new URL(currentHref);
+  var local = ["localhost", "127.0.0.1", "[::1]"].includes(current.hostname);
+  var base = configuredBase || (local ? "https://solid-dataspace-test.tmdt.info/sync-worker/public-cache" : "/sync-worker/public-cache");
+  var target = new URL("".concat(base.replace(/\/+$/, ""), "/catalog"), current.origin);
+  if (!safeUrl(target.href) || target.hash) throw new Error("Invalid public catalog cache URL.");
+  target.searchParams.set("registry", normalizeRegistry(registry));
+  return target;
+}
+
+// No session fetch, credentials, localStorage, or cross-user in-memory results.
+// Only public RDF documents are reused. The existing parser keeps the row model.
+function loadPublicCatalogCache(_x) {
+  return _loadPublicCatalogCache.apply(this, arguments);
+}
+function _loadPublicCatalogCache() {
+  _loadPublicCatalogCache = _asyncToGenerator(function* (registries) {
+    var _window$_env_;
+    var {
+      fetchImpl = globalThis.fetch,
+      currentHref = window.location.href,
+      configuredBase = (_window$_env_ = window._env_) === null || _window$_env_ === void 0 ? void 0 : _window$_env_.PUBLIC_CACHE_URL,
+      timeoutMs = 10000
+    } = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+    var snapshots = yield Promise.all([...new Set(registries.map(normalizeRegistry))].map(/*#__PURE__*/function () {
+      var _ref2 = _asyncToGenerator(function* (registry) {
+        var controller = new AbortController();
+        var timer = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+          var target = publicCatalogCacheUrl(registry, currentHref, configuredBase);
+          var documents = new Map();
+          var metadata;
+          var offset = 0;
+          var bytes = 0;
+          for (var page = 0; page < 2048; page++) {
+            var _response$headers$get;
+            var response = yield fetchImpl(target.href, {
+              credentials: "omit",
+              cache: "no-store",
+              signal: controller.signal
+            });
+            if (!response.ok || !((_response$headers$get = response.headers.get("content-type")) !== null && _response$headers$get !== void 0 && _response$headers$get.includes("application/json"))) return null;
+            var value = yield response.json();
+            if ((value === null || value === void 0 ? void 0 : value.schemaVersion) !== 1 || normalizeRegistry(value.registryUrl) !== registry || !["ready", "partial"].includes(value.status) || typeof value.revision !== "string" || value.revision.length > 200 || typeof value.discoveryComplete !== "boolean" || !(Date.parse(value.expiresAt) > Date.now()) || !Array.isArray(value.documents) || !Array.isArray(value.members) || metadata && value.revision !== metadata.revision) return null;
+            if (!metadata) {
+              metadata = value;
+              if (value.members.length > 256 || !value.members.every(m => safeUrl(m.webId) && safeUrl(m.catalogUrl))) return null;
+            }
+            for (var doc of value.documents) {
+              if (!doc || !safeUrl(doc.url) || doc.url.includes("#") || typeof doc.body !== "string" || !["text/turtle", "application/n-triples"].includes(doc.contentType)) return null;
+              bytes += doc.body.length;
+              if (bytes > 32 * 1024 * 1024 || documents.size >= 2048) return null;
+              documents.set(doc.url, doc);
+            }
+            if (value.nextOffset === null) return _objectSpread2$2(_objectSpread2$2({}, metadata), {}, {
+              documents
+            });
+            if (!Number.isSafeInteger(value.nextOffset) || value.nextOffset <= offset || value.nextOffset > 2048) return null;
+            offset = value.nextOffset;
+            target.searchParams.set("offset", String(offset));
+            target.searchParams.set("revision", metadata.revision);
+          }
+          return null;
+        } catch (_unused3) {
+          return null;
+        } finally {
+          clearTimeout(timer);
+        }
+      });
+      return function (_x4) {
+        return _ref2.apply(this, arguments);
+      };
+    }()));
+    return snapshots.filter(Boolean);
+  });
+  return _loadPublicCatalogCache.apply(this, arguments);
+}
+function cachedCatalogFetch(snapshots, fallbackFetch) {
+  var {
+    ownCatalogUrl,
+    isLoggedIn = false
+  } = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
+  var catalogRoots = new Set(snapshots.flatMap(s => s.members.map(m => documentUrl(m.catalogUrl))));
+  var docs = new Map(snapshots.flatMap(s => [...s.documents]));
+  var ownBase;
+  try {
+    ownBase = new URL(".", documentUrl(ownCatalogUrl)).href;
+  } catch (_unused2) {/* Guest */}
+  return /*#__PURE__*/function () {
+    var _ref = _asyncToGenerator(function* (input, options) {
+      var url = documentUrl(typeof input === "string" ? input : input.url);
+      var doc = docs.get(url);
+      // Own metadata always fresh (including immediately after add/edit/delete).
+      // Authenticated catalog roots can advertise additional private datasets.
+      var method = (options === null || options === void 0 ? void 0 : options.method) || typeof input === "object" && input.method || "GET";
+      var bypass = method.toUpperCase() !== "GET" || ownBase && url.startsWith(ownBase) || isLoggedIn && catalogRoots.has(url);
+      if (!bypass && doc && snapshots.some(s => s.documents.has(url) && Date.parse(s.expiresAt) > Date.now())) {
+        var response = new Response(doc.body, {
+          headers: {
+            "Content-Type": doc.contentType
+          }
+        });
+        // Inrupt resolves relative RDF IRIs against response.url, never the cache API.
+        Object.defineProperty(response, "url", {
+          value: doc.url
+        });
+        return response;
+      }
+      return fallbackFetch(input, options);
+    });
+    return function (_x2, _x3) {
+      return _ref.apply(this, arguments);
+    };
+  }();
+}
+
 var CATALOG_CONTAINER = "catalog/";
 var DATASET_CONTAINER = "catalog/ds/";
 var SERIES_CONTAINER = "catalog/series/";
@@ -4083,7 +4209,9 @@ var loadCatalogDatasets = /*#__PURE__*/function () {
           return parseDatasetFromDoc(datasetDoc, datasetUrl);
         } catch (err) {
           console.warn("Failed to load dataset", datasetUrl, err);
-          onLoadError === null || onLoadError === void 0 || onLoadError(err);
+          onLoadError === null || onLoadError === void 0 || onLoadError(err, {
+            stage: "dataset"
+          });
           return null;
         }
       });
@@ -4120,7 +4248,8 @@ var loadAggregatedDatasets = /*#__PURE__*/function () {
     var _session$info3;
     var {
       researchRegistries,
-      onLoadError
+      onLoadError,
+      usePublicCache = false
     } = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
     var webId = (session === null || session === void 0 || (_session$info3 = session.info) === null || _session$info3 === void 0 ? void 0 : _session$info3.webId) || "";
     var fetch = fetchOverride || (session === null || session === void 0 ? void 0 : session.fetch) || (typeof window !== "undefined" ? window.fetch.bind(window) : fetchOverride);
@@ -4128,11 +4257,27 @@ var loadAggregatedDatasets = /*#__PURE__*/function () {
       datasets: [],
       catalogs: []
     };
+    var snapshots = [];
+    var selectedRegistries = researchRegistries;
+    if (usePublicCache) {
+      if (!Array.isArray(selectedRegistries)) {
+        var registryConfig = yield loadRegistryConfig(webId, fetch, {
+          onLoadError
+        });
+        if (registryConfig.mode !== "private") selectedRegistries = registryConfig.registries;
+      }
+      if (Array.isArray(selectedRegistries)) snapshots = yield loadPublicCatalogCache(selectedRegistries);
+    }
+    var cachedMembers = new Map(snapshots.filter(s => s.discoveryComplete).map(s => [s.registryUrl, s.members]));
+    var cachedCatalogs = new Map(snapshots.flatMap(s => s.members.map(m => [m.webId, m.catalogUrl])));
     var registryMembers;
-    if (Array.isArray(researchRegistries)) {
-      var membersByRegistry = yield Promise.all(researchRegistries.map(registryUrl => loadRegistryMembersFromContainer(registryUrl, fetch, {
-        onLoadError
-      })));
+    if (Array.isArray(selectedRegistries)) {
+      var membersByRegistry = yield Promise.all(selectedRegistries.map(registryUrl => {
+        var _cachedMembers$get;
+        return ((_cachedMembers$get = cachedMembers.get(normalizeContainerUrl$2(registryUrl))) === null || _cachedMembers$get === void 0 ? void 0 : _cachedMembers$get.map(m => m.webId)) || loadRegistryMembersFromContainer(registryUrl, fetch, {
+          onLoadError
+        });
+      }));
       registryMembers = Array.from(new Set(membersByRegistry.flat().filter(memberWebId => {
         try {
           var url = new URL(memberWebId);
@@ -4141,12 +4286,21 @@ var loadAggregatedDatasets = /*#__PURE__*/function () {
           return false;
         }
       })));
+      if (!Array.isArray(researchRegistries) && webId && !registryMembers.includes(webId)) registryMembers.push(webId);
     } else {
       registryMembers = yield loadRegistryMembers(webId, fetch, {
         onLoadError
       });
     }
-    var catalogUrls = yield Promise.all(registryMembers.map(member => resolveCatalogUrlFromWebId(member, fetch)));
+    var catalogUrls = yield Promise.all(registryMembers.map(member => member !== webId && cachedCatalogs.get(member) || resolveCatalogUrlFromWebId(member, fetch)));
+    if (snapshots.length) {
+      var _session$info4;
+      var ownIndex = registryMembers.indexOf(webId);
+      fetch = cachedCatalogFetch(snapshots, fetch, {
+        ownCatalogUrl: catalogUrls[ownIndex],
+        isLoggedIn: Boolean(session === null || session === void 0 || (_session$info4 = session.info) === null || _session$info4 === void 0 ? void 0 : _session$info4.isLoggedIn)
+      });
+    }
     var uniqueCatalogUrls = Array.from(new Set(catalogUrls.filter(catalogUrl => {
       if (!catalogUrl) return false;
       try {
@@ -4178,7 +4332,9 @@ var loadAggregatedDatasets = /*#__PURE__*/function () {
           };
         } catch (err) {
           console.warn("Catalog load failed", catalogUrl, err);
-          onLoadError === null || onLoadError === void 0 || onLoadError(err);
+          onLoadError === null || onLoadError === void 0 || onLoadError(err, {
+            stage: "catalog"
+          });
           var cached = cache.catalogs[catalogUrl];
           if (cached !== null && cached !== void 0 && cached.datasets) {
             return {
@@ -4435,11 +4591,11 @@ var getAclTargetUrl = resourceUrl => {
 };
 var ensurePublicReadOnlyResourceAccess = /*#__PURE__*/function () {
   var _ref30 = _asyncToGenerator(function* (session, resourceUrl) {
-    var _session$info4;
+    var _session$info5;
     var {
       podRoot = ""
     } = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
-    if (!(session !== null && session !== void 0 && (_session$info4 = session.info) !== null && _session$info4 !== void 0 && _session$info4.webId) || typeof session.fetch !== "function") {
+    if (!(session !== null && session !== void 0 && (_session$info5 = session.info) !== null && _session$info5 !== void 0 && _session$info5.webId) || typeof session.fetch !== "function") {
       throw new Error("An authenticated Solid session is required.");
     }
     if (!isLocalPodResource(session.info.webId, resourceUrl, podRoot)) {
@@ -4464,11 +4620,11 @@ var ensurePublicReadOnlyResourceAccess = /*#__PURE__*/function () {
 }();
 var ensureRestrictedResourceAccess = /*#__PURE__*/function () {
   var _ref31 = _asyncToGenerator(function* (session, resourceUrl) {
-    var _session$info5;
+    var _session$info6;
     var {
       podRoot = ""
     } = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
-    if (!(session !== null && session !== void 0 && (_session$info5 = session.info) !== null && _session$info5 !== void 0 && _session$info5.webId) || typeof session.fetch !== "function") {
+    if (!(session !== null && session !== void 0 && (_session$info6 = session.info) !== null && _session$info6 !== void 0 && _session$info6.webId) || typeof session.fetch !== "function") {
       throw new Error("An authenticated Solid session is required.");
     }
     if (!isLocalPodResource(session.info.webId, resourceUrl, podRoot)) {
@@ -4492,8 +4648,8 @@ var syncLinkedResourceAccess = /*#__PURE__*/function () {
   var _ref32 = _asyncToGenerator(function* (session, input) {
     var urls = [input.access_url_dataset, input.access_url_semantic_model].filter(Boolean);
     for (var url of urls) {
-      var _session$info6;
-      if (!isLocalPodResource(session === null || session === void 0 || (_session$info6 = session.info) === null || _session$info6 === void 0 ? void 0 : _session$info6.webId, url, input.podRoot)) {
+      var _session$info7;
+      if (!isLocalPodResource(session === null || session === void 0 || (_session$info7 = session.info) === null || _session$info7 === void 0 ? void 0 : _session$info7.webId, url, input.podRoot)) {
         if (input.strict_restricted_acl && !input.is_public) {
           throw new Error("Restricted linked resource is outside the owner's Pod: ".concat(url));
         }
@@ -4553,14 +4709,14 @@ var writeDatasetDocument = /*#__PURE__*/function () {
     }
     var distDataset = buildDistributionThing(datasetDocUrl, "dist", input.access_url_dataset, input.file_format, input.distribution_access_type);
     if (distDataset) {
-      var _session$info7;
+      var _session$info8;
       solidDataset = setThing(solidDataset, distDataset);
       datasetThing = addUrl(datasetThing, DCAT.distribution, distDataset.url);
-      solidDataset = addLdpTypeIfLocal(solidDataset, session === null || session === void 0 || (_session$info7 = session.info) === null || _session$info7 === void 0 ? void 0 : _session$info7.webId, input.access_url_dataset, input.podRoot);
+      solidDataset = addLdpTypeIfLocal(solidDataset, session === null || session === void 0 || (_session$info8 = session.info) === null || _session$info8 === void 0 ? void 0 : _session$info8.webId, input.access_url_dataset, input.podRoot);
     }
     if (input.access_url_semantic_model) {
-      var _session$info8;
-      solidDataset = addLdpTypeIfLocal(solidDataset, session === null || session === void 0 || (_session$info8 = session.info) === null || _session$info8 === void 0 ? void 0 : _session$info8.webId, input.access_url_semantic_model, input.podRoot);
+      var _session$info9;
+      solidDataset = addLdpTypeIfLocal(solidDataset, session === null || session === void 0 || (_session$info9 = session.info) === null || _session$info9 === void 0 ? void 0 : _session$info9.webId, input.access_url_semantic_model, input.podRoot);
     }
     solidDataset = setThing(solidDataset, datasetThing);
     yield saveSolidDatasetAt(datasetDocUrl, solidDataset, {
@@ -4772,8 +4928,8 @@ var generateIdentifier = () => {
 };
 var createDataset = /*#__PURE__*/function () {
   var _ref39 = _asyncToGenerator(function* (session, input) {
-    var _session$info9;
-    var podRoot = (input === null || input === void 0 ? void 0 : input.podRoot) || getPodRoot$1(session === null || session === void 0 || (_session$info9 = session.info) === null || _session$info9 === void 0 ? void 0 : _session$info9.webId);
+    var _session$info10;
+    var podRoot = (input === null || input === void 0 ? void 0 : input.podRoot) || getPodRoot$1(session === null || session === void 0 || (_session$info10 = session.info) === null || _session$info10 === void 0 ? void 0 : _session$info10.webId);
     yield ensureCatalogStructure(session, {
       podRoot,
       registryConfig: input === null || input === void 0 ? void 0 : input.registryConfig
@@ -4801,8 +4957,8 @@ var createDataset = /*#__PURE__*/function () {
 }();
 var createDatasetSeries = /*#__PURE__*/function () {
   var _ref40 = _asyncToGenerator(function* (session, input) {
-    var _session$info10;
-    if (!(session !== null && session !== void 0 && (_session$info10 = session.info) !== null && _session$info10 !== void 0 && _session$info10.webId)) throw new Error("No Solid WebID available.");
+    var _session$info11;
+    if (!(session !== null && session !== void 0 && (_session$info11 = session.info) !== null && _session$info11 !== void 0 && _session$info11.webId)) throw new Error("No Solid WebID available.");
     yield ensureCatalogStructure(session);
     var identifier = input.identifier || generateIdentifier();
     var seriesDocUrl = getSeriesDocUrl(session.info.webId, identifier);
@@ -4831,10 +4987,10 @@ var createDatasetSeries = /*#__PURE__*/function () {
 }();
 var updateDataset = /*#__PURE__*/function () {
   var _ref41 = _asyncToGenerator(function* (session, input) {
-    var _session$info11;
+    var _session$info12;
     if (!input.datasetUrl) throw new Error("Missing dataset URL.");
     validateDatasetInput(input);
-    var podRoot = (input === null || input === void 0 ? void 0 : input.podRoot) || getPodRoot$1(session === null || session === void 0 || (_session$info11 = session.info) === null || _session$info11 === void 0 ? void 0 : _session$info11.webId);
+    var podRoot = (input === null || input === void 0 ? void 0 : input.podRoot) || getPodRoot$1(session === null || session === void 0 || (_session$info12 = session.info) === null || _session$info12 === void 0 ? void 0 : _session$info12.webId);
     var datasetDocUrl = getDocumentUrl(input.datasetUrl);
     yield writeDatasetDocument(session, datasetDocUrl, input, {
       allowCreate: false
@@ -4957,8 +5113,8 @@ var deleteDatasetEntry = /*#__PURE__*/function () {
 }();
 var cleanupCatalogSeriesLinks = /*#__PURE__*/function () {
   var _ref45 = _asyncToGenerator(function* (session) {
-    var _session$info12;
-    if (!(session !== null && session !== void 0 && (_session$info12 = session.info) !== null && _session$info12 !== void 0 && _session$info12.webId)) throw new Error("No Solid WebID available.");
+    var _session$info13;
+    if (!(session !== null && session !== void 0 && (_session$info13 = session.info) !== null && _session$info13 !== void 0 && _session$info13.webId)) throw new Error("No Solid WebID available.");
     var catalogDocUrl = getCatalogDocUrl(session.info.webId);
     var catalogUrl = "".concat(catalogDocUrl, "#it");
     var datasetSeriesPredicate = DCAT.datasetSeries || "http://www.w3.org/ns/dcat#datasetSeries";
@@ -14369,7 +14525,7 @@ var HeaderBar = _ref2 => {
   }));
 };
 
-var appVersion = "0.8.71";
+var appVersion = "0.8.72";
 
 var FooterBar = () => {
   return /*#__PURE__*/React.createElement("footer", {
@@ -14410,6 +14566,7 @@ var enToDe = {
   "Loading your personal catalog workspace …": "Dein persönlicher Katalogbereich wird geladen …",
   "Semantic Data Catalog": "Semantischer Datenkatalog",
   "Some catalog sources could not be loaded. Please try again.": "Einige Katalogquellen konnten nicht geladen werden. Bitte versuche es erneut.",
+  "Some catalog entries are unavailable or not accessible. All available entries are shown.": "Einige Katalogeinträge sind nicht verfügbar oder nicht zugänglich. Alle verfügbaren Einträge werden angezeigt.",
   "All datasets & dataset series": "Alle Datensätze und Datensatzreihen",
   "Add Dataset": "Datensatz hinzufügen",
   "Download Catalog": "Katalog herunterladen",
@@ -14834,14 +14991,31 @@ function LanguageSelect() {
   }, "Deutsch")));
 }
 
-function CatalogLoadingState(_ref) {
+function CatalogLoadWarning(_ref) {
+  var {
+    onRetry
+  } = _ref;
+  var {
+    t
+  } = useI18n();
+  return /*#__PURE__*/React.createElement("aside", {
+    className: "catalog-load-warning"
+  }, /*#__PURE__*/React.createElement("p", {
+    role: "status"
+  }, t("Some catalog entries are unavailable or not accessible. All available entries are shown.")), /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    className: "catalog-full-loader__retry",
+    onClick: onRetry
+  }, t("Try again")));
+}
+function CatalogLoadingState(_ref2) {
   var {
     title,
     description = "",
     embedded = false,
     error = false,
     onRetry
-  } = _ref;
+  } = _ref2;
   var {
     language,
     t
@@ -16140,10 +16314,15 @@ function useCatalogDatasets(session, webId, isLoggedIn) {
     if (!run || run.context !== context) return;
     var request = ++run.request;
     var failed = false;
+    var partial = false;
     try {
       var loaded = yield loadAggregatedDatasets(session, isLoggedIn ? null : window.fetch.bind(window), {
-        onLoadError: () => {
-          failed = true;
+        usePublicCache: true,
+        onLoadError: (_error, detail) => {
+          // A registry can link to deleted, private or offline entries.
+          // Wait for the complete traversal, but do not let one such entry
+          // hide every successful result. Discovery failures remain blocking.
+          if ((detail === null || detail === void 0 ? void 0 : detail.stage) === "dataset" || (detail === null || detail === void 0 ? void 0 : detail.stage) === "catalog") partial = true;else failed = true;
         }
       });
       if (activeRun.current !== run || run.request !== request) return;
@@ -16153,7 +16332,8 @@ function useCatalogDatasets(session, webId, isLoggedIn) {
           userHasAccess: dataset.is_public || dataset.webid === webId
         })),
         catalogs: loaded.catalogs || [],
-        error: failed
+        error: failed,
+        partial
       });
     } catch (error) {
       if (activeRun.current !== run || run.request !== request) return;
@@ -16201,6 +16381,7 @@ function useCatalogDatasets(session, webId, isLoggedIn) {
     catalogs: (current === null || current === void 0 ? void 0 : current.catalogs) || [],
     loading: !current,
     error: Boolean(current === null || current === void 0 ? void 0 : current.error),
+    partial: Boolean(current === null || current === void 0 ? void 0 : current.partial),
     fetchDatasets,
     retry: () => {
       setResult(null);
@@ -16246,6 +16427,7 @@ var App = function App() {
     catalogs,
     loading: loadingDatasets,
     error: datasetLoadError,
+    partial: partiallyLoaded,
     fetchDatasets,
     retry: retryDatasets
   } = useCatalogDatasets(session, webId, isLoggedIn);
@@ -16654,7 +16836,9 @@ var App = function App() {
     })
   }), activeTab === 'dataset' && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     className: "catalog-shell"
-  }, /*#__PURE__*/React.createElement("div", {
+  }, partiallyLoaded && /*#__PURE__*/React.createElement(CatalogLoadWarning, {
+    onRetry: retryDatasets
+  }), /*#__PURE__*/React.createElement("div", {
     className: "catalog-actions"
   }, /*#__PURE__*/React.createElement("div", {
     className: "catalog-actions-inner"
