@@ -78,11 +78,8 @@
 .catalog-full-loader__mark svg {
   width: 2.35rem;
   height: 2.35rem;
-  fill: none;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 1.6;
+  fill: currentColor;
+  stroke: none;
 }
 
 .catalog-full-loader h1 {

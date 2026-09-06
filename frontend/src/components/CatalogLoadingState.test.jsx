@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import CatalogLoadingState, { CatalogLoadWarning } from "./CatalogLoadingState";
 import { I18nProvider } from "../i18n";
+import { faBookOpen } from "@fortawesome/free-solid-svg-icons";
 
 describe("CatalogLoadingState", () => {
   test("announces incomplete results in German and offers a keyboard-focusable retry", async () => {
@@ -75,6 +76,9 @@ describe("CatalogLoadingState", () => {
       await Promise.resolve();
     });
 
+    const icon = container.querySelector(".catalog-full-loader__mark svg");
+    expect(icon.getAttribute("data-icon")).toBe("book-open");
+    expect(icon.querySelector("path").getAttribute("d")).toBe(faBookOpen.icon[4]);
     return { container, root };
   };
 

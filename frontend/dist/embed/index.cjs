@@ -14527,7 +14527,7 @@ var HeaderBar = _ref2 => {
   }));
 };
 
-var appVersion = "0.8.72";
+var appVersion = "0.8.73";
 
 var FooterBar = () => {
   return /*#__PURE__*/React.createElement("footer", {
@@ -15033,18 +15033,9 @@ function CatalogLoadingState(_ref2) {
   }, /*#__PURE__*/React.createElement("span", {
     className: "catalog-full-loader__mark",
     "aria-hidden": "true"
-  }, /*#__PURE__*/React.createElement("svg", {
-    viewBox: "0 0 24 24",
-    focusable: "false"
-  }, /*#__PURE__*/React.createElement("path", {
-    d: "M5 5.75C5 4.78 8.13 4 12 4s7 .78 7 1.75-3.13 1.75-7 1.75-7-.78-7-1.75Z"
-  }), /*#__PURE__*/React.createElement("path", {
-    d: "M5 5.75v4.5C5 11.22 8.13 12 12 12s7-.78 7-1.75v-4.5"
-  }), /*#__PURE__*/React.createElement("path", {
-    d: "M5 10.25v4.5c0 .97 3.13 1.75 7 1.75s7-.78 7-1.75v-4.5"
-  }), /*#__PURE__*/React.createElement("path", {
-    d: "M5 14.75v3.5C5 19.22 8.13 20 12 20s7-.78 7-1.75v-3.5"
-  }))), /*#__PURE__*/React.createElement("h1", null, translatedTitle), /*#__PURE__*/React.createElement("p", {
+  }, /*#__PURE__*/React.createElement(FontAwesomeIcon, {
+    icon: faBookOpen
+  })), /*#__PURE__*/React.createElement("h1", null, translatedTitle), /*#__PURE__*/React.createElement("p", {
     role: error ? "alert" : "status",
     "aria-live": error ? "assertive" : "polite"
   }, translatedDescription), error ? /*#__PURE__*/React.createElement("button", {

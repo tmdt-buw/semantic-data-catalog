@@ -1,4 +1,6 @@
 import React from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faBookOpen } from "@fortawesome/free-solid-svg-icons";
 import { useI18n } from "../i18n";
 import "./CatalogLoadingState.css";
 
@@ -36,12 +38,7 @@ export default function CatalogLoadingState({
     >
       <main className="catalog-full-loader" aria-busy={!error}>
         <span className="catalog-full-loader__mark" aria-hidden="true">
-          <svg viewBox="0 0 24 24" focusable="false">
-            <path d="M5 5.75C5 4.78 8.13 4 12 4s7 .78 7 1.75-3.13 1.75-7 1.75-7-.78-7-1.75Z" />
-            <path d="M5 5.75v4.5C5 11.22 8.13 12 12 12s7-.78 7-1.75v-4.5" />
-            <path d="M5 10.25v4.5c0 .97 3.13 1.75 7 1.75s7-.78 7-1.75v-4.5" />
-            <path d="M5 14.75v3.5C5 19.22 8.13 20 12 20s7-.78 7-1.75v-3.5" />
-          </svg>
+          <FontAwesomeIcon icon={faBookOpen} />
         </span>
         <h1>{translatedTitle}</h1>
         <p role={error ? "alert" : "status"} aria-live={error ? "assertive" : "polite"}>
