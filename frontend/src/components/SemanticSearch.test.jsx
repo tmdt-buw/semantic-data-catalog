@@ -22,7 +22,7 @@ describe('Semantic Search', () => {
     global.fetch = jest.fn().mockResolvedValueOnce(reply({status:'ready', dataspaceId:'dace', datasetCount:1, modelCount:1}))
       .mockResolvedValueOnce(reply({head:{vars:['dataset','title']},results:{bindings:[{dataset:{type:'uri',value:url},title:{type:'literal',value:'Steel beam'}}]}}));
     await render(<SemanticSearch onOpenDataset={open} />);
-    expect(container.textContent).toContain('dace');
+    expect(container.querySelector('button[type="submit"]').disabled).toBe(false);
     await act(async () => container.querySelector('form').dispatchEvent(new Event('submit', {bubbles:true,cancelable:true})));
     const [endpoint, options] = global.fetch.mock.calls[1];
     expect(endpoint).toBe('/api/semantic-search/query');
@@ -36,7 +36,7 @@ describe('Semantic Search', () => {
     global.fetch = jest.fn().mockResolvedValue(reply({status:'stale',dataspaceId:'test'}));
     await render(<SemanticSearch />);
     expect(container.querySelector('button[type="submit"]').disabled).toBe(true);
-    expect(container.textContent).toContain('current index');
+    expect(container.textContent).toContain('Search is currently unavailable');
   });
 
   test('renders ASK and RDF results and keeps unsafe IRIs inert', async () => {

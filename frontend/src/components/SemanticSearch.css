@@ -1,16 +1,20 @@
-.semantic-search { --search-border: #dce3ed; --search-muted: #53647a; color: #152844; background: #fff; border: 1px solid var(--search-border); border-radius: 12px; padding: 1.5rem; max-width: 100%; }
-.semantic-search h1 { font-size: 1.5rem; margin: 0 0 .5rem; font-weight: 650; }
+.semantic-search { --search-border: var(--border, #e2e8f0); --search-muted: var(--muted, #64748b); box-sizing: border-box; color: var(--text, #0f172a); background: var(--card, #fff); border: 1px solid var(--search-border); border-radius: var(--radius, 18px); box-shadow: var(--shadow, 0 18px 40px rgba(15, 23, 42, .08)); padding: 1.5rem; width: 100%; min-width: 0; }
+.semantic-search h1 { font-size: 1.5rem; margin: 0 0 1.5rem; font-weight: 650; }
 .semantic-search h2 { font-size: 1.125rem; margin: 0 0 1rem; }
 .semantic-search p { margin: .75rem 0; }
-.semantic-search-intro, .semantic-search-status, .semantic-search-actions, .semantic-search-examples { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; }
-.semantic-search-intro { justify-content: space-between; align-items: flex-start; }
-.semantic-search-status { background: #f3f6fa; border-radius: 8px; padding: 1rem; margin-top: 1rem; font-size: .875rem; }
+.semantic-search-notice, .semantic-search-actions, .semantic-search-examples { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; }
 .semantic-search-muted { color: var(--search-muted); font-size: .875rem; }
-.semantic-search-examples { margin: 1.5rem 0 1rem; }
-.semantic-search select { border: 1px solid var(--search-border); border-radius: 6px; padding: .5rem; max-width: 100%; background: #fff; color: inherit; }
+.semantic-search-examples { margin: 0 0 1.5rem; }
+.semantic-search-notice { justify-content: space-between; padding: 1rem; margin-bottom: 1.5rem; border: 1px solid var(--search-border); border-radius: 12px; background: var(--bg, #f8fafc); color: var(--search-muted); }
+.semantic-search select { border: 1px solid var(--search-border); border-radius: 12px; padding: .625rem .75rem; min-height: 42px; max-width: 100%; background: #fff; color: inherit; }
 .semantic-search label { font-weight: 600; }
-.semantic-search textarea { display: block; width: 100%; box-sizing: border-box; resize: vertical; min-height: 16rem; border: 1px solid #a9b8cc; border-radius: 8px; padding: 1rem; background: #f8fafc; color: #152844; font: .875rem/1.65 Consolas, monospace; tab-size: 2; }
+.semantic-search textarea { display: block; width: 100%; box-sizing: border-box; resize: vertical; min-height: 16rem; border: 1px solid #a9b8cc; border-radius: 12px; padding: 1rem; background: var(--bg, #f8fafc); color: var(--text, #0f172a); font: .875rem/1.65 Consolas, monospace; tab-size: 2; }
 .semantic-search :is(textarea, button, select, a, [tabindex]):focus-visible { outline: 3px solid #2563eb; outline-offset: 3px; }
+.semantic-search .btn { min-height: 40px; padding: .625rem 1rem; border-radius: 12px; font-weight: 700; }
+.semantic-search .btn-primary { background: var(--brand-navy, #142642); border-color: var(--brand-navy, #142642); color: #fff; box-shadow: 0 8px 16px rgba(15, 23, 42, .12); }
+.semantic-search .btn-primary:hover, .semantic-search .btn-primary:not(:disabled):not(.disabled):active { background: var(--brand-navy-hover, #1d355a); border-color: var(--brand-navy-hover, #1d355a); }
+.semantic-search .btn-light { background: var(--card, #fff); border-color: var(--search-border); color: var(--text, #0f172a); }
+.semantic-search .btn-light:hover { background: var(--bg, #f8fafc); }
 .semantic-search-results { border-top: 1px solid var(--search-border); margin-top: 1.5rem; padding-top: 1.5rem; }
 .semantic-search-table { overflow: auto; max-height: 36rem; }
 .semantic-search table { border-collapse: collapse; width: 100%; font-size: .875rem; }
@@ -21,4 +25,4 @@
 .semantic-search-error { color: #9f231b; background: #fff1f0; border-radius: 6px; padding: 1rem; }
 .semantic-search-errors { margin: 1rem 0; overflow-wrap: anywhere; }
 .semantic-search-rdf { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 36rem; overflow: auto; background: #f8fafc; padding: 1rem; }
-@media (max-width: 600px) { .semantic-search { padding: 1rem; } .semantic-search-status { align-items: flex-start; flex-direction: column; gap: .5rem; } }
+@media (max-width: 600px) { .semantic-search { padding: 1rem; } .semantic-search-examples { align-items: stretch; flex-direction: column; gap: .5rem; } }

@@ -4,7 +4,7 @@ import { SEARCH_EXAMPLES, searchRequest } from '../semanticSearchApi';
 import SemanticSearchResults from './SemanticSearchResults';
 import './SemanticSearch.css';
 
-export default function SemanticSearch({ onOpenDataset, apiBaseUrl }) {
+export default function SemanticSearch({ onOpenDataset, apiBaseUrl, embedded = false }) {
   const { t } = useI18n();
   const [status, setStatus] = useState(null);
   const [query, setQuery] = useState(SEARCH_EXAMPLES[0].query);
@@ -55,20 +55,14 @@ export default function SemanticSearch({ onOpenDataset, apiBaseUrl }) {
   }
 
   return <section className="semantic-search" aria-label={t('Semantic Search')}>
-    <div className="semantic-search-intro">
-      <div><h1>{t('Semantic Search')}</h1><p>{t('Find datasets through DCAT metadata and semantic model patterns.')}</p></div>
-      <button type="button" className="btn btn-light" onClick={() => { setError(''); setRefresh(v => v + 1); }}>{t('Refresh status')}</button>
-    </div>
-    <div className="semantic-search-status" role="status">
-      {!status ? t('Loading search status…') : <>
-        <strong>{t('Dataspace')}: {status.dataspaceId || '—'}</strong>
-        <span>{t('Index status')}: {t(status.status)}</span>
-        {status.checkedAt && <span>{t('Last indexed')}: {new Date(status.checkedAt).toLocaleString()}</span>}
-        {status.datasetCount !== undefined && <span>{status.datasetCount} {t('datasets')} · {status.modelCount} {t('models')}</span>}
-      </>}
-    </div>
-    <p className="semantic-search-muted">{t('This search uses only the registry of this instance and publicly readable metadata and models. Dataset contents are not imported.')}</p>
-    {status && !ready && <p role="status">{t('Search is available once this instance has a current index. Configure the registry and start the indexer if needed.')}</p>}
+    {!embedded && <h1>{t('Semantic Search')}</h1>}
+    {!ready && <div className="semantic-search-notice" role="status">
+      <span>{status || error
+        ? t('Search is currently unavailable. Please try again shortly.')
+        : t('Loading search...')}</span>
+      {(status || error) && <button type="button" className="btn btn-light"
+        onClick={() => { setError(''); setRefresh(v => v + 1); }}>{t('Retry')}</button>}
+    </div>}
     {status?.errorCount > 0 && <details className="semantic-search-errors"><summary>{status.errorCount} {t('sources could not be indexed')}</summary>
       <ul>{status.errors?.map((entry, index) => <li key={index}><code>{entry.source}</code>: {entry.message}</li>)}</ul>
     </details>}

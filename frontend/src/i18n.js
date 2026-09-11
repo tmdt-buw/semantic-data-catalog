@@ -16,6 +16,9 @@ export const LANGUAGE_MESSAGE_TYPE = "solid-dataspace-language-change";
 
 const enToDe = {
   "Semantic Search": "Semantische Suche",
+  "Loading search...": "Suche wird geladen...",
+  "Search is currently unavailable. Please try again shortly.": "Die Suche ist gerade nicht verf\u00fcgbar. Bitte versuche es gleich noch einmal.",
+  "Retry": "Erneut versuchen",
   "Dataspace": "Datenraum",
   "Find datasets through DCAT metadata and semantic model patterns.": "Datensätze über DCAT-Metadaten und Muster in semantischen Modellen finden.",
   "Refresh status": "Status aktualisieren",

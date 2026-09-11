@@ -7992,6 +7992,9 @@ var LANGUAGE_EVENT = "solid-dataspace-language-change";
 var LANGUAGE_MESSAGE_TYPE = "solid-dataspace-language-change";
 var enToDe = {
   "Semantic Search": "Semantische Suche",
+  "Loading search...": "Suche wird geladen...",
+  "Search is currently unavailable. Please try again shortly.": "Die Suche ist gerade nicht verf\u00fcgbar. Bitte versuche es gleich noch einmal.",
+  "Retry": "Erneut versuchen",
   "Dataspace": "Datenraum",
   "Find datasets through DCAT metadata and semantic model patterns.": "Datensätze über DCAT-Metadaten und Muster in semantischen Modellen finden.",
   "Refresh status": "Status aktualisieren",
@@ -8582,7 +8585,8 @@ function SemanticSearch(_ref) {
   var _status$errors;
   var {
     onOpenDataset,
-    apiBaseUrl
+    apiBaseUrl,
+    embedded = false
   } = _ref;
   var {
     t
@@ -8668,23 +8672,17 @@ function SemanticSearch(_ref) {
   return /*#__PURE__*/React.createElement("section", {
     className: "semantic-search",
     "aria-label": t('Semantic Search')
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "semantic-search-intro"
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h1", null, t('Semantic Search')), /*#__PURE__*/React.createElement("p", null, t('Find datasets through DCAT metadata and semantic model patterns.'))), /*#__PURE__*/React.createElement("button", {
+  }, !embedded && /*#__PURE__*/React.createElement("h1", null, t('Semantic Search')), !ready && /*#__PURE__*/React.createElement("div", {
+    className: "semantic-search-notice",
+    role: "status"
+  }, /*#__PURE__*/React.createElement("span", null, status || error ? t('Search is currently unavailable. Please try again shortly.') : t('Loading search...')), (status || error) && /*#__PURE__*/React.createElement("button", {
     type: "button",
     className: "btn btn-light",
     onClick: () => {
       setError('');
       setRefresh(v => v + 1);
     }
-  }, t('Refresh status'))), /*#__PURE__*/React.createElement("div", {
-    className: "semantic-search-status",
-    role: "status"
-  }, !status ? t('Loading search status…') : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("strong", null, t('Dataspace'), ": ", status.dataspaceId || '—'), /*#__PURE__*/React.createElement("span", null, t('Index status'), ": ", t(status.status)), status.checkedAt && /*#__PURE__*/React.createElement("span", null, t('Last indexed'), ": ", new Date(status.checkedAt).toLocaleString()), status.datasetCount !== undefined && /*#__PURE__*/React.createElement("span", null, status.datasetCount, " ", t('datasets'), " \xB7 ", status.modelCount, " ", t('models')))), /*#__PURE__*/React.createElement("p", {
-    className: "semantic-search-muted"
-  }, t('This search uses only the registry of this instance and publicly readable metadata and models. Dataset contents are not imported.')), status && !ready && /*#__PURE__*/React.createElement("p", {
-    role: "status"
-  }, t('Search is available once this instance has a current index. Configure the registry and start the indexer if needed.')), (status === null || status === void 0 ? void 0 : status.errorCount) > 0 && /*#__PURE__*/React.createElement("details", {
+  }, t('Retry'))), (status === null || status === void 0 ? void 0 : status.errorCount) > 0 && /*#__PURE__*/React.createElement("details", {
     className: "semantic-search-errors"
   }, /*#__PURE__*/React.createElement("summary", null, status.errorCount, " ", t('sources could not be indexed')), /*#__PURE__*/React.createElement("ul", null, (_status$errors = status.errors) === null || _status$errors === void 0 ? void 0 : _status$errors.map((entry, index) => /*#__PURE__*/React.createElement("li", {
     key: index
@@ -15291,7 +15289,7 @@ var HeaderBar = _ref2 => {
   }));
 };
 
-var appVersion = "0.8.74";
+var appVersion = "0.8.75";
 
 var FooterBar = () => {
   return /*#__PURE__*/React.createElement("footer", {
@@ -17325,6 +17323,7 @@ function SemanticSearchEmbed(_ref) {
   return /*#__PURE__*/React.createElement(I18nProvider, {
     language: language
   }, /*#__PURE__*/React.createElement(SemanticSearch, {
+    embedded: true,
     onOpenDataset: onOpenDataset,
     apiBaseUrl: apiBaseUrl
   }));

@@ -4,5 +4,5 @@ import SemanticSearch from '../components/SemanticSearch';
 import './embed.css';
 
 export default function SemanticSearchEmbed({ language, onOpenDataset, apiBaseUrl }) {
-  return <I18nProvider language={language}><SemanticSearch onOpenDataset={onOpenDataset} apiBaseUrl={apiBaseUrl} /></I18nProvider>;
+  return <I18nProvider language={language}><SemanticSearch embedded onOpenDataset={onOpenDataset} apiBaseUrl={apiBaseUrl} /></I18nProvider>;
 }
