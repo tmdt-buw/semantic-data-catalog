@@ -76,6 +76,12 @@ export const REGISTRY_PRESETS = [
     url: "https://solid-community-server.tmdt.info/semanticdatacatalog/public/test",
     icon: "flask",
   },
+  {
+    id: "test2",
+    label: "Test 2",
+    url: "https://solid-community-server.tmdt.info/semanticdatacatalog/public/test2",
+    icon: "flask",
+  },
 ];
 const SDM_CHANGELOG = `${SDM_NS}changeLog`;
 const SDM_CHANGE_EVENT = `${SDM_NS}ChangeEvent`;

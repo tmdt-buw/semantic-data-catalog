@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import SearchBar from './components/SearchBar';
 import DatasetTable from './components/DatasetTable';
 import DatasetAddModal from './components/DatasetAddModal';
 import DatasetDetailModal from './components/DatasetDetailModal';
+import SemanticSearch from './components/SemanticSearch';
+import { safeResultUrl } from './semanticSearchApi';
 import DatasetDeleteModal from './components/DatasetDeleteModal';
 import DatasetEditModal from './components/DatasetEditModal';
 import HeaderBar, { loadProfilePhoto } from './components/HeaderBar';
@@ -24,6 +26,7 @@ import {
   createDatasetSeries,
   loadRegistryConfig,
   SDP_CATALOG,
+  parseDatasetFromDoc,
   updateDatasetSeries,
 } from './solidCatalog';
 
@@ -32,6 +35,7 @@ const defaultIssuer = process.env.REACT_APP_OIDC_ISSUER || 'https://solid-commun
 const App = ({
   embedded = false,
   webIdOverride = null,
+  datasetUrl = null,
   LoginScreenComponent = null,
   language = null,
   statisticsConfig,
@@ -54,7 +58,42 @@ const App = ({
   const [isPopulating, setIsPopulating] = useState(false);
   const populateTriggerRef = useRef(false);
 
-  const [activeTab, setActiveTab] = useState('dataset');
+  const [activeTab, setActiveTabState] = useState(() =>
+    !embedded && new URLSearchParams(window.location.search).get('view') === 'semantic-search' ? 'semantic-search' : 'dataset');
+  const [datasetOpenError, setDatasetOpenError] = useState('');
+  const setActiveTab = (tab) => {
+    setActiveTabState(tab);
+    if (!embedded) {
+      const url = new URL(window.location.href);
+      if (tab === 'semantic-search') url.searchParams.set('view', tab);
+      else url.searchParams.delete('view');
+      window.history.pushState({}, '', url);
+    }
+  };
+  useEffect(() => {
+    if (embedded) return undefined;
+    const onPopState = () => setActiveTabState(new URLSearchParams(window.location.search).get('view') === 'semantic-search' ? 'semantic-search' : 'dataset');
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, [embedded]);
+  const openSearchDataset = useCallback(async (url) => {
+    setDatasetOpenError('');
+    try {
+      if (!safeResultUrl(url)) throw new Error('Invalid dataset URL.');
+      const doc = await getSolidDataset(url.split('#')[0], {
+        fetch: (input, init) => fetch(input, { ...init, credentials: 'omit', cache: 'no-store' }),
+      });
+      const dataset = parseDatasetFromDoc(doc, url);
+      if (!dataset) throw new Error('Dataset is no longer available.');
+      setSelectedDataset(dataset);
+      setShowDetailModal(true);
+    } catch (error) { setDatasetOpenError(error.message); }
+  }, []);
+  useEffect(() => {
+    const requested = datasetUrl || (!embedded && new URLSearchParams(window.location.search).get('dataset'));
+    if (requested && isLoggedIn) openSearchDataset(requested);
+    // This loads the requested document independently of the profile's registry selection.
+  }, [datasetUrl, embedded, isLoggedIn, openSearchDataset]);
   const [onboardingRequired, setOnboardingRequired] = useState(false);
   const [profileCheck, setProfileCheck] = useState(null);
   const [profileAttempt, setProfileAttempt] = useState(0);
@@ -419,7 +458,7 @@ const App = ({
 
   const checkingProfile = isLoggedIn && profileCheck?.webId !== webId;
   const showLogin = !embedded && !isLoggedIn;
-  if (!showLogin && (checkingProfile || loadingDatasets || isPopulating)) {
+  if (!showLogin && activeTab !== 'semantic-search' && !datasetUrl && (checkingProfile || loadingDatasets || isPopulating)) {
     return renderWithI18n(
       <CatalogLoadingState
         title="Semantic Data Catalog"
@@ -448,7 +487,7 @@ const App = ({
     );
   }
 
-  if (!showLogin && (datasetLoadError || profileCheck?.error)) {
+  if (!showLogin && activeTab !== 'semantic-search' && !datasetUrl && (datasetLoadError || profileCheck?.error)) {
     return renderWithI18n(
       <CatalogLoadingState
         title="Semantic Data Catalog"
@@ -499,6 +538,8 @@ const App = ({
         />
       )}
 
+      {datasetOpenError && <p role="alert" className="semantic-search-error">{datasetOpenError}</p>}
+      {activeTab === 'semantic-search' && <SemanticSearch onOpenDataset={openSearchDataset} />}
       {activeTab === 'dataset' && (
         <>
           <div className="catalog-shell">

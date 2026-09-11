@@ -21,7 +21,15 @@ services:
   semantic-data-catalog-backend:
     build: ./backend
     container_name: semantic_data_catalog_backend
+    depends_on:
+      semantic-data-catalog-fuseki:
+        condition: service_healthy
     environment:
+      CATALOG_DATASPACE_ID: ${CATALOG_DATASPACE_ID:-}
+      CATALOG_REGISTRY_URL: ${CATALOG_REGISTRY_URL:-}
+      CATALOG_FUSEKI_URL: http://semantic-data-catalog-fuseki:3030/catalog
+      CATALOG_INDEX_INTERVAL_SECONDS: ${CATALOG_INDEX_INTERVAL_SECONDS:-300}
+      CATALOG_INDEX_MAX_AGE_SECONDS: ${CATALOG_INDEX_MAX_AGE_SECONDS:-900}
       CATALOG_SERVICE_WEBID: ${CATALOG_SERVICE_WEBID:-https://solid-community-server.tmdt.info/solidservice/profile/card#me}
       CATALOG_SERVICE_OIDC_ISSUER: ${CATALOG_SERVICE_OIDC_ISSUER:-https://solid-community-server.tmdt.info}
       CATALOG_SERVICE_CLIENT_ID: ${CATALOG_SERVICE_CLIENT_ID:-}
@@ -30,5 +38,42 @@ services:
     ports:
       - "8000:8000"
 
+    networks:
+      - default
+      - catalog-search
+
+
+  semantic-data-catalog-indexer:
+    build: ./backend
+    command: ["python", "-m", "semantic_indexer"]
+    restart: unless-stopped
+    environment:
+      CATALOG_DATASPACE_ID: ${CATALOG_DATASPACE_ID:-}
+      CATALOG_REGISTRY_URL: ${CATALOG_REGISTRY_URL:-}
+      CATALOG_FUSEKI_URL: http://semantic-data-catalog-fuseki:3030/catalog
+      CATALOG_INDEX_INTERVAL_SECONDS: ${CATALOG_INDEX_INTERVAL_SECONDS:-300}
+      CATALOG_INDEX_MAX_AGE_SECONDS: ${CATALOG_INDEX_MAX_AGE_SECONDS:-900}
+    depends_on:
+      semantic-data-catalog-fuseki:
+        condition: service_healthy
+    networks:
+      - default
+      - catalog-search
+
+  semantic-data-catalog-fuseki:
+    build: ./fuseki
+    restart: unless-stopped
+    environment:
+      JAVA_TOOL_OPTIONS: "-Xmx512m"
+    volumes:
+      - semantic_search_data:/fuseki/databases
+    networks:
+      - catalog-search
+
 volumes:
+  semantic_search_data:
   node_modules:
+
+networks:
+  catalog-search:
+    internal: true

@@ -10,7 +10,9 @@ A FAIR-compliant **Semantic Data Catalog** for decentralized Solid-based dataspa
 - **Solid Pod**: Source of truth for catalog metadata (Turtle documents).
 - **Backend API (FastAPI)**: Helper API for public Solid catalog reads, SHACL validation, merged Turtle export, and service-account dataset creation.
 
-The previous SQL database and Fuseki setup is no longer used by the current `docker-compose.yaml`.
+The previous SQL database remains retired. A separate, derived Fuseki index now
+supports SPARQL over each instance's public DCAT metadata and semantic models.
+See [Semantic Search](SEMANTIC_SEARCH.md) for configuration, indexing and API details.
 
 ---
 
@@ -123,8 +125,9 @@ Modeling rules used by the UI:
 
 ## Backend API
 
-The API does not maintain a separate database or triple store. It reads public DCAT
-metadata directly from Solid Pods and returns JSON summaries.
+The catalog read/write API uses Solid Pods and returns JSON summaries. The optional
+`/api/semantic-search` endpoints query a separate public-only Fuseki index populated
+by the per-instance indexer; this index never replaces the Pod source documents.
 
 Useful endpoints:
 

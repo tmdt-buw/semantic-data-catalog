@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
 
+from semantic_search import create_router as create_semantic_search_router
 from shacl_validation import validate_turtle
 from solid_catalog import (
     CatalogLoadError,
@@ -22,6 +23,8 @@ app = FastAPI(
     redoc_url="/api/redoc",
     openapi_url="/api/openapi.json",
 )
+
+app.include_router(create_semantic_search_router())
 
 app.add_middleware(
     CORSMiddleware,
@@ -111,6 +114,8 @@ def read_root():
         "storage": "solid",
         "endpoints": [
             "GET /api/health",
+            "GET /api/semantic-search/status",
+            "POST /api/semantic-search/query",
             "GET /api/catalog?webId=... or catalogUrl=...",
             "GET /api/datasets?webId=... or catalogUrl=...",
             "GET /api/datasets/count?webId=... or catalogUrl=...",

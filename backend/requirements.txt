@@ -1,8 +1,10 @@
 fastapi
 uvicorn[standard]
-pydantic
+pydantic>=2,<3
 cryptography
 requests
 rdflib 
 rdflib-jsonld
 pyshacl==0.40.0
+urllib3>=2.6,<3
+pyparsing>=3.1,<4

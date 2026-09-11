@@ -20,3 +20,11 @@ jobs:
           file: ./backend/Dockerfile
           push: true
           tags: son1i/semantic-data-catalog-backend:latest
+      - uses: docker/build-push-action@v6
+        with:
+          context: ./fuseki
+          file: ./fuseki/Dockerfile
+          push: true
+          tags: |
+            son1i/semantic-data-catalog-fuseki:6.2.0
+            son1i/semantic-data-catalog-fuseki:latest

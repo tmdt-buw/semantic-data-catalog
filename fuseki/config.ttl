@@ -1,0 +1,18 @@
+PREFIX fuseki: <http://jena.apache.org/fuseki#>
+PREFIX ja: <http://jena.hpl.hp.com/2005/11/Assembler#>
+PREFIX tdb2: <http://jena.apache.org/2016/tdb#>
+
+[] a fuseki:Server .
+
+<#service> a fuseki:Service ;
+    fuseki:name "catalog" ;
+    fuseki:endpoint [ fuseki:operation fuseki:query ; fuseki:name "query" ] ;
+    fuseki:endpoint [ fuseki:operation fuseki:update ; fuseki:name "update" ] ;
+    fuseki:dataset <#dataset> .
+
+<#dataset> a tdb2:DatasetTDB2 ;
+    tdb2:location "/fuseki/databases/catalog" ;
+    ja:context [ ja:cxtName "arq:queryTimeout" ; ja:cxtValue "15000" ] ;
+    ja:context [ ja:cxtName "arq:httpServiceAllowed" ; ja:cxtValue false ] ;
+    ja:context [ ja:cxtName "arq:enablePropertyFunctions" ; ja:cxtValue false ] ;
+    ja:context [ ja:cxtName "tdb:unionDefaultGraph" ; ja:cxtValue true ] .

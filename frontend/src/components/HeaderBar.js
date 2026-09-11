@@ -144,6 +144,10 @@ const HeaderBar = ({
       </div>
 
       <div className="header-right header-right--catalog">
+        {userInfo.loggedIn && <button type="button" className="btn btn-light"
+          onClick={() => setActiveTab(activeTab === 'semantic-search' ? 'dataset' : 'semantic-search')}>
+          {activeTab === 'semantic-search' ? 'Semantic Data Catalog' : 'Semantic Search'}
+        </button>}
         {userInfo.loggedIn ? (
           <div className="header-user">
             {userInfo.photo && (

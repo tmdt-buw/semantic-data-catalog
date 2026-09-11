@@ -2346,6 +2346,11 @@ var REGISTRY_PRESETS = [{
   label: "Test",
   url: "https://solid-community-server.tmdt.info/semanticdatacatalog/public/test",
   icon: "flask"
+}, {
+  id: "test2",
+  label: "Test 2",
+  url: "https://solid-community-server.tmdt.info/semanticdatacatalog/public/test2",
+  icon: "flask"
 }];
 var SDM_CHANGELOG = "".concat(SDM_NS, "changeLog");
 var SDM_CHANGE_EVENT = "".concat(SDM_NS, "ChangeEvent");
